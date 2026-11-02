@@ -1,0 +1,5 @@
+# původní snímky webkamery (velké; do hry jdou převedené assets/frames)
+pics/
+# vzory postav stažené z webu (cizí obrázky, jen pro inspiraci)
+figures/
+__pycache__/
