@@ -65,6 +65,15 @@ K.scaleAt = (y) => {
   return p[p.length - 1][1];
 };
 
+// y lomené čáry (body seřazené podle x) v daném x; mimo rozsah drží krajní hodnotu
+K.polyY = (pts, x) => {
+  if (x <= pts[0].x) return pts[0].y;
+  for (let i = 1; i < pts.length; i++) {
+    if (x <= pts[i].x) return K.lerp(pts[i - 1].y, pts[i].y, (x - pts[i - 1].x) / (pts[i].x - pts[i - 1].x));
+  }
+  return pts[pts.length - 1].y;
+};
+
 K.inPolygon = (pt, poly) => {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -293,7 +302,17 @@ function render() {
   ctx.beginPath();
   ctx.rect(0, 0, K.W, K.H);
   ctx.clip();
-  if (K.scene && K.scene.draw) K.scene.draw(ctx);
+  // chyba ve scéně nesmí shodit HUD (zakrývá razítko kamery); hlásí se jen jednou
+  ctx.save();
+  try {
+    if (K.scene && K.scene.draw) K.scene.draw(ctx);
+  } catch (err) {
+    if (!K.drawError) console.error('chyba při kreslení scény:', err);
+    K.drawError = err;
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
   if (K.fade.a > 0) {
     ctx.globalAlpha = K.fade.a;
     ctx.fillStyle = K.fade.color;

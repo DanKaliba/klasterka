@@ -435,6 +435,38 @@ K.drawHouse = (ctx, x, y, w, h, o = {}) => {
   ctx.restore();
 };
 
+// červené K z němých značek Krkonoš (Klínovky) — cesta z Wikimedia Commons NZ_Klinovky.svg, volné dílo
+const LOGO_K = [[0.002, 0.083], [13.522, 0.048], [13.589, 14.605], [29.002, 0.032], [45.849, 0], [19.86, 25.383],
+  [45.89, 51.27], [29.177, 51.238], [13.431, 36.664], [13.501, 51.347], [0, 51.402]];
+const LOGO_K_H = 51.402;
+K.LOGO_K_RATIO = 45.89 / LOGO_K_H;
+
+// x = levý okraj, y = účaří, h = výška písmene
+K.drawLogoK = (ctx, x, y, h, color = '#eb3948') => {
+  const s = h / LOGO_K_H;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  LOGO_K.forEach(([px, py], i) => (i ? ctx.lineTo(x + px * s, y - h + py * s) : ctx.moveTo(x + px * s, y - h + py * s)));
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+};
+
+// nápis „Klášterka“ s K z němých značek, vycentrovaný na cx
+K.drawTitle = (ctx, cx, y, size, color = '#f3e6c8') => {
+  const rest = 'lášterka';
+  ctx.save();
+  ctx.font = `600 ${size}px Georgia, serif`;
+  const h = size * 0.79, kw = h * K.LOGO_K_RATIO, gap = size * 0.07; // K sahá do výšky „l“
+  const x0 = cx - (kw + gap + ctx.measureText(rest).width) / 2;
+  K.drawLogoK(ctx, x0, y, h);
+  ctx.fillStyle = color;
+  ctx.textAlign = 'left';
+  ctx.fillText(rest, x0 + kw + gap, y);
+  ctx.restore();
+};
+
 // tlačítko zpět / znovu v kroužku
 K.drawRoundButton = (ctx, x, y, icon, pulse) => {
   ctx.save();

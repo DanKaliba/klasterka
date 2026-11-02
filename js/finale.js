@@ -31,7 +31,7 @@ function buildTimeline() {
   for (const f of pick('2026-01-05_0800', '2026-01-05_0900')) add(0.9, { frame: f });
   add(0.1, { ev: 'waitLift' });
   // lyžování
-  for (const f of pick('2026-01-05_0901', '2026-01-05_1545')) add(2.4, { frame: f, ev: f.endsWith('0915') ? 'ski' : null });
+  for (const f of pick('2026-01-05_0901', '2026-01-05_1545')) add(2.4, { frame: f });
   add(2.5, { ev: 'stop' });
   for (const f of pick('2026-01-05_1546', '2026-01-05_1630')) add(1.6, { frame: f, ev: f.endsWith('1615') ? 'leave' : null });
   add(3.5, { night: 0.85, win: 1, stars: 1, clock: { date: '5. 1.', time: '18:00' } });
@@ -40,8 +40,8 @@ function buildTimeline() {
 }
 
 const F = {
-  keys: [], t: 0, i: 0, waiting: false, liftOn: false, liftSpeed: 0, liftOffset: 0, ended: 0,
-  stars: [], flakes: [], v: null, shift: { x: 0, y: 0 },
+  keys: [], t: 0, i: 0, waiting: false, liftOn: false, liftSpeed: 0, liftPos: 0, ended: false,
+  stars: [], flakes: [], v: null, shift: { x: 0, y: 0 }, riding: [], trails: [],
 };
 
 // ---------- pomocné výpočty ----------
@@ -52,13 +52,7 @@ function snowMix(v) {
 }
 const off = (pt, m) => ({ x: pt.x + K.L.snih.x * m, y: pt.y + K.L.snih.y * m });
 
-function skylineY(x) {
-  const o = K.L.obzor;
-  for (let i = 1; i < o.length; i++) {
-    if (x <= o[i].x) return K.lerp(o[i - 1].y, o[i].y, (x - o[i - 1].x) / (o[i].x - o[i - 1].x));
-  }
-  return o[o.length - 1].y;
-}
+const skylineY = (x) => K.polyY(K.L.obzor, x);
 
 function makeStars() {
   F.stars = [];
@@ -81,124 +75,234 @@ function sample() {
 }
 
 // ---------- vlek ----------
-const liftEnds = () => ({ B: K.L.vlek.dole, T: K.L.vlek.nahore });
-const poleH = (y) => 120 * K.scaleAt(y);
-const liftGround = (u) => {
-  const { B, T } = liftEnds();
-  return { x: K.lerp(B.x, T.x, u), y: K.lerp(B.y, T.y, u) };
+// Vlek vede po skutečných drátech z fotky. Je vidět jen na zimních snímcích, proto jeho body
+// nejsou posunuté o K.L.snih: dole = kde dráty mizí za hranou svahu, sloup = vrchol podpěry,
+// nahore = kde dráty odcházejí z obrazu (horní stanice s kladkami není vidět), pata = pata sloupu,
+// start = kde ovce vjedou do obrazu po vystoupení nahoře, sjezd = kam sjedou pod spodní okraj.
+// Lano: větev 0 jede nahoru (s ovcemi), větev 1 zpátky dolů.
+const RIDE_SEC = 13; // jízda na kotvě od hrany až za levý okraj
+const SKI_SEC = 8; // sjezd od levého okraje pod spodní okraj
+const TRACK_LIFE = 10; // jak dlouho (s) bledne stopa lyží
+const V = () => K.L.vlek;
+const edgeY = (x) => K.polyY(K.L.hrana, x);
+
+// bod o kus dál za b ve směru a→b (pokračování drátu / sjezdu mimo obraz)
+const beyond = (a, b, d) => {
+  const l = K.dist(a, b) || 1;
+  return { x: b.x + ((b.x - a.x) / l) * d, y: b.y + ((b.y - a.y) / l) * d };
 };
-const cableAt = (u) => {
-  const g = liftGround(u);
-  return { x: g.x, y: g.y - poleH(g.y) };
+
+// spodní drát je u sloupu a nahoře o kus níž, k hraně se sbíhá
+function cablePts(branch) {
+  const { dole, sloup, nahore } = V();
+  const pts = [dole, sloup, nahore, beyond(sloup, nahore, 160)];
+  const dy = [4, 13, 12, 12];
+  return pts.map((p, i) => ({ x: p.x + branch * (i ? 2 : 0), y: p.y + branch * dy[i] }));
+}
+
+function along(pts, u) {
+  const segs = [];
+  let total = 0;
+  for (let i = 1; i < pts.length; i++) { const l = K.dist(pts[i - 1], pts[i]); segs.push(l); total += l; }
+  let d = K.clamp(u) * total;
+  for (let i = 0; i < segs.length; i++) {
+    if (d <= segs[i] || i === segs.length - 1) {
+      const t = segs[i] ? Math.min(1, d / segs[i]) : 0;
+      return { x: K.lerp(pts[i].x, pts[i + 1].x, t), y: K.lerp(pts[i].y, pts[i + 1].y, t) };
+    }
+    d -= segs[i];
+  }
+  return pts[pts.length - 1];
+}
+
+const cableLen = () => {
+  const p = cablePts(0);
+  let l = 0;
+  for (let i = 1; i < p.length; i++) l += K.dist(p[i - 1], p[i]);
+  return l;
 };
-// sjezdovka: z horní stanice dolů, oblouky blíž ke kameře
-const skiAt = (u) => {
-  const { B, T } = liftEnds();
-  const x = K.lerp(T.x, B.x, u), y0 = K.lerp(T.y, B.y, u);
-  const s = K.scaleAt(y0);
-  return { x: x + Math.sin(u * Math.PI * 6) * 40 * s, y: y0 + (90 + 70 * Math.sin(u * Math.PI * 6 + 1)) * s * Math.sin(u * Math.PI) };
+const cableAt = (u, branch = 0) => along(cablePts(branch), u);
+
+// ovce na kotvě jede po odvrácené straně kopce těsně za hranou: zpoza hrany se nejdřív vynoří
+const riderAt = (u) => {
+  const x = cableAt(u).x;
+  const y = edgeY(x);
+  return { x, y: y + (4 + 60 * K.clamp(1 - u / 0.14)) * K.scaleAt(y) };
 };
-const booth = () => {
-  const B = K.L.vlek.dole, s = K.scaleAt(B.y);
-  return { x: B.x + 70 * s, y: B.y, s };
+
+// sjezd obloučky z levého okraje dolů; každá ovce má jiné oblouky
+const skiAt = (u, sh) => {
+  const { start, sjezd } = V();
+  const s0 = beyond(sjezd, start, 110);
+  const dx = sjezd.x - s0.x, dy = sjezd.y - s0.y, len = Math.hypot(dx, dy) || 1;
+  const x0 = K.lerp(s0.x, sjezd.x, u), y0 = K.lerp(s0.y, sjezd.y, u);
+  const w = Math.sin(u * Math.PI * sh.turns + sh.ph) * sh.amp * K.scaleAt(y0) * Math.min(1, u * 6);
+  return { x: x0 - (dy / len) * w, y: y0 + (dx / len) * w };
+};
+
+const poleHit = () => {
+  const { sloup, pata } = V();
+  return { x: sloup.x, y: (sloup.y + pata.y) / 2 };
 };
 
 function drawLift(ctx, alpha) {
   if (alpha <= 0.01) return;
-  const { B, T } = liftEnds();
+  const len = cableLen();
   ctx.save();
   ctx.globalAlpha = alpha;
+  ctx.strokeStyle = K.INK;
   ctx.lineCap = 'round';
-  // sloupy
-  for (let i = 0; i <= 4; i++) {
-    const g = liftGround(i / 4), h = poleH(g.y), s = K.scaleAt(g.y);
-    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-    ctx.lineWidth = 9 * s;
-    ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(g.x, g.y - h); ctx.stroke();
-    ctx.strokeStyle = K.INK;
-    ctx.lineWidth = 5 * s;
-    ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(g.x, g.y - h); ctx.lineTo(g.x - 14 * s, g.y - h); ctx.stroke();
+  ctx.lineJoin = 'round';
+  [0, 1].forEach((b) => {
+    const pts = cablePts(b);
+    const line = () => { ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke(); };
+    ctx.lineWidth = 2;
+    line();
+    // tečky na laně ukazují, kam běží
+    ctx.lineWidth = 3.5;
+    ctx.setLineDash([2, 26]);
+    ctx.lineDashOffset = (b ? 1 : -1) * F.liftPos;
+    line();
+    ctx.setLineDash([]);
+    // prázdné kotvy
+    const n = Math.round(len / 95);
+    for (let i = 0; i < n; i++) {
+      let u = (((i * len) / n + F.liftPos) % len) / len;
+      if (b) u = 1 - u;
+      if (!b && F.riding.some((r) => Math.abs(r - u) < 0.04)) continue; // tuhle kotvu drží ovce
+      const p = along(pts, u), s = K.scaleAt(p.y + 40);
+      ctx.lineWidth = 2 * s;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y + 30 * s);
+      ctx.moveTo(p.x - 9 * s, p.y + 30 * s); ctx.lineTo(p.x + 9 * s, p.y + 30 * s);
+      ctx.stroke();
+    }
+  });
+  ctx.restore();
+  if (F.waiting && !F.liftOn) {
+    const h = poleHit();
+    K.drawHint(ctx, h.x, h.y, 70);
   }
-  // lano
-  const c0 = cableAt(0), c1 = cableAt(1);
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(c1.x, c1.y); ctx.stroke();
-  // prázdné kotvy, které se točí s lanem
-  for (let i = 0; i < 9; i++) {
-    const u = (i / 9 + F.liftOffset) % 1;
-    const c = cableAt(u), s = K.scaleAt(c.y + poleH(c.y));
-    ctx.lineWidth = 2.5 * s;
-    ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(c.x, c.y + 50 * s); ctx.moveTo(c.x - 12 * s, c.y + 50 * s); ctx.lineTo(c.x + 12 * s, c.y + 50 * s); ctx.stroke();
-  }
-  // budka s motorem u dolní stanice
-  const b = booth();
-  ctx.fillStyle = '#7a4b33';
-  ctx.lineWidth = 4 * b.s;
-  ctx.fillRect(b.x - 30 * b.s, b.y - 70 * b.s, 60 * b.s, 70 * b.s);
-  ctx.strokeRect(b.x - 30 * b.s, b.y - 70 * b.s, 60 * b.s, 70 * b.s);
-  ctx.fillStyle = F.liftOn ? '#ffd27a' : '#3e4a52';
-  ctx.fillRect(b.x - 14 * b.s, b.y - 55 * b.s, 28 * b.s, 20 * b.s);
+}
+
+// stopy lyží: tmavé křivky, které po chvíli vyblednou
+function trackPoint(sh) {
+  if (!sh.trail) { sh.trail = []; F.trails.push(sh.trail); }
+  const last = sh.trail[sh.trail.length - 1];
+  if (!last || K.time - last.t > 0.035) sh.trail.push({ x: sh.x, y: sh.y, t: K.time });
+}
+
+function drawTracks(ctx) {
   ctx.save();
-  ctx.translate(B.x, B.y - poleH(B.y));
-  ctx.rotate(F.liftOffset * 40);
-  K.drawIcon(ctx, 'kolo', 0, 0, 34 * b.s);
+  ctx.lineCap = 'round';
+  for (const tr of F.trails) {
+    for (let i = 1; i < tr.length; i++) {
+      const a = K.clamp(1 - (K.time - tr[i].t) / TRACK_LIFE) * 0.75;
+      if (a <= 0) continue;
+      ctx.strokeStyle = `rgba(28, 28, 38, ${a})`;
+      ctx.lineWidth = 2.4 * K.scaleAt(tr[i].y);
+      ctx.beginPath();
+      ctx.moveTo(tr[i - 1].x, tr[i - 1].y);
+      ctx.lineTo(tr[i].x, tr[i].y);
+      ctx.stroke();
+    }
+  }
   ctx.restore();
-  ctx.restore();
-  if (F.waiting && !F.liftOn) K.drawHint(ctx, b.x, b.y - 35 * b.s, 70 * b.s);
+}
+
+function pruneTracks() {
+  for (const tr of F.trails) while (tr.length && K.time - tr[0].t > TRACK_LIFE) tr.shift();
+  F.trails = F.trails.filter((tr) => tr.length || K.sheep.some((sh) => sh.trail === tr));
 }
 
 // ---------- ovce ve finále ----------
+const HIDDEN = ['ride', 'queue', 'gone'];
+
+function skiTo(sh, p, q) {
+  sh.facing = q.x >= p.x ? 1 : -1;
+  sh.baseRot = Math.atan2(q.y - p.y, Math.abs(q.x - p.x) + 0.01) * 0.5 * sh.facing;
+  sh.x = p.x;
+  sh.y = p.y;
+  sh.walking = false;
+  trackPoint(sh);
+}
+
 function sheepFinale(dt) {
-  const c0 = off(K.L.chumel, 1);
-  const ch = { x: c0.x + F.shift.x, y: c0.y + F.shift.y };
+  const ch = { x: K.L.chumel.x + F.shift.x, y: K.L.chumel.y + F.shift.y };
+  F.riding = K.sheep.filter((sh) => sh.mode === 'ride').map((sh) => sh.u);
   K.sheep.forEach((sh, i) => {
     if (sh.tumbleT && K.time - sh.tumbleT < 0.8) sh.rot = sh.baseRot + ((K.time - sh.tumbleT) / 0.8) * Math.PI * 2 * sh.facing;
     else sh.rot = sh.baseRot || 0;
+    if (sh.mode !== 'ski' && sh.mode !== 'toLift') sh.trail = null;
     if (sh.mode === 'graze') return K.updateGrazing(sh, dt);
     if (sh.mode === 'huddle' || sh.mode === 'leave') {
       const a = (i / K.sheep.length) * Math.PI * 2;
       const s = K.scaleAt(ch.y);
       const tx = ch.x + Math.cos(a) * 34 * s + (i % 2) * 10 * s, ty = ch.y + Math.sin(a) * 14 * s;
-      const sp = (sh.mode === 'leave' ? 260 : 90) * s * dt;
+      const sp = (sh.mode === 'leave' ? 260 : 120) * s * dt;
       const d = Math.hypot(tx - sh.x, ty - sh.y);
       if (d > 2) { sh.x += ((tx - sh.x) / d) * Math.min(d, sp); sh.y += ((ty - sh.y) / d) * Math.min(d, sp); sh.walking = !sh.skis; sh.phase += dt * 6; }
       else sh.walking = false;
       sh.baseRot = Math.sin(K.time * 30 + i) * 0.02; // tulí se a třesou zimou
       return;
     }
-    // lyžovací kolečko: čekání dole → kotva nahoru → sjezd
     sh.baseRot = 0;
-    if (sh.mode === 'queue') {
+    if (sh.mode === 'toLift') {
+      // z chumlu sjede pod spodní okraj a odtud se objeví na vleku
       sh.wait -= dt;
-      const B = K.L.vlek.dole, s = K.scaleAt(B.y);
-      sh.x = K.lerp(sh.x, B.x - (50 + sh.slot * 26) * s, K.clamp(dt * 5));
-      sh.y = K.lerp(sh.y, B.y, K.clamp(dt * 5));
-      sh.facing = -1;
-      if (sh.wait <= 0 && F.liftOn && F.liftSpeed > 0.5) { sh.mode = 'ride'; sh.u = 0; }
+      if (sh.wait > 0) return;
+      const t = V().sjezd, d = Math.hypot(t.x - sh.x, t.y - sh.y);
+      if (d < 10) { sh.mode = 'queue'; sh.wait = 0; return; }
+      const step = Math.min(d, 280 * K.scaleAt(sh.y) * dt);
+      const p = { x: sh.x + ((t.x - sh.x) / d) * step, y: sh.y + ((t.y - sh.y) / d) * step };
+      skiTo(sh, p, { x: p.x + (t.x - sh.x), y: p.y + (t.y - sh.y) });
+    } else if (sh.mode === 'queue') {
+      // čeká mimo obraz; na kotvu jen s odstupem od předchozí ovce
+      sh.wait -= dt;
+      const free = F.riding.every((u) => u > 0.08);
+      if (sh.wait <= 0 && F.liftOn && F.liftSpeed > 0.5 && free) { sh.mode = 'ride'; sh.u = 0; F.riding.push(0); }
     } else if (sh.mode === 'ride') {
-      sh.u += dt / 9 * F.liftSpeed;
-      const g = liftGround(sh.u);
-      sh.x = g.x; sh.y = g.y; sh.facing = -1;
-      if (sh.u >= 1) { sh.mode = 'ski'; sh.u = 0; }
+      sh.u += (dt * F.liftSpeed) / RIDE_SEC;
+      const p = riderAt(Math.min(1, sh.u));
+      sh.x = p.x; sh.y = p.y; sh.facing = -1; sh.walking = false;
+      if (sh.u >= 1) {
+        sh.mode = 'ski';
+        sh.u = 0;
+        sh.turns = K.rand(2.5, 4.5);
+        sh.ph = K.rand(-0.5, 0.5);
+        sh.amp = K.rand(90, 170);
+      }
     } else if (sh.mode === 'ski') {
-      sh.u += dt / 5.5;
-      const p = skiAt(Math.min(1, sh.u)), q = skiAt(Math.min(1, sh.u + 0.01));
-      sh.facing = q.x >= p.x ? 1 : -1;
-      sh.baseRot = Math.atan2(q.y - p.y, Math.abs(q.x - p.x) + 0.01) * 0.6 * sh.facing;
-      sh.x = p.x; sh.y = p.y;
-      if (sh.u >= 1) { sh.mode = 'queue'; sh.wait = 0.4 + Math.random(); }
+      sh.u += dt / SKI_SEC;
+      skiTo(sh, skiAt(Math.min(1, sh.u), sh), skiAt(Math.min(1, sh.u + 0.01), sh));
+      if (sh.u >= 1) { sh.mode = 'queue'; sh.wait = K.rand(0.3, 1.5); }
     }
   });
+  pruneTracks();
 }
 
-function drawRiderBars(ctx) {
-  for (const sh of K.sheep) {
-    if (sh.mode !== 'ride') continue;
-    const c = cableAt(sh.u), s = K.scaleAt(sh.y);
+// ovce na kotvách: oříznuté hranou svahu, ať to vypadá, že jedou po odvrácené straně kopce
+function drawRiders(ctx) {
+  const riders = K.sheep.filter((sh) => sh.mode === 'ride');
+  if (!riders.length) return;
+  const h = K.L.hrana;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(K.W, 0);
+  ctx.lineTo(K.W, K.polyY(h, K.W));
+  for (let i = h.length - 1; i >= 0; i--) ctx.lineTo(h[i].x, h[i].y);
+  ctx.lineTo(0, K.polyY(h, 0));
+  ctx.closePath();
+  ctx.clip();
+  for (const sh of riders) {
+    const c = cableAt(Math.min(1, sh.u)), s = K.scaleAt(sh.y);
     ctx.strokeStyle = K.INK;
-    ctx.lineWidth = 2.5 * s;
-    ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(sh.x + 18 * s, sh.y - 30 * s); ctx.stroke();
+    ctx.lineWidth = 2.2 * s;
+    ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(sh.x + 20 * s, sh.y - 34 * s); ctx.stroke();
+    K.drawSheep(ctx, sh.x, sh.y, s, { facing: sh.facing, rot: sh.rot, skis: true, scarf: sh.scarf });
   }
+  ctx.restore();
 }
 
 // ---------- světla, hvězdy, sníh ----------
@@ -274,9 +378,6 @@ const EVENTS = {
     K.sheep.forEach((sh) => { sh.skis = true; });
   },
   waitLift() { F.waiting = true; },
-  ski() {
-    K.sheep.forEach((sh, i) => { sh.mode = 'queue'; sh.slot = i; sh.wait = i * 1.6; });
-  },
   stop() {
     F.liftOn = false;
     K.sound('vlek-stop');
@@ -302,6 +403,9 @@ K.scenes.finale = {
     F.liftSpeed = 0;
     F.ended = false;
     F.shift = { x: 0, y: 0 };
+    F.liftPos = 0;
+    F.riding = [];
+    F.trails = [];
     if (!K.sheep.length) K.makeSheep();
     makeStars();
     EVENTS[F.keys[0].ev]();
@@ -325,7 +429,8 @@ K.scenes.finale = {
         if (ev === 'waitLift' && !F.liftOn) { F.t = k[F.i].t; break; }
       }
       if (jump && F.waiting && !F.liftOn) { startLift(); F.liftSpeed = 1; }
-      F.liftOffset = (F.liftOffset + d * 0.03 * F.liftSpeed) % 1;
+      // lano běží stejně rychle jako ovce na kotvách
+      F.liftPos += (d * F.liftSpeed * cableLen()) / RIDE_SEC;
       sheepFinale(d);
       updateSnow(d);
     }
@@ -340,10 +445,13 @@ K.scenes.finale = {
     K.drawFrame(ctx, v.frameA);
     if (v.frameB !== v.frameA) K.drawFrame(ctx, v.frameB, v.u);
 
+    drawTracks(ctx);
     drawLift(ctx, v.lift);
-    drawRiderBars(ctx);
-    const hero = booth();
-    K.drawSheepFlock(ctx, K.hero.visible ? [{ y: hero.y, draw: () => K.drawHero(ctx, hero.x + 55 * hero.s, hero.y, hero.s, { facing: -1, wave: F.waiting && !F.liftOn }) }] : []);
+    drawRiders(ctx);
+    // panáček stojí na hraně vlevo od sloupu
+    const pata = V().pata, hs = K.scaleAt(pata.y), hx = pata.x - 45 * hs, hy = edgeY(hx) + 4;
+    const hero = { y: hy, draw: () => K.drawHero(ctx, hx, hy, hs, { facing: 1, wave: F.waiting && !F.liftOn }) };
+    K.drawSheepFlock(ctx, K.hero.visible ? [hero] : [], (sh) => !HIDDEN.includes(sh.mode));
 
     if (v.night > 0.01) {
       const n = v.night;
@@ -363,10 +471,7 @@ K.scenes.finale = {
       ctx.globalAlpha = a;
       ctx.fillStyle = 'rgba(10, 12, 24, 0.45)';
       ctx.fillRect(0, 0, K.W, K.H);
-      ctx.fillStyle = '#f3e6c8';
-      ctx.textAlign = 'center';
-      ctx.font = '600 120px Georgia, serif';
-      ctx.fillText('Klášterka', K.W / 2, K.H / 2 - 20);
+      K.drawTitle(ctx, K.W / 2, K.H / 2 - 20, 120);
       ctx.restore();
       if (a >= 1) K.drawRoundButton(ctx, K.W / 2, K.H / 2 + 120, 'znovu', true);
     }
@@ -374,8 +479,7 @@ K.scenes.finale = {
 
   hot(p) {
     if (F.ended) return K.dist(p, { x: K.W / 2, y: K.H / 2 + 120 }) < 45;
-    const b = booth();
-    if (F.waiting && !F.liftOn && K.dist(p, { x: b.x, y: b.y - 35 * b.s }) < 80 * b.s) return true;
+    if (F.waiting && !F.liftOn && K.dist(p, poleHit()) < 70) return true;
     return !!K.sheepAt(p);
   },
 
@@ -384,8 +488,7 @@ K.scenes.finale = {
       if (K.dist(p, { x: K.W / 2, y: K.H / 2 + 120 }) < 45) location.reload();
       return;
     }
-    const b = booth();
-    if (F.waiting && !F.liftOn && K.dist(p, { x: b.x, y: b.y - 35 * b.s }) < 80 * b.s) return startLift();
+    if (F.waiting && !F.liftOn && K.dist(p, poleHit()) < 70) return startLift();
     const sh = K.sheepAt(p);
     if (sh) {
       K.sound('bee');
@@ -400,6 +503,8 @@ function startLift() {
   F.waiting = false;
   K.sound('vlek');
   K.tween(2, (t) => { F.liftSpeed = t; });
+  // ovce postupně sjedou z chumlu pod spodní okraj a odtud naskočí na vlek
+  K.sheep.forEach((sh, i) => { sh.mode = 'toLift'; sh.wait = i * 0.9; });
 }
 
 K.finale = F;

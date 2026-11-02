@@ -15,7 +15,11 @@ window.SCENARE = {
   klinovka: [['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 1000, 800], ['ceka', 1500]],
   vrchol: [['ceka', 800], ['klik', 1100, 230], ['ceka', 300], ['klik', 1100, 230], ['ceka', 300], ['klik', 1100, 230], ['ceka', 2600]],
   finale: [['ceka', 1000]],
+  konec: [['ceka', 3000]],
+  dokonce: [['cekaVlek'], ['ceka', 200], ['klikVlek'], ['cekaKonec'], ['ceka', 3000]],
   vlek: [['ceka', 200], ['klikVlek'], ['ceka', 9000]],
+  lyzovani: [['ceka', 200], ['klikVlek'], ['ceka', 24000]],
+  lyzovani2: [['ceka', 200], ['klikVlek'], ['ceka', 31000]],
 };
 
 // celá hra od začátku do titulku
@@ -65,7 +69,7 @@ window.SCENARE.cela = [
       if (s[0] === 'klikChalupa') p = K.L.chalupy.find((c) => c.id === s[1]);
       if (s[0] === 'klikKolo') p = K.scene.st.wheel;
       if (s[0] === 'klikVrchol') p = K.L.vrchol;
-      if (s[0] === 'klikVlek') { const B = K.L.vlek.dole, sc = K.scaleAt(B.y); p = { x: B.x + 70 * sc, y: B.y - 35 * sc }; }
+      if (s[0] === 'klikVlek') { const V = K.L.vlek; p = { x: V.sloup.x, y: (V.sloup.y + V.pata.y) / 2 }; }
       K.mouse = p;
       if (K.busy === 0 && K.scene.click) K.scene.click(p);
       await wait(50);

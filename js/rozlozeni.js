@@ -2,7 +2,7 @@
 // Ladí se v editoru (klávesa E) a exportuje klávesou C — export tenhle soubor celý nahradí.
 // Při ruční změně zvyš "verze", jinak prohlížeč dál používá rozpracovaný stav z editoru.
 window.ROZLOZENI = {
-  "verze": 2,
+  "verze": 4,
   "chalupy": [
     {
       "id": "spisovatel",
@@ -172,14 +172,56 @@ window.ROZLOZENI = {
   ],
   "vlek": {
     "dole": {
-      "x": 1058,
-      "y": 844
+      "x": 940,
+      "y": 804
+    },
+    "sloup": {
+      "x": 543,
+      "y": 617
     },
     "nahore": {
-      "x": 4,
-      "y": 429
+      "x": 0,
+      "y": 425
+    },
+    "pata": {
+      "x": 533,
+      "y": 703
+    },
+    "start": {
+      "x": 10,
+      "y": 610
+    },
+    "sjezd": {
+      "x": 1250,
+      "y": 1150
     }
   },
+  "hrana": [
+    {
+      "x": 0,
+      "y": 530
+    },
+    {
+      "x": 500,
+      "y": 700
+    },
+    {
+      "x": 900,
+      "y": 800
+    },
+    {
+      "x": 1300,
+      "y": 890
+    },
+    {
+      "x": 1700,
+      "y": 990
+    },
+    {
+      "x": 1920,
+      "y": 1062
+    }
+  ],
   "chumel": {
     "x": 1383,
     "y": 1011

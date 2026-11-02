@@ -120,8 +120,9 @@ K.sheepAt = (p) => K.sheep.find((sh) => {
   return Math.abs(p.x - sh.x) < 50 * s && p.y < sh.y + 6 && p.y > sh.y - 60 * s;
 });
 
-K.drawSheepFlock = (ctx, extra = []) => {
-  const items = [...K.sheep.map((sh) => ({ y: sh.y, draw: () => K.drawSheep(ctx, sh.x, sh.y, K.scaleAt(sh.y), {
+K.drawSheepFlock = (ctx, extra = [], filter = null) => {
+  const flock = filter ? K.sheep.filter(filter) : K.sheep;
+  const items = [...flock.map((sh) => ({ y: sh.y, draw: () => K.drawSheep(ctx, sh.x, sh.y, K.scaleAt(sh.y), {
     facing: sh.facing, phase: sh.phase, walking: sh.walking, headUp: sh.headUp, rot: sh.rot,
     skis: sh.skis, scarf: sh.skis ? sh.scarf : null,
   }) })), ...extra];

@@ -14,7 +14,9 @@ Zadní Planiny (další úkol) → začne sněžit (tma + sněžení) → rozjed
   nakreslené pozadí se zapne polem `bg: 'assets/sceny/<id>.jpg'` ve specifikaci detailu v js/chalupy.js.
 - Chalupy s úkolem: Spisovatel, Skočka, Kantorská, Ranč, Jelínek, Nová Klínovka. Ostatní jen svítí v noci.
 - Úkoly v chalupách i na vrcholu jsou ZÁSTUPNÉ, skutečné vymyslí Daniel.
-- Kód je samostatný repozitář (zatím jen lokálně, bez remote). Fotky webkamery: práva se řeší → nepublikovat.
+- Veřejné repo https://github.com/DanKaliba/klasterka, hra na https://dankaliba.github.io/klasterka/ (Pages z main,
+  od 2026-11-02). Práva k fotkám webkamery se ještě řeší; Daniel se rozhodl zveřejnit i tak.
+- Push odsud: remote musí mít uživatele v URL (`https://DanKaliba@github.com/...`) a `GIT_TERMINAL_PROMPT=0`.
 
 ## Struktura
 - `js/jadro.js` plátno, smyčka, časovače (`K.after/K.tween/K.until`), HUD, přechody, `advanceTime`
@@ -29,7 +31,8 @@ Zadní Planiny (další úkol) → začne sněžit (tma + sněžení) → rozjed
 
 ## Testování
 Playwright tu nejde (firemní politika blokuje remote debugging), Node není. Místo toho:
-1. `python -m http.server 8010` v kořeni projektu
+1. `python tools/server.py` (port 8010, posílá `Cache-Control: no-store`; s obyčejným `http.server`
+   prohlížeč míchal staré a nové JS a finále padalo na chybějící funkci)
 2. `.\tools\test.ps1 -Query "test&skript=cela" -Out <png> -Budget 200000` → screenshot + řádek `STAV {...}`
 - `?test` zastaví čas, testy ho posouvají přes `K.update`/`advanceTime`; rAF v testu kreslí jen občas.
 - test.ps1 maže profil Chrome před každým během, jinak se načte starý JS z cache.
@@ -44,11 +47,17 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
       chrapot, sustot, buch, spatne, zvonek, vrzani, kopyta, rehtani, ptak, poleno, ohen, mrak, vitr, vlek, vlek-stop.
       Chybějící soubor se tiše přeskočí. Hudba na pozadí zatím není.
 - [ ] Mobil (dotyk, orientace na šířku).
-- [ ] Publikace na GitHub Pages až po vyřešení práv k fotkám.
+- [x] GitHub Pages nasazené (2026-11-02). Ověřeno: živý web běží, snímky se načítají.
 
 ## Nápady / poznámky pro dalšího
 - Zimní snímky jsou proti podzimním posunuté o ~(4, 16) px → `rozlozeni.snih`; v editoru S + šipky.
-- Ve finále lze kliknout na lyžující ovci (kotrmelec). Vlek čeká na klik na budku v 9:00.
+- Vlek (2026-11-02, podle Daniela): stojí na skutečném sloupu z fotky. Body `vlek.*` a `hrana` jsou
+  v souřadnicích ZIMNÍCH snímků (bez `snih` posunu). Černé lano jde po skutečných drátech od hrany (`dole`)
+  přes podpěru (`sloup`) až za levý okraj (`nahore`); horní stanice s kladkami není vidět. Horní větev
+  nahoru, dolní zpět. Ovce na kotvě jedou po odvrácené straně kopce (kreslí se oříznuté hranou `hrana`),
+  zmizí vlevo, vjedou zpátky u `start` a sjíždějí obloučky pod spodní okraj (`sjezd`), odkud se znovu
+  objeví zpoza hrany. Za lyžemi zůstává stopa, bledne za TRACK_LIFE = 10 s.
+- Ve finále lze kliknout na lyžující ovci (kotrmelec). Vlek čeká v 9:00 na klik na sloup.
 - Skok `?finale=<s>` nespouští časovače (tweeny), takže rychlost vleku/odjezd chumlu se v přetočeném
   stavu dopočítají až po skoku — jen ladicí kosmetika.
 - Možné vylepšení: vrstvit skutečné noční snímky sněžení (01-03 03:00–06:00) slabě přes 'screen' jako texturu vánice.

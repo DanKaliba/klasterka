@@ -7,6 +7,7 @@ const HELP = [
   'Shift+klik na bod cesty = les (skrytý) ano/ne',
   'N = nový bod cesty u myši,  Del = smazat bod pod myší',
   'S = zimní snímek; šipky = posun zimních snímků',
+  'vlek, chumel a bílou hranu svahu lad na zimním snímku (S)',
   'C = stáhnout rozlozeni.js,  R = zahodit změny',
 ];
 const WINTER_FRAME = '2026-01-05_0900';
@@ -26,11 +27,17 @@ const ed = K.editor = {
     L.chalupy.forEach((c) => hs.push({ obj: c, kind: 'chalupa', label: c.id || '·', dx: sx, dy: sy }));
     L.cesta.forEach((c, i) => hs.push({ obj: c, kind: 'cesta', label: String(i), i }));
     hs.push({ obj: L.vrchol, kind: 'bod', label: 'vrchol' });
-    hs.push({ obj: L.vlek.dole, kind: 'bod', label: 'vlek dole', dx: sx, dy: sy });
-    hs.push({ obj: L.vlek.nahore, kind: 'bod', label: 'vlek nahoře', dx: sx, dy: sy });
-    hs.push({ obj: L.chumel, kind: 'bod', label: 'chumel', dx: sx, dy: sy });
+    // vlek, chumel a hrana jsou jen v zimě → souřadnice rovnou zimního snímku, bez posunu
+    hs.push({ obj: L.vlek.dole, kind: 'bod', label: 'vlek: dráty za hranou' });
+    hs.push({ obj: L.vlek.sloup, kind: 'bod', label: 'vlek: vršek sloupu' });
+    hs.push({ obj: L.vlek.nahore, kind: 'bod', label: 'vlek: dráty z obrazu' });
+    hs.push({ obj: L.vlek.pata, kind: 'bod', label: 'pata sloupu' });
+    hs.push({ obj: L.vlek.start, kind: 'bod', label: 'začátek sjezdu' });
+    hs.push({ obj: L.vlek.sjezd, kind: 'bod', label: 'konec sjezdu' });
+    hs.push({ obj: L.chumel, kind: 'bod', label: 'chumel' });
     L.louka.forEach((c) => hs.push({ obj: c, kind: 'louka', label: '' }));
     L.obzor.forEach((c) => hs.push({ obj: c, kind: 'obzor', label: '' }));
+    L.hrana.forEach((c) => hs.push({ obj: c, kind: 'hrana', label: '' }));
     return hs.map((h) => ({ ...h, x: h.obj.x + (h.dx || 0), y: h.obj.y + (h.dy || 0) }));
   },
 
@@ -148,18 +155,26 @@ const ed = K.editor = {
     ctx.beginPath();
     L.obzor.forEach((c, i) => (i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y)));
     ctx.stroke();
-    // vlek
-    const m = this.winter ? 1 : 0;
+    // hrana svahu (za ní jedou ovce na vleku)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.beginPath();
+    L.hrana.forEach((c, i) => (i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y)));
+    ctx.stroke();
+    // vlek: lano a sjezd
+    const V = L.vlek;
     ctx.strokeStyle = 'rgba(255, 120, 200, 0.9)';
     ctx.beginPath();
-    ctx.moveTo(L.vlek.dole.x + L.snih.x * m, L.vlek.dole.y + L.snih.y * m);
-    ctx.lineTo(L.vlek.nahore.x + L.snih.x * m, L.vlek.nahore.y + L.snih.y * m);
+    ctx.moveTo(V.dole.x, V.dole.y);
+    ctx.lineTo(V.sloup.x, V.sloup.y);
+    ctx.lineTo(V.nahore.x, V.nahore.y);
+    ctx.moveTo(V.start.x, V.start.y);
+    ctx.lineTo(V.sjezd.x, V.sjezd.y);
     ctx.stroke();
     ctx.setLineDash([]);
 
     ctx.font = '600 14px system-ui, sans-serif';
     for (const h of this.handles()) {
-      const col = { chalupa: '#ff8a3d', cesta: h.obj.skryto ? '#888' : '#ffe600', bod: '#ff78c8', louka: '#78ff78', obzor: '#8cc8ff' }[h.kind];
+      const col = { chalupa: '#ff8a3d', cesta: h.obj.skryto ? '#888' : '#ffe600', bod: '#ff78c8', louka: '#78ff78', obzor: '#8cc8ff', hrana: '#ffffff' }[h.kind];
       ctx.fillStyle = col;
       ctx.strokeStyle = '#000';
       ctx.beginPath();
