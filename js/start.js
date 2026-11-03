@@ -47,7 +47,7 @@ window.render_game_to_text = () => {
     scena: name,
     busy: K.busy,
     fade: +K.fade.a.toFixed(2),
-    hodiny: K.clockOverride || K.frameInfo(K.clock),
+    snimek: K.frameNow,
     ovceSePtaly: K.state.asked,
     hotove: Object.keys(K.state.solved),
     predmety: K.state.items,

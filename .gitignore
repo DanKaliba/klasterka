@@ -3,3 +3,5 @@ pics/
 # vzory postav stažené z webu (cizí obrázky, jen pro inspiraci)
 figures/
 __pycache__/
+# videa natočená Danielem (zdroj zvuků; do hry jdou vystřižené assets/zvuky)
+sounds/

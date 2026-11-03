@@ -49,6 +49,7 @@ K.lerp = (a, b, t) => a + (b - a) * t;
 K.ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 K.dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 K.rand = (a, b) => a + Math.random() * (b - a);
+K.pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 // deterministický šum 0..1 pro chvění čar
 K.hash = (n) => {
   const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
@@ -156,42 +157,88 @@ K.drawFrame = (ctx, name, alpha = 1) => {
 // ---------- zvuky (soubory dodá Daniel do assets/zvuky/<jméno>.mp3) ----------
 K.muted = K.params.has('ticho');
 const sounds = {};
-K.sound = (name) => {
-  if (K.muted) return;
+const getSound = (name) => {
   if (!(name in sounds)) {
     const a = new Audio(`assets/zvuky/${name}.mp3`);
     a.onerror = () => { sounds[name] = null; };
     sounds[name] = a;
   }
-  const a = sounds[name];
-  if (a) { a.currentTime = 0; a.play().catch(() => {}); }
+  return sounds[name];
+};
+// volume 0–1, rate = rychlost přehrávání (mění i výšku, pro obměnu opakovaných zvuků)
+K.sound = (name, o = {}) => {
+  if (K.muted) return;
+  const a = getSound(name);
+  if (!a) return;
+  a.volume = K.clamp(o.volume ?? 1);
+  a.preservesPitch = false;
+  a.playbackRate = o.rate ?? 1;
+  a.currentTime = 0;
+  a.play().catch(() => {});
+};
+// kroky po zmrzlé trávě jsou jen v pozadí pod hudbou; ladí se ?kroky=0.4
+K.STEP_VOLUME = +(K.params.get('kroky') ?? 0.25);
+// tráva assets/zvuky/krok-1…8.mp3, zmrzlá hlína s ledem led-1…4.mp3
+const GRASS_STEPS = Array.from({ length: 8 }, (_, i) => `krok-${i + 1}`);
+const ICE_STEPS = Array.from({ length: 4 }, (_, i) => `led-${i + 1}`);
+for (const n of [...GRASS_STEPS, ...ICE_STEPS]) getSound(n); // načíst předem, ať první kroky nechybí
+const shuffle = (a) => {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+// pořadí jako zamíchaný balíček: zazní všech 8 kroků po trávě, pak se zamíchá znovu a stejný krok
+// nejde dvakrát po sobě. Do každého druhého nebo třetího balíčku se na náhodné místo přimíchá led.
+let stepBag = [];
+let lastStep = null;
+let bagsWithoutIce = 0;
+let lastIce = null;
+K.stepSound = () => {
+  if (!stepBag.length) {
+    stepBag = shuffle([...GRASS_STEPS]);
+    bagsWithoutIce++;
+    if (bagsWithoutIce >= 3 || (bagsWithoutIce === 2 && Math.random() < 0.5)) {
+      bagsWithoutIce = 0;
+      lastIce = K.pick(ICE_STEPS.filter((n) => n !== lastIce));
+      stepBag.splice(Math.floor(Math.random() * (stepBag.length + 1)), 0, lastIce);
+    }
+    if (stepBag[stepBag.length - 1] === lastStep) stepBag.unshift(stepBag.pop());
+  }
+  lastStep = stepBag.pop();
+  return lastStep;
 };
 
 // ---------- stav hry ----------
 K.ITEMS = ['plan', 'lyze', 'kotva', 'lano', 'kolo', 'caj'];
 K.state = { asked: false, solved: {}, items: [] };
-K.clock = '2025-12-28_1300';
-K.clockOverride = null; // { date, time } pro dopočítanou noc
+K.frameNow = '2025-12-28_1300'; // právě zobrazený snímek (pro testy)
 K.fade = { a: 0, color: '#efe6d2' };
 K.busy = 0; // >0 = právě běží scénka, kliky se ignorují
 K.flyingItems = [];
 
-K.slotPos = (i) => ({ x: 232 + i * 34, y: 31 });
+// batůžek v HUD a vedle něj místa na předměty, které odemknou mrak na Zadní Planině
+K.BAG = { x: 52, y: 32 };
+K.bagBump = -9;
+K.slotPos = (i) => ({ x: 128 + i * 50, y: 32 });
 
 K.solve = async (id, item, from) => {
   if (K.state.solved[id]) return;
   K.state.solved[id] = true;
   K.sound('odmena');
-  const slot = K.slotPos(K.ITEMS.indexOf(item));
+  // předmět přeletí do batůžku, batůžek poskočí a předmět se objeví na svém místě
+  const bag = K.BAG;
   const fly = { item, x: from.x, y: from.y, s: 70 };
   K.flyingItems.push(fly);
   await K.tween(1.1, (t) => {
     const e = K.ease(t);
-    fly.x = K.lerp(from.x, slot.x, e);
-    fly.y = K.lerp(from.y, slot.y, e) - Math.sin(t * Math.PI) * 160;
-    fly.s = K.lerp(70, 26, e);
+    fly.x = K.lerp(from.x, bag.x, e);
+    fly.y = K.lerp(from.y, bag.y, e) - Math.sin(t * Math.PI) * 160;
+    fly.s = K.lerp(70, 14, e);
   });
   K.flyingItems.splice(K.flyingItems.indexOf(fly), 1);
+  K.bagBump = K.time;
   K.state.items.push(item);
 };
 
@@ -216,21 +263,21 @@ function drawHud(ctx) {
   ctx.beginPath();
   ctx.roundRect(-20, -20, 460, 84, 18);
   ctx.fill();
-  const info = K.clockOverride || K.frameInfo(K.clock);
-  ctx.fillStyle = '#f3e6c8';
-  ctx.textBaseline = 'middle';
-  ctx.font = '600 17px Georgia, serif';
-  ctx.fillText(info.date, 18, 22);
-  ctx.font = '600 26px Georgia, serif';
-  ctx.fillText(info.time, 18, 46);
+  const bt = K.time - K.bagBump;
+  const bump = bt < 0.6 ? Math.sin(bt / 0.6 * Math.PI * 3) * (1 - bt / 0.6) : 0;
+  ctx.save();
+  ctx.translate(K.BAG.x, K.BAG.y + 18);
+  ctx.scale(1 + bump * 0.12, 1 - bump * 0.12);
+  K.drawIcon(ctx, 'batoh', 0, -18, 46, '#f3e6c8');
+  ctx.restore();
   K.ITEMS.forEach((it, i) => {
     const p = K.slotPos(i);
     ctx.strokeStyle = 'rgba(243, 230, 200, 0.35)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 19, 0, Math.PI * 2);
     ctx.stroke();
-    if (K.state.items.includes(it)) K.drawIcon(ctx, it, p.x, p.y, 26, '#f3e6c8');
+    if (K.state.items.includes(it)) K.drawIcon(ctx, it, p.x, p.y, 32, '#f3e6c8');
   });
   ctx.restore();
   for (const f of K.flyingItems) K.drawIcon(ctx, f.item, f.x, f.y, f.s, '#2b2118');

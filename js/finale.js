@@ -4,13 +4,13 @@ const pick = (from, to) => window.SNIMKY.filter((n) => n >= from && n <= to);
 
 // Klíč drží stav v daném okamžiku; mezi klíči se hodnoty plynule prolínají (snímky crossfadem).
 // night 0–1 = ztmavení, snow = sněžení, win = okna, stars = hvězdy, lift = viditelnost vleku,
-// clock = vlastní čas v HUD (u dopočítané noci), ev = událost při dosažení klíče.
+// ev = událost při dosažení klíče.
 function buildTimeline() {
   const keys = [];
   let t = 0;
-  let cur = { frame: '2025-12-28_1300', night: 0, snow: 0, win: 0, stars: 0, lift: 0, clock: null };
+  let cur = { frame: '2025-12-28_1300', night: 0, snow: 0, win: 0, stars: 0, lift: 0 };
   const add = (dur, k = {}) => {
-    cur = { ...cur, clock: null, ev: null, ...k };
+    cur = { ...cur, ev: null, ...k };
     keys.push({ ...cur, t, dur });
     t += dur;
   };
@@ -18,24 +18,24 @@ function buildTimeline() {
   for (const f of pick('2025-12-28_1301', '2025-12-28_1630')) add(0.6, { frame: f });
   add(1.5);
   // soumrak → noc, chalupy se rozsvěcejí
-  add(3, { night: 1, win: 1, stars: 1, clock: { date: '28. 12.', time: '22:00' }, ev: 'huddle' });
-  add(2, { clock: { date: '2. 1.', time: '23:00' } });
+  add(3, { night: 1, win: 1, stars: 1, ev: 'huddle' });
+  add(2);
   // začíná sněžit, hvězdy mizí
-  add(2.5, { snow: 1, stars: 0, clock: { date: '3. 1.', time: '03:00' } });
+  add(2.5, { snow: 1, stars: 0 });
   // pod sněhem se podklad vymění za zasněžený snímek
-  add(4, { frame: '2026-01-05_0800', clock: { date: '4. 1.', time: '12:00' } });
-  add(2.5, { clock: { date: '4. 1.', time: '22:00' }, lift: 1 });
-  add(2.5, { snow: 0, stars: 1, clock: { date: '5. 1.', time: '04:00' } });
+  add(4, { frame: '2026-01-05_0800' });
+  add(2.5, { lift: 1 });
+  add(2.5, { snow: 0, stars: 1 });
   // svítání
-  add(3.5, { night: 0, stars: 0, win: 0, clock: { date: '5. 1.', time: '07:30' }, ev: 'dawn' });
+  add(3.5, { night: 0, stars: 0, win: 0, ev: 'dawn' });
   for (const f of pick('2026-01-05_0800', '2026-01-05_0900')) add(0.9, { frame: f });
   add(0.1, { ev: 'waitLift' });
   // lyžování
   for (const f of pick('2026-01-05_0901', '2026-01-05_1545')) add(2.4, { frame: f });
   add(2.5, { ev: 'stop' });
   for (const f of pick('2026-01-05_1546', '2026-01-05_1630')) add(1.6, { frame: f, ev: f.endsWith('1615') ? 'leave' : null });
-  add(3.5, { night: 0.85, win: 1, stars: 1, clock: { date: '5. 1.', time: '18:00' } });
-  add(0, { ev: 'end', clock: { date: '5. 1.', time: '18:00' } });
+  add(3.5, { night: 0.85, win: 1, stars: 1 });
+  add(0, { ev: 'end' });
   return keys;
 }
 
@@ -70,7 +70,6 @@ function sample() {
   const u = a.dur > 0 ? K.clamp((F.t - a.t) / a.dur) : 1;
   const v = { frameA: a.frame, frameB: b.frame, u };
   for (const p of ['night', 'snow', 'win', 'stars', 'lift']) v[p] = K.lerp(a[p], b[p], u);
-  v.clock = a.clock;
   return v;
 }
 
@@ -435,8 +434,7 @@ K.scenes.finale = {
       updateSnow(d);
     }
     F.v = sample();
-    K.clock = F.v.u < 0.5 ? F.v.frameA : F.v.frameB;
-    K.clockOverride = F.v.clock;
+    K.frameNow = F.v.u < 0.5 ? F.v.frameA : F.v.frameB;
   },
 
   draw(ctx) {

@@ -60,7 +60,17 @@ K.hero = {
       return this.arrive();
     }
     this.facing = dir * Math.sign(b.x - a.x || 1);
+    const step = Math.floor(this.phase / Math.PI + 0.5);
     this.phase += dt * 9;
+    // noha dopadne, když je krok nejdelší; louka je vždy podzimní, takže křupe zmrzlá tráva.
+    // Vzdálený (menší) panáček je slyšet slaběji, v lese ještě slaběji.
+    if (Math.floor(this.phase / Math.PI + 0.5) !== step && K.scene === K.scenes.louka) {
+      const near = 0.45 + 0.55 * K.clamp(K.scaleAt(here.y));
+      K.sound(K.stepSound(), {
+        volume: K.STEP_VOLUME * near * (0.5 + 0.5 * here.alpha) * K.rand(0.75, 1),
+        rate: K.rand(0.9, 1.12),
+      });
+    }
   },
   arrive() {
     this.target = null;
@@ -160,8 +170,7 @@ const house = (id) => K.L.chalupy.find((c) => c.id === id);
 
 K.scenes.louka = {
   async enter(arg) {
-    K.clock = MEADOW_FRAME;
-    K.clockOverride = null;
+    K.frameNow = MEADOW_FRAME;
     K.hero.visible = true;
     if (!K.sheep.length) K.makeSheep();
     if (arg && arg.from) {

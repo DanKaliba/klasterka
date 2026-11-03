@@ -7,7 +7,8 @@ Zadní Planiny (další úkol) → začne sněžit (tma + sněžení) → rozjed
 - Čisté HTML + JS + Canvas 2D, bez frameworku a buildu; běží i z file:// (žádné ES moduly, žádný fetch).
 - Svět 1920×1080 = pixely snímku; plátno se jen škáluje (letterbox). Mobil se řeší později.
 - Hra beze slov (jen obrázky v bublinách). Jediný text je titulek „Klášterka“.
-- Vypálené razítko kamery (vlevo nahoře) zakrývá HUD s hodinami a 6 sloty na předměty.
+- Vypálené razítko kamery (vlevo nahoře) zakrývá HUD: batůžek a 6 míst na předměty, které odemknou mrak
+  na Zadní Planině (2026-11-03 Daniel: datum a hodiny z menu pryč). Předmět vletí do batůžku, ten poskočí.
 - Noc se nefotí (noční snímky šumí): ztmavený denní snímek (multiply) + hvězdy nad čarou obzoru
   + rozsvícená okna chalup + částicový sníh. Přechod podzim → zima se schová pod hustým sněžením.
 - Detaily chalup kreslí Daniel (fotky kreseb s přírodními materiály). Zatím zástupné kresby na papíře;
@@ -46,6 +47,13 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
 - [ ] Zvuky: soubory `assets/zvuky/<jméno>.mp3`. Používaná jména: bee, dvere, odmena, sirka, svicka, psani,
       chrapot, sustot, buch, spatne, zvonek, vrzani, kopyta, rehtani, ptak, poleno, ohen, mrak, vitr, vlek, vlek-stop.
       Chybějící soubor se tiše přeskočí. Hudba na pozadí zatím není.
+- [x] Kroky po zmrzlé trávě (2026-11-03): `assets/zvuky/krok-1..8.mp3` vystřihuje `python tools/kroky.py`
+      z Danielova videa v `sounds/input/` (gitignore). Celé pásmo (verze jen s výškami nad 700 Hz zněla
+      Danielovi nepřirozeně), ale potichu (K.STEP_VOLUME = 0.25, zkouší se `?kroky=0.4`), protože hra
+      bude mít kytarový podkres a nesmí se to bít. Hrají při dopadu
+      nohy jen na podzimní louce; vzdálený panáček a les jsou slabší, výška se náhodně mírně mění.
+      Pořadí = zamíchaný balíček (bez opakování po sobě). Do každého 2./3. balíčku se přimíchá jeden
+      krok po zmrzlé hlíně s ledem (`led-1..4.mp3`, první dva a poslední dva kroky videa, delší 0,4–0,8 s).
 - [ ] Mobil (dotyk, orientace na šířku).
 - [x] GitHub Pages nasazené (2026-11-02). Ověřeno: živý web běží, snímky se načítají.
 

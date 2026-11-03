@@ -291,6 +291,13 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
   const L = (pts) => { ctx.beginPath(); pts.forEach(([a, b], i) => (i ? ctx.lineTo(a * u, b * u) : ctx.moveTo(a * u, b * u))); ctx.stroke(); };
   const C = (cx, cy, r, fill) => { ctx.beginPath(); ctx.arc(cx * u, cy * u, r * u, 0, Math.PI * 2); fill ? ctx.fill() : ctx.stroke(); };
   switch (name) {
+    case 'batoh':
+      // batůžek: tělo, víko s přezkou, kapsa a ucho
+      ctx.beginPath(); ctx.roundRect(-8 * u, -6 * u, 16 * u, 17 * u, 4 * u); ctx.stroke();
+      L([[-8, -1], [-3, 3], [3, 3], [8, -1]]); L([[0, 3], [0, 5]]);
+      ctx.strokeRect(-4.5 * u, 6 * u, 9 * u, 3 * u);
+      ctx.beginPath(); ctx.arc(0, -6 * u, 3.5 * u, Math.PI, 0); ctx.stroke();
+      break;
     case 'plan':
       ctx.strokeRect(-8 * u, -10 * u, 16 * u, 20 * u);
       L([[-5, 6], [5, -6]]); L([[-5, 6], [-5, 2]]); L([[0, 0], [0, 4]]); L([[5, -6], [5, -2]]);
