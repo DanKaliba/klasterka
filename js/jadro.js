@@ -156,25 +156,63 @@ K.drawFrame = (ctx, name, alpha = 1) => {
 
 // ---------- zvuky (soubory dodá Daniel do assets/zvuky/<jméno>.mp3) ----------
 K.muted = K.params.has('ticho');
-const sounds = {};
+// Přes web se zvuky stáhnou a dekódují předem do Web Audio, pak hrají hned a mohou se překrývat
+// (<audio> na GitHub Pages při rychlých krocích většinu zvuků nestihl). Z file:// fetch nejde,
+// tam zůstává <audio>. Kontext se rozběhne až po prvním kliku (pravidla prohlížečů pro zvuk).
+const actx = location.protocol !== 'file:' && window.AudioContext ? new AudioContext() : null;
+const unlockAudio = () => { if (actx && actx.state === 'suspended') actx.resume(); };
+addEventListener('pointerdown', unlockAudio, true); // capture: dřív, než klik zpracuje scéna
+addEventListener('keydown', unlockAudio, true);
+const sounds = {}; // jméno → AudioBuffer | <audio> | undefined (načítá se) | null (soubor chybí)
+const loading = {};
+K.soundStats = { played: 0, notReady: 0 }; // pro testy
 const getSound = (name) => {
   if (!(name in sounds)) {
-    const a = new Audio(`assets/zvuky/${name}.mp3`);
-    a.onerror = () => { sounds[name] = null; };
-    sounds[name] = a;
+    const url = `assets/zvuky/${name}.mp3`;
+    sounds[name] = undefined;
+    if (actx) {
+      loading[name] = fetch(url)
+        .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+        .then((data) => actx.decodeAudioData(data))
+        .then((buf) => { sounds[name] = buf; }, () => { sounds[name] = null; });
+    } else {
+      const a = new Audio(url);
+      a.onerror = () => { sounds[name] = null; };
+      sounds[name] = a;
+    }
   }
   return sounds[name];
 };
 // volume 0–1, rate = rychlost přehrávání (mění i výšku, pro obměnu opakovaných zvuků)
 K.sound = (name, o = {}) => {
   if (K.muted) return;
-  const a = getSound(name);
-  if (!a) return;
-  a.volume = K.clamp(o.volume ?? 1);
-  a.preservesPitch = false;
-  a.playbackRate = o.rate ?? 1;
-  a.currentTime = 0;
-  a.play().catch(() => {});
+  const s = getSound(name);
+  if (s === undefined) {
+    // ještě se načítá: zahraje se, pokud se stihne do 0,3 s, jinak by přišel pozdě
+    K.soundStats.notReady++;
+    const t = K.time;
+    loading[name].then(() => { if (K.time - t < 0.3) K.sound(name, o); });
+    return;
+  }
+  if (!s) return;
+  K.soundStats.played++;
+  const volume = K.clamp(o.volume ?? 1), rate = o.rate ?? 1;
+  if (s instanceof AudioBuffer) {
+    if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; // bez kliku nehraje
+    const src = actx.createBufferSource();
+    src.buffer = s;
+    src.playbackRate.value = rate;
+    const gain = actx.createGain();
+    gain.gain.value = volume;
+    src.connect(gain).connect(actx.destination);
+    src.start();
+    return;
+  }
+  s.volume = volume;
+  s.preservesPitch = false;
+  s.playbackRate = rate;
+  s.currentTime = 0;
+  s.play().catch(() => {});
 };
 // kroky po zmrzlé trávě jsou jen v pozadí pod hudbou; ladí se ?kroky=0.4
 K.STEP_VOLUME = +(K.params.get('kroky') ?? 0.25);
