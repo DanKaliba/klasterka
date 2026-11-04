@@ -73,8 +73,11 @@ const ed = K.editor = {
     K.canvas.style.cursor = this.drag ? 'grabbing' : this.hoverH ? 'grab' : 'crosshair';
     if (!this.drag) return;
     const { h, ox, oy } = this.drag;
-    h.obj.x = Math.round(p.x - ox - (h.dx || 0));
-    h.obj.y = Math.round(p.y - oy - (h.dy || 0));
+    const x = Math.round(p.x - ox - (h.dx || 0)), y = Math.round(p.y - oy - (h.dy || 0));
+    // komín jede s chalupou, ať kouř nezůstane na louce
+    if (h.kind === 'chalupa' && h.obj.komin) { h.obj.komin.x += x - h.obj.x; h.obj.komin.y += y - h.obj.y; }
+    h.obj.x = x;
+    h.obj.y = y;
   },
   up() {
     if (this.drag) { this.drag = null; this.save(); }
@@ -143,15 +146,17 @@ const ed = K.editor = {
     ctx.save();
     ctx.translate(K.L.snih.x * m, K.L.snih.y * m);
     const col = { cesta: '#ff9a1a', stezka: '#ff4a4a', potok: '#4aa8ff', vlek: '#ff3dff' };
+    // úseky se stejnou viditelností jdou jedním tahem
     for (const c of T.cary) {
-      for (let i = 1; i < c.body.length; i++) {
-        const [ax, ay, av] = c.body[i - 1], [bx, by, bv] = c.body[i];
-        ctx.strokeStyle = col[c.druh];
-        ctx.lineWidth = av && bv ? 3 : 1;
-        ctx.setLineDash(av && bv ? [] : [3, 5]);
+      ctx.strokeStyle = col[c.druh];
+      let i = 1;
+      while (i < c.body.length) {
+        const seen = !!(c.body[i - 1][2] && c.body[i][2]);
+        ctx.lineWidth = seen ? 3 : 1;
+        ctx.setLineDash(seen ? [] : [3, 5]);
         ctx.beginPath();
-        ctx.moveTo(ax, ay);
-        ctx.lineTo(bx, by);
+        ctx.moveTo(c.body[i - 1][0], c.body[i - 1][1]);
+        for (; i < c.body.length && !!(c.body[i - 1][2] && c.body[i][2]) === seen; i++) ctx.lineTo(c.body[i][0], c.body[i][1]);
         ctx.stroke();
       }
     }

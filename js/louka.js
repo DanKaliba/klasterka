@@ -125,10 +125,10 @@ K.makeSheep = () => {
   });
 };
 
-K.updateGrazing = (sh, dt) => {
+K.updateGrazing = (sh, dt, scale = K.scaleAt) => {
   const d = Math.hypot(sh.tx - sh.x, sh.ty - sh.y);
   if (d > 2) {
-    const sp = 28 * K.scaleAt(sh.x, sh.y) * dt;
+    const sp = 28 * scale(sh.x, sh.y) * dt;
     sh.x += ((sh.tx - sh.x) / d) * sp;
     sh.y += ((sh.ty - sh.y) / d) * sp;
     sh.facing = sh.tx > sh.x ? 1 : -1;
@@ -150,14 +150,14 @@ K.updateGrazing = (sh, dt) => {
   }
 };
 
-K.sheepAt = (p) => K.sheep.find((sh) => {
-  const s = K.scaleAt(sh.x, sh.y);
+K.sheepAt = (p, scale = K.scaleAt) => K.sheep.find((sh) => {
+  const s = scale(sh.x, sh.y);
   return Math.abs(p.x - sh.x) < 50 * s && p.y < sh.y + 6 && p.y > sh.y - 60 * s;
 });
 
-K.drawSheepFlock = (ctx, extra = [], filter = null) => {
+K.drawSheepFlock = (ctx, extra = [], filter = null, scale = K.scaleAt) => {
   const flock = filter ? K.sheep.filter(filter) : K.sheep;
-  const items = [...flock.map((sh) => ({ y: sh.y, draw: () => K.drawSheep(ctx, sh.x, sh.y, K.scaleAt(sh.x, sh.y), {
+  const items = [...flock.map((sh) => ({ y: sh.y, draw: () => K.drawSheep(ctx, sh.x, sh.y, scale(sh.x, sh.y), {
     facing: sh.facing, phase: sh.phase, walking: sh.walking, headUp: sh.headUp, rot: sh.rot,
     skis: sh.skis, scarf: sh.skis ? sh.scarf : null,
   }) })), ...extra];

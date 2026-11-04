@@ -1,5 +1,5 @@
 // Start hry a ladicí přepínače v adrese:
-//   ?scena=<louka|spisovatel|skocka|kantorska|ranc|jelinek|klinovka|vrchol|finale>
+//   ?scena=<louka|spisovatel|skocka|kantorska|kriz|ranc|jelinek|klinovka|vrchol|finale>
 //   ?vse        — všechny chalupy hotové (rovnou na vrchol)
 //   ?finale=40  — finále přetočené o 40 s
 //   ?rychle=4   — čtyřnásobná rychlost

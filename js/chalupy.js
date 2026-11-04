@@ -424,13 +424,14 @@ closeup('kriz', {
       async click(st) {
         const b = st.branches[i], from = { ...b };
         b.fly = true;
+        K.busy++;
         K.sound('sustot');
         await K.tween(0.7, (t) => { b.x = from.x + t * 420; b.y = from.y - Math.sin(t * Math.PI) * 260 - t * 120; b.rot = from.rot + t * 5; });
         b.gone = true;
-        if (!st.branches.every((o) => o.gone)) return;
-        K.busy++;
-        K.sound('voda');
-        await K.tween(1.6, (t) => { st.flow = t; });
+        if (st.branches.every((o) => o.gone)) {
+          K.sound('voda');
+          await K.tween(1.6, (t) => { st.flow = t; });
+        }
         K.busy--;
       },
     })),

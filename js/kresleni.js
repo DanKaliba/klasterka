@@ -249,26 +249,8 @@ K.drawDeer = (ctx, x, y, s, o = {}) => {
   });
 };
 
-// letící pták = mávající „V“; o.sitting = sedí (x, y = místo, kde stojí), o.facing = kam kouká
-K.drawBird = (ctx, x, y, s, o = {}) => {
-  if (o.sitting) {
-    const f = o.facing || 1;
-    ctx.save();
-    ctx.fillStyle = INK;
-    ctx.strokeStyle = INK;
-    ctx.lineWidth = 1.6 * s;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.ellipse(x, y - 6 * s, 7 * s, 4.5 * s, -0.25 * f, 0, Math.PI * 2);
-    ctx.arc(x + 5 * f * s, y - 11 * s, 3.4 * s, 0, Math.PI * 2);
-    ctx.fill();
-    stroke(ctx, [[x - 5 * f * s, y - 5 * s], [x - 12 * f * s, y - 1 * s]], 2.4 * s, 91, 0.4); // ocas
-    stroke(ctx, [[x + 8 * f * s, y - 11.5 * s], [x + 11.5 * f * s, y - 10.5 * s]], 1.4 * s, 92, 0.2); // zobák
-    stroke(ctx, [[x - 1 * s, y - 2 * s], [x - 1 * s, y]], 1.2 * s, 93, 0.2);
-    stroke(ctx, [[x + 2 * s, y - 2 * s], [x + 2 * s, y]], 1.2 * s, 94, 0.2);
-    ctx.restore();
-    return;
-  }
+// letící pták = mávající „V“
+K.drawBird = (ctx, x, y, s) => {
   twoPass(ctx, false, () => {
     const w = Math.sin(K.time * 18) * 10 * s;
     stroke(ctx, [[x - 18 * s, y - w], [x, y], [x + 18 * s, y - w]], 4 * s, 90);
@@ -373,14 +355,14 @@ K.drawGrouse = (ctx, x, y, s, o = {}) => {
 };
 
 // kouř z komína: obláčky stoupají, vítr je stáčí doprava, rostou a blednou; size ~ velikost chalupy
-K.drawSmoke = (ctx, x, y, size, seed = 0, alpha = 1) => {
+K.drawSmoke = (ctx, x, y, size, seed = 0) => {
   const N = 7, k = size / 36;
   ctx.save();
   for (let i = 0; i < N; i++) {
     const u = (K.time * 0.16 + i / N + K.hash(seed) * 0.5) % 1;
     const wob = Math.sin(K.time * 0.9 + i * 2.3 + seed) * 3 * k * u;
     const px = x + (u * u * 34 + wob) * k, py = y - u * 62 * k;
-    ctx.globalAlpha = alpha * 0.55 * (1 - u) * Math.min(1, u * 6);
+    ctx.globalAlpha = 0.55 * (1 - u) * Math.min(1, u * 6);
     ctx.fillStyle = '#ecebe6';
     ctx.beginPath();
     ctx.arc(px, py, (2 + u * 9) * k, 0, Math.PI * 2);

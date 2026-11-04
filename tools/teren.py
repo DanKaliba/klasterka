@@ -67,7 +67,8 @@ def load_dem():
         for tx in range(int(x0), int(x1) + 1):
             p = f'{CACHE}/terrarium_{Z}_{tx}_{ty}.png'
             if not os.path.exists(p):
-                open(p, 'wb').write(fetch(f'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{Z}/{tx}/{ty}.png'))
+                data = fetch(f'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{Z}/{tx}/{ty}.png')
+                open(p, 'wb').write(data)
             a = np.asarray(Image.open(p).convert('RGB')).astype(np.float64)
             row.append(a[..., 0] * 256 + a[..., 1] + a[..., 2] / 256 - 32768)
         rows.append(np.hstack(row))
@@ -193,14 +194,20 @@ def main():
     print('  zorný úhel %.1f°, odchylka chalup %.1f px (max %.1f)'
           % (2 * math.degrees(math.atan(W / 2 / prm[3])), np.sqrt((err ** 2).mean()), err.max()))
 
-    # vzdálenost terénu v mřížce; nebe dostane hodnotu prvního terénu pod sebou
+    # vzdálenost terénu v mřížce; nebe dostane hodnotu prvního terénu pod sebou,
+    # sloupec úplně bez terénu převezme nejbližší sloupec, který terén má
     xs, ys = np.arange(0, W + 1, STEP), np.arange(0, H + 1, STEP)
     X, Y = np.meshgrid(xs, ys)
     dist = cast(X, Y, prm, cam)
+    hit = (dist > 0).any(axis=0)
     for j in range(dist.shape[1]):
         col = dist[:, j]
-        first = np.argmax(col > 0)
-        col[:first] = col[first]
+        if hit[j]:
+            first = np.argmax(col > 0)
+            col[:first] = col[first]
+    good = np.flatnonzero(hit)
+    for j in np.flatnonzero(~hit):
+        dist[:, j] = dist[:, good[np.abs(good - j).argmin()]] if len(good) else 8000
 
     # mapa do snímku: lomené čáry (po ~8 m), u každého bodu jestli je vidět (nezakrývá ho terén)
     def visible(pts, uv, depth):

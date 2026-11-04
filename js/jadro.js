@@ -14,8 +14,10 @@ K.LS_KEY = 'klasterka-rozlozeni';
 K.L = JSON.parse(JSON.stringify(window.ROZLOZENI));
 try {
   const saved = JSON.parse(localStorage.getItem(K.LS_KEY));
-  // starší rozpracovaný stav než soubor (soubor jsem mezitím upravil ručně) se zahodí
-  if (saved && saved.verze >= K.L.verze) K.L = saved;
+  // starší rozpracovaný stav než soubor (soubor jsem mezitím upravil ručně) se zahodí,
+  // stejně jako stav, kterému chybí chalupa přidaná do souboru (jinak by nešla dohrát)
+  const ids = (l) => l.chalupy.map((c) => c.id).filter(Boolean);
+  if (saved && saved.verze >= K.L.verze && ids(K.L).every((id) => ids(saved).includes(id))) K.L = saved;
 } catch (e) { /* bez localStorage hrajeme s rozložením ze souboru */ }
 
 // ---------- plátno a měřítko ----------

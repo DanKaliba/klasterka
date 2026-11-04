@@ -236,7 +236,7 @@ function sheepFinale(dt) {
     if (sh.tumbleT && K.time - sh.tumbleT < 0.8) sh.rot = sh.baseRot + ((K.time - sh.tumbleT) / 0.8) * Math.PI * 2 * sh.facing;
     else sh.rot = sh.baseRot || 0;
     if (sh.mode !== 'ski' && sh.mode !== 'toLift') sh.trail = null;
-    if (sh.mode === 'graze') return K.updateGrazing(sh, dt);
+    if (sh.mode === 'graze') return K.updateGrazing(sh, dt, scaleW);
     if (sh.mode === 'huddle' || sh.mode === 'leave') {
       const a = (i / K.sheep.length) * Math.PI * 2;
       const s = scaleW(ch.x, ch.y);
@@ -486,7 +486,7 @@ K.scenes.finale = {
     // panáček stojí na hraně vlevo od sloupu
     const pata = V().pata, hs = scaleW(pata.x, pata.y), hx = pata.x - 45 * hs, hy = edgeY(hx) + 4;
     const hero = { y: hy, draw: () => K.drawHero(ctx, hx, hy, hs, { facing: 1, wave: F.waiting && !F.liftOn }) };
-    K.drawSheepFlock(ctx, K.hero.visible ? [hero] : [], (sh) => !HIDDEN.includes(sh.mode));
+    K.drawSheepFlock(ctx, K.hero.visible ? [hero] : [], (sh) => !HIDDEN.includes(sh.mode), scaleW);
 
     if (v.night > 0.01) {
       const n = v.night;
@@ -515,7 +515,7 @@ K.scenes.finale = {
   hot(p) {
     if (F.ended) return K.dist(p, { x: K.W / 2, y: K.H / 2 + 120 }) < 45;
     if (F.waiting && !F.liftOn && K.dist(p, poleHit()) < 70) return true;
-    return !!K.sheepAt(p);
+    return !!K.sheepAt(p, scaleW);
   },
 
   click(p) {
@@ -524,7 +524,7 @@ K.scenes.finale = {
       return;
     }
     if (F.waiting && !F.liftOn && K.dist(p, poleHit()) < 70) return startLift();
-    const sh = K.sheepAt(p);
+    const sh = K.sheepAt(p, scaleW);
     if (sh) {
       K.sound('bee');
       if (sh.mode === 'ski' || sh.mode === 'ride') sh.tumbleT = K.time;
