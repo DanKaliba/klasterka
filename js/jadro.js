@@ -56,15 +56,17 @@ K.hash = (n) => {
   return s - Math.floor(s);
 };
 
-// měřítko postavičky podle výšky v obraze (dál = menší)
-K.scaleAt = (y) => {
-  const p = K.L.perspektiva;
-  if (y <= p[0][0]) return p[0][1];
-  for (let i = 1; i < p.length; i++) {
-    if (y <= p[i][0]) return K.lerp(p[i - 1][1], p[i][1], (y - p[i - 1][0]) / (p[i][0] - p[i - 1][0]));
-  }
-  return p[p.length - 1][1];
+// vzdálenost (m) od kamery k terénu viděnému v bodě snímku — mřížka z js/teren.js (tools/teren.py)
+K.distAt = (x, y) => {
+  const T = window.TEREN;
+  const gx = K.clamp(x / T.krok, 0, T.sloupcu - 1.001), gy = K.clamp(y / T.krok, 0, T.radku - 1.001);
+  const j = Math.floor(gx), i = Math.floor(gy), fx = gx - j, fy = gy - i;
+  const d = (r, c) => T.vzdalenost[r * T.sloupcu + c];
+  return K.lerp(K.lerp(d(i, j), d(i, j + 1), fx), K.lerp(d(i + 1, j), d(i + 1, j + 1), fx), fy);
 };
+// měřítko postavičky podle skutečné vzdálenosti: dál = menší, ale pomaleji než ve skutečnosti
+// (mocnina 0,66 místo 1), ať jsou postavy na protější louce ještě vidět
+K.scaleAt = (x, y) => K.clamp(15 * K.distAt(x, y) ** -0.66, 0.06, 1.25);
 
 // y lomené čáry (body seřazené podle x) v daném x; mimo rozsah drží krajní hodnotu
 K.polyY = (pts, x) => {
@@ -249,7 +251,7 @@ K.stepSound = () => {
 };
 
 // ---------- stav hry ----------
-K.ITEMS = ['plan', 'lyze', 'kotva', 'lano', 'kolo', 'caj'];
+K.ITEMS = ['plan', 'lyze', 'kotva', 'voda', 'lano', 'kolo', 'caj'];
 K.state = { asked: false, solved: {}, items: [] };
 K.frameNow = '2025-12-28_1300'; // právě zobrazený snímek (pro testy)
 K.fade = { a: 0, color: '#efe6d2' };
@@ -299,7 +301,7 @@ function drawHud(ctx) {
   ctx.save();
   ctx.fillStyle = 'rgb(32, 25, 18)';
   ctx.beginPath();
-  ctx.roundRect(-20, -20, 460, 84, 18);
+  ctx.roundRect(-20, -20, 510, 84, 18);
   ctx.fill();
   const bt = K.time - K.bagBump;
   const bump = bt < 0.6 ? Math.sin(bt / 0.6 * Math.PI * 3) * (1 - bt / 0.6) : 0;

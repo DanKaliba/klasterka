@@ -2,43 +2,74 @@
 // Ladí se v editoru (klávesa E) a exportuje klávesou C — export tenhle soubor celý nahradí.
 // Při ruční změně zvyš "verze", jinak prohlížeč dál používá rozpracovaný stav z editoru.
 window.ROZLOZENI = {
-  "verze": 4,
+  "verze": 6,
   "chalupy": [
     {
       "id": "spisovatel",
       "x": 232,
       "y": 272,
-      "w": 38
+      "w": 38,
+      "komin": {
+        "x": 232,
+        "y": 255
+      }
     },
     {
       "id": "skocka",
       "x": 485,
       "y": 292,
-      "w": 40
+      "w": 40,
+      "komin": {
+        "x": 475,
+        "y": 274
+      }
     },
     {
       "id": "kantorska",
       "x": 822,
       "y": 324,
-      "w": 36
+      "w": 36,
+      "komin": {
+        "x": 820,
+        "y": 307
+      }
+    },
+    {
+      "id": "kriz",
+      "x": 640,
+      "y": 302,
+      "w": 22,
+      "druh": "kriz"
     },
     {
       "id": "ranc",
       "x": 954,
       "y": 250,
-      "w": 36
+      "w": 36,
+      "komin": {
+        "x": 952,
+        "y": 246
+      }
     },
     {
       "id": "jelinek",
       "x": 1429,
       "y": 341,
-      "w": 30
+      "w": 30,
+      "komin": {
+        "x": 1431,
+        "y": 333
+      }
     },
     {
       "id": "klinovka",
       "x": 1490,
       "y": 324,
-      "w": 34
+      "w": 34,
+      "komin": {
+        "x": 1500,
+        "y": 313
+      }
     },
     {
       "id": "",
@@ -107,8 +138,8 @@ window.ROZLOZENI = {
       "y": 304
     },
     {
-      "x": 660,
-      "y": 334
+      "x": 642,
+      "y": 304
     },
     {
       "x": 822,
@@ -255,27 +286,5 @@ window.ROZLOZENI = {
   "snih": {
     "x": 4,
     "y": 16
-  },
-  "perspektiva": [
-    [
-      180,
-      0.12
-    ],
-    [
-      330,
-      0.16
-    ],
-    [
-      450,
-      0.25
-    ],
-    [
-      650,
-      0.55
-    ],
-    [
-      1080,
-      1.15
-    ]
-  ]
+  }
 };

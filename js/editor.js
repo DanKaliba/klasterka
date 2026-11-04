@@ -7,6 +7,7 @@ const HELP = [
   'Shift+klik na bod cesty = les (skrytý) ano/ne',
   'N = nový bod cesty u myši,  Del = smazat bod pod myší',
   'S = zimní snímek; šipky = posun zimních snímků',
+  'M = podklad z mapy (OSM): cesty, potoky, vlek, chalupy',
   'vlek, chumel a bílou hranu svahu lad na zimním snímku (S)',
   'C = stáhnout rozlozeni.js,  R = zahodit změny',
 ];
@@ -15,6 +16,7 @@ const WINTER_FRAME = '2026-01-05_0900';
 const ed = K.editor = {
   active: K.params.has('editor'),
   winter: false,
+  map: K.params.has('mapa'),
   drag: null,
   hoverH: null,
   msg: '',
@@ -25,6 +27,7 @@ const ed = K.editor = {
     const sx = L.snih.x * m, sy = L.snih.y * m;
     const hs = [];
     L.chalupy.forEach((c) => hs.push({ obj: c, kind: 'chalupa', label: c.id || '·', dx: sx, dy: sy }));
+    L.chalupy.forEach((c) => c.komin && hs.push({ obj: c.komin, kind: 'bod', label: 'komín', dx: sx, dy: sy }));
     L.cesta.forEach((c, i) => hs.push({ obj: c, kind: 'cesta', label: String(i), i }));
     hs.push({ obj: L.vrchol, kind: 'bod', label: 'vrchol' });
     // vlek, chumel a hrana jsou jen v zimě → souřadnice rovnou zimního snímku, bez posunu
@@ -80,6 +83,7 @@ const ed = K.editor = {
   key(e) {
     const L = K.L;
     if (e.key === 's' || e.key === 'S') this.winter = !this.winter;
+    else if (e.key === 'm' || e.key === 'M') this.map = !this.map;
     else if (e.key.startsWith('Arrow') && this.winter) {
       const d = e.shiftKey ? 5 : 1;
       if (e.key === 'ArrowLeft') L.snih.x -= d;
@@ -133,10 +137,48 @@ const ed = K.editor = {
     this.say('staženo rozlozeni.js (verze ' + L.verze + ') — nahraď jím js/rozlozeni.js');
   },
 
+  // OpenStreetMap promítnutá do snímku (js/teren.js); co zakrývá terén, je jen tečkovaně
+  drawMap(ctx) {
+    const T = window.TEREN, m = this.winter ? 1 : 0;
+    ctx.save();
+    ctx.translate(K.L.snih.x * m, K.L.snih.y * m);
+    const col = { cesta: '#ff9a1a', stezka: '#ff4a4a', potok: '#4aa8ff', vlek: '#ff3dff' };
+    for (const c of T.cary) {
+      for (let i = 1; i < c.body.length; i++) {
+        const [ax, ay, av] = c.body[i - 1], [bx, by, bv] = c.body[i];
+        ctx.strokeStyle = col[c.druh];
+        ctx.lineWidth = av && bv ? 3 : 1;
+        ctx.setLineDash(av && bv ? [] : [3, 5]);
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+      }
+    }
+    ctx.setLineDash([]);
+    ctx.font = '600 13px system-ui, sans-serif';
+    for (const h of T.stavby) {
+      ctx.fillStyle = '#fff200';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      const t = `${h.jmeno || 'dům'} ${h.m} m`;
+      ctx.fillStyle = '#000';
+      ctx.fillText(t, h.x + 7, h.y + 17);
+      ctx.fillStyle = '#fff200';
+      ctx.fillText(t, h.x + 6, h.y + 16);
+    }
+    ctx.restore();
+  },
+
   draw(ctx) {
     const L = K.L;
     if (this.winter) K.drawFrame(ctx, WINTER_FRAME);
     ctx.save();
+    if (this.map) this.drawMap(ctx);
     ctx.lineWidth = 2;
     // cesta
     ctx.strokeStyle = 'rgba(255, 230, 0, 0.9)';

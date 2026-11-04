@@ -2,11 +2,12 @@
 const MEADOW_FRAME = '2025-12-28_1300';
 const SCARVES = ['#c0392b', '#2e86c1', '#e1b12c', '#27ae60', '#8e44ad', '#e67e22'];
 
-// cíl úkolu u každé chalupy (odměna se objeví v HUD)
+// cíl úkolu u každé chalupy a u božích muk (odměna se objeví v HUD)
 K.CHALETS = {
   spisovatel: 'plan',
   skocka: 'lyze',
   kantorska: 'kotva',
+  kriz: 'voda',
   ranc: 'lano',
   jelinek: 'kolo',
   klinovka: 'caj',
@@ -53,7 +54,7 @@ K.hero = {
     const segLen = Math.max(1, K.dist(a, b));
     const here = this.pos;
     // v lese (skrytý úsek) jde rychleji, ať se hráč nenudí
-    const speed = (170 * K.scaleAt(here.y) + 20) * (a.skryto || b.skryto ? 3 : 1);
+    const speed = (170 * K.scaleAt(here.x, here.y) + 20) * (a.skryto || b.skryto ? 3 : 1);
     this.p += (dir * speed * dt) / segLen;
     if ((dir > 0 && this.p >= this.target) || (dir < 0 && this.p <= this.target)) {
       this.p = this.target;
@@ -65,11 +66,18 @@ K.hero = {
     // noha dopadne, když je krok nejdelší; louka je vždy podzimní, takže křupe zmrzlá tráva.
     // Vzdálený (menší) panáček je slyšet slaběji, v lese ještě slaběji.
     if (Math.floor(this.phase / Math.PI + 0.5) !== step && K.scene === K.scenes.louka) {
-      const near = 0.45 + 0.55 * K.clamp(K.scaleAt(here.y));
+      const near = 0.45 + 0.55 * K.clamp(K.scaleAt(here.x, here.y));
       K.sound(K.stepSound(), {
         volume: K.STEP_VOLUME * near * (0.5 + 0.5 * here.alpha) * K.rand(0.75, 1),
         rate: K.rand(0.9, 1.12),
       });
+      // stopa v jinovatce: střídavě levá a pravá noha, kolmo na směr chůze
+      if (here.alpha > 0.5) {
+        const s = K.scaleAt(here.x, here.y), side = step % 2 ? 1 : -1, len = segLen;
+        const nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+        K.footprints.push({ x: here.x + nx * side * 6 * s, y: here.y + ny * side * 3 * s, s, t: K.time });
+        if (K.footprints.length > 400) K.footprints.shift();
+      }
     }
   },
   arrive() {
@@ -82,11 +90,28 @@ K.hero = {
     if (!this.visible) return;
     const p = this.pos;
     if (p.alpha <= 0.02) return;
-    K.drawHero(ctx, p.x, p.y, K.scaleAt(p.y), {
+    K.drawHero(ctx, p.x, p.y, K.scaleAt(p.x, p.y), {
       facing: this.facing, phase: this.phase, walking: this.target !== null, alpha: p.alpha,
     });
   },
 };
+
+// ---------- stopy panáčka v jinovatce (pomalu mizí) ----------
+const FOOTPRINT_LIFE = 25;
+K.footprints = [];
+function drawFootprints(ctx) {
+  while (K.footprints.length && K.time - K.footprints[0].t > FOOTPRINT_LIFE) K.footprints.shift();
+  ctx.save();
+  ctx.fillStyle = 'rgb(46, 52, 34)'; // pod sešlápnutou jinovatkou je tmavá tráva
+  for (const f of K.footprints) {
+    const age = (K.time - f.t) / FOOTPRINT_LIFE;
+    ctx.globalAlpha = 0.6 * (1 - age * age);
+    ctx.beginPath();
+    ctx.ellipse(f.x, f.y, 7 * f.s, 2.6 * f.s, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
 
 // ---------- ovce ----------
 K.sheep = [];
@@ -103,7 +128,7 @@ K.makeSheep = () => {
 K.updateGrazing = (sh, dt) => {
   const d = Math.hypot(sh.tx - sh.x, sh.ty - sh.y);
   if (d > 2) {
-    const sp = 28 * K.scaleAt(sh.y) * dt;
+    const sp = 28 * K.scaleAt(sh.x, sh.y) * dt;
     sh.x += ((sh.tx - sh.x) / d) * sp;
     sh.y += ((sh.ty - sh.y) / d) * sp;
     sh.facing = sh.tx > sh.x ? 1 : -1;
@@ -126,13 +151,13 @@ K.updateGrazing = (sh, dt) => {
 };
 
 K.sheepAt = (p) => K.sheep.find((sh) => {
-  const s = K.scaleAt(sh.y);
+  const s = K.scaleAt(sh.x, sh.y);
   return Math.abs(p.x - sh.x) < 50 * s && p.y < sh.y + 6 && p.y > sh.y - 60 * s;
 });
 
 K.drawSheepFlock = (ctx, extra = [], filter = null) => {
   const flock = filter ? K.sheep.filter(filter) : K.sheep;
-  const items = [...flock.map((sh) => ({ y: sh.y, draw: () => K.drawSheep(ctx, sh.x, sh.y, K.scaleAt(sh.y), {
+  const items = [...flock.map((sh) => ({ y: sh.y, draw: () => K.drawSheep(ctx, sh.x, sh.y, K.scaleAt(sh.x, sh.y), {
     facing: sh.facing, phase: sh.phase, walking: sh.walking, headUp: sh.headUp, rot: sh.rot,
     skis: sh.skis, scarf: sh.skis ? sh.scarf : null,
   }) })), ...extra];
@@ -202,6 +227,10 @@ K.scenes.louka = {
     K.drawFrame(ctx, MEADOW_FRAME);
     if (K.debug) drawPathDebug(ctx);
 
+    // z hotových chalup se kouří: někdo v nich zatopil (boží muka komín nemají)
+    for (const c of K.L.chalupy) {
+      if (K.state.solved[c.id] && c.komin) K.drawSmoke(ctx, c.komin.x, c.komin.y, c.w, c.x);
+    }
     for (const c of K.L.chalupy) {
       if (!K.CHALETS[c.id]) continue;
       if (K.state.solved[c.id]) K.drawIcon(ctx, K.CHALETS[c.id], c.x, c.y - c.w * 0.9, 18, '#fffbea');
@@ -213,10 +242,11 @@ K.scenes.louka = {
       if (lockBubble > K.time) K.drawBubble(ctx, v.x, v.y - 6, 0.45, 'zamek');
     }
 
+    drawFootprints(ctx);
     const hp = K.hero.pos;
     K.drawSheepFlock(ctx, [{ y: hp.y, draw: () => K.hero.draw(ctx) }]);
     if (bubble && bubble.until > K.time) {
-      const sh = bubble.sheep, s = K.scaleAt(sh.y);
+      const sh = bubble.sheep, s = K.scaleAt(sh.x, sh.y);
       K.drawBubble(ctx, sh.x + sh.facing * 30 * s, sh.y - 55 * s, Math.max(0.6, s), bubble.icon);
     }
     ctx.restore();

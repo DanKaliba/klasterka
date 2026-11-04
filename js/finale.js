@@ -42,6 +42,7 @@ function buildTimeline() {
 const F = {
   keys: [], t: 0, i: 0, waiting: false, liftOn: false, liftSpeed: 0, liftPos: 0, ended: false,
   stars: [], flakes: [], v: null, shift: { x: 0, y: 0 }, riding: [], trails: [],
+  bird: { on: false, flyAt: null },
 };
 
 // ---------- pomocné výpočty ----------
@@ -84,6 +85,8 @@ const SKI_SEC = 8; // sjezd od levého okraje pod spodní okraj
 const TRACK_LIFE = 10; // jak dlouho (s) bledne stopa lyží
 const V = () => K.L.vlek;
 const edgeY = (x) => K.polyY(K.L.hrana, x);
+// měřítko v zimních souřadnicích (zimní snímky jsou proti podzimním, z nichž je model terénu, posunuté)
+const scaleW = (x, y) => K.scaleAt(x - K.L.snih.x, y - K.L.snih.y);
 
 // bod o kus dál za b ve směru a→b (pokračování drátu / sjezdu mimo obraz)
 const beyond = (a, b, d) => {
@@ -126,7 +129,7 @@ const cableAt = (u, branch = 0) => along(cablePts(branch), u);
 const riderAt = (u) => {
   const x = cableAt(u).x;
   const y = edgeY(x);
-  return { x, y: y + (4 + 60 * K.clamp(1 - u / 0.14)) * K.scaleAt(y) };
+  return { x, y: y + (4 + 60 * K.clamp(1 - u / 0.14)) * scaleW(x, y) };
 };
 
 // sjezd obloučky z levého okraje dolů; každá ovce má jiné oblouky
@@ -135,7 +138,7 @@ const skiAt = (u, sh) => {
   const s0 = beyond(sjezd, start, 110);
   const dx = sjezd.x - s0.x, dy = sjezd.y - s0.y, len = Math.hypot(dx, dy) || 1;
   const x0 = K.lerp(s0.x, sjezd.x, u), y0 = K.lerp(s0.y, sjezd.y, u);
-  const w = Math.sin(u * Math.PI * sh.turns + sh.ph) * sh.amp * K.scaleAt(y0) * Math.min(1, u * 6);
+  const w = Math.sin(u * Math.PI * sh.turns + sh.ph) * sh.amp * scaleW(x0, y0) * Math.min(1, u * 6);
   return { x: x0 - (dy / len) * w, y: y0 + (dx / len) * w };
 };
 
@@ -169,7 +172,7 @@ function drawLift(ctx, alpha) {
       let u = (((i * len) / n + F.liftPos) % len) / len;
       if (b) u = 1 - u;
       if (!b && F.riding.some((r) => Math.abs(r - u) < 0.04)) continue; // tuhle kotvu drží ovce
-      const p = along(pts, u), s = K.scaleAt(p.y + 40);
+      const p = along(pts, u), s = scaleW(p.x, p.y + 40);
       ctx.lineWidth = 2 * s;
       ctx.beginPath();
       ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y + 30 * s);
@@ -199,7 +202,7 @@ function drawTracks(ctx) {
       const a = K.clamp(1 - (K.time - tr[i].t) / TRACK_LIFE) * 0.75;
       if (a <= 0) continue;
       ctx.strokeStyle = `rgba(28, 28, 38, ${a})`;
-      ctx.lineWidth = 2.4 * K.scaleAt(tr[i].y);
+      ctx.lineWidth = 2.4 * scaleW(tr[i].x, tr[i].y);
       ctx.beginPath();
       ctx.moveTo(tr[i - 1].x, tr[i - 1].y);
       ctx.lineTo(tr[i].x, tr[i].y);
@@ -236,7 +239,7 @@ function sheepFinale(dt) {
     if (sh.mode === 'graze') return K.updateGrazing(sh, dt);
     if (sh.mode === 'huddle' || sh.mode === 'leave') {
       const a = (i / K.sheep.length) * Math.PI * 2;
-      const s = K.scaleAt(ch.y);
+      const s = scaleW(ch.x, ch.y);
       const tx = ch.x + Math.cos(a) * 34 * s + (i % 2) * 10 * s, ty = ch.y + Math.sin(a) * 14 * s;
       const sp = (sh.mode === 'leave' ? 260 : 120) * s * dt;
       const d = Math.hypot(tx - sh.x, ty - sh.y);
@@ -252,7 +255,7 @@ function sheepFinale(dt) {
       if (sh.wait > 0) return;
       const t = V().sjezd, d = Math.hypot(t.x - sh.x, t.y - sh.y);
       if (d < 10) { sh.mode = 'queue'; sh.wait = 0; return; }
-      const step = Math.min(d, 280 * K.scaleAt(sh.y) * dt);
+      const step = Math.min(d, 280 * scaleW(sh.x, sh.y) * dt);
       const p = { x: sh.x + ((t.x - sh.x) / d) * step, y: sh.y + ((t.y - sh.y) / d) * step };
       skiTo(sh, p, { x: p.x + (t.x - sh.x), y: p.y + (t.y - sh.y) });
     } else if (sh.mode === 'queue') {
@@ -295,7 +298,7 @@ function drawRiders(ctx) {
   ctx.closePath();
   ctx.clip();
   for (const sh of riders) {
-    const c = cableAt(Math.min(1, sh.u)), s = K.scaleAt(sh.y);
+    const c = cableAt(Math.min(1, sh.u)), s = scaleW(sh.x, sh.y);
     ctx.strokeStyle = K.INK;
     ctx.lineWidth = 2.2 * s;
     ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(sh.x + 20 * s, sh.y - 34 * s); ctx.stroke();
@@ -304,12 +307,42 @@ function drawRiders(ctx) {
   ctx.restore();
 }
 
+// ---------- tetřívek na sloupu: sedí od rána, občas toká, při rozjezdu vleku uletí ----------
+function drawPoleBird(ctx) {
+  const b = F.bird;
+  if (!b.on) return;
+  const top = V().sloup, s = scaleW(top.x, top.y) * 1.6; // větší než ve skutečnosti, ať je vidět
+  if (b.flyAt === null) {
+    // občas se otočí; v některých chvílích toká: roztáhne bílý vějíř a pokyvuje hlavou
+    const win = Math.floor(K.time / 2.2), u = (K.time / 2.2) % 1;
+    const facing = K.hash(win) < 0.5 ? -1 : 1;
+    const display = K.hash(win + 11) < 0.35 ? Math.sin(u * Math.PI) * (0.85 + 0.15 * Math.sin(K.time * 14)) : 0;
+    const hop = !display && K.hash(win + 5) < 0.2 ? Math.max(0, Math.sin(K.time * 9)) * 2 * s : 0;
+    K.drawGrouse(ctx, top.x, top.y - 1 - hop, s, { facing, display });
+    return;
+  }
+  // tetřívek letí nízko a rovně: chvíli rychle mává, pak klouže
+  const t = K.time - b.flyAt;
+  if (t > 5) { b.on = false; return; }
+  const flap = t % 1.3 < 0.75 ? 1 : 0.08;
+  K.drawGrouse(ctx, top.x - 170 * t - 25 * t * t, top.y - 14 * s - 55 * t + Math.sin(t * 5) * 4, s * (1 + t * 0.1), { flying: true, facing: -1, flap });
+}
+
+// ---------- kouř z komínů chalup s úkolem (ve finále jsou všechny hotové) ----------
+function drawChimneys(ctx, m) {
+  for (const c of K.L.chalupy) {
+    if (!K.CHALETS[c.id] || !c.komin) continue;
+    const k = off(c.komin, m);
+    K.drawSmoke(ctx, k.x, k.y, c.w, c.x);
+  }
+}
+
 // ---------- světla, hvězdy, sníh ----------
 function drawWindows(ctx, win, m) {
   if (win <= 0.01) return;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  const hs = K.L.chalupy;
+  const hs = K.L.chalupy.filter((h) => !h.druh); // boží muka nesvítí
   hs.forEach((h, k) => {
     // chalupy se nerozsvítí naráz
     const a = K.clamp((win - (k / hs.length) * 0.5) / 0.5);
@@ -375,6 +408,7 @@ const EVENTS = {
   dawn() {
     K.hero.visible = true;
     K.sheep.forEach((sh) => { sh.skis = true; });
+    F.bird = { on: true, flyAt: null };
   },
   waitLift() { F.waiting = true; },
   stop() {
@@ -405,6 +439,7 @@ K.scenes.finale = {
     F.liftPos = 0;
     F.riding = [];
     F.trails = [];
+    F.bird = { on: false, flyAt: null };
     if (!K.sheep.length) K.makeSheep();
     makeStars();
     EVENTS[F.keys[0].ev]();
@@ -443,11 +478,13 @@ K.scenes.finale = {
     K.drawFrame(ctx, v.frameA);
     if (v.frameB !== v.frameA) K.drawFrame(ctx, v.frameB, v.u);
 
+    drawChimneys(ctx, m);
     drawTracks(ctx);
     drawLift(ctx, v.lift);
+    drawPoleBird(ctx);
     drawRiders(ctx);
     // panáček stojí na hraně vlevo od sloupu
-    const pata = V().pata, hs = K.scaleAt(pata.y), hx = pata.x - 45 * hs, hy = edgeY(hx) + 4;
+    const pata = V().pata, hs = scaleW(pata.x, pata.y), hx = pata.x - 45 * hs, hy = edgeY(hx) + 4;
     const hero = { y: hy, draw: () => K.drawHero(ctx, hx, hy, hs, { facing: 1, wave: F.waiting && !F.liftOn }) };
     K.drawSheepFlock(ctx, K.hero.visible ? [hero] : [], (sh) => !HIDDEN.includes(sh.mode));
 
@@ -500,6 +537,7 @@ function startLift() {
   F.liftOn = true;
   F.waiting = false;
   K.sound('vlek');
+  if (F.bird.on) { F.bird.flyAt = K.time; K.sound('tetrivek'); }
   K.tween(2, (t) => { F.liftSpeed = t; });
   // ovce postupně sjedou z chumlu pod spodní okraj a odtud naskočí na vlek
   K.sheep.forEach((sh, i) => { sh.mode = 'toLift'; sh.wait = i * 0.9; });

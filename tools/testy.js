@@ -10,6 +10,10 @@ window.SCENARE = {
   detailSpisovatel: [['ceka', 800], ['klik', 640, 780], ['ceka', 300], ['klik', 950, 680], ['ceka', 2500]],
   skocka: [['ceka', 800], ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 1500], ['klik', 1360, 830], ['ceka', 600]],
   kantorska: [['ceka', 800], ['klik', 820, 745], ['ceka', 200], ['klik', 1260, 745], ['ceka', 900]],
+  kriz: [['ceka', 800], ['klik', 760, 300], ['ceka', 300], ['klik', 1060, 820], ['ceka', 400], ['klik', 1236, 870], ['ceka', 900],
+    ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800]],
+  kriz2: [['ceka', 800], ['klik', 1236, 870], ['ceka', 900], ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800],
+    ['klik', 1060, 820], ['ceka', 1200]],
   ranc: [['ceka', 800], ['klik', 1080, 760], ['ceka', 3500], ['klik', 1480, 850], ['ceka', 500]],
   jelinek: [['ceka', 800], ['klik', 800, 800], ['ceka', 1600], ['klik', 1150, 800], ['ceka', 1600], ['klik', 1500, 800], ['ceka', 1600]],
   klinovka: [['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 1000, 800], ['ceka', 1500]],
@@ -17,9 +21,14 @@ window.SCENARE = {
   finale: [['ceka', 1000]],
   konec: [['ceka', 3000]],
   dokonce: [['cekaVlek'], ['ceka', 200], ['klikVlek'], ['cekaKonec'], ['ceka', 3000]],
-  vlek: [['ceka', 200], ['klikVlek'], ['ceka', 9000]],
-  lyzovani: [['ceka', 200], ['klikVlek'], ['ceka', 24000]],
-  lyzovani2: [['ceka', 200], ['klikVlek'], ['ceka', 31000]],
+  vlek: [['cekaVlek'], ['klikVlek'], ['ceka', 9000]],
+  lyzovani: [['cekaVlek'], ['klikVlek'], ['ceka', 24000]],
+  lyzovani2: [['cekaVlek'], ['klikVlek'], ['ceka', 31000]],
+  stopy: [['ceka', 2500], ['klik', 866, 809], ['ceka', 4000], ['klik', 519, 931], ['ceka', 1500]],
+  ptacek: [['cekaVlek'], ['ceka', 600]],
+  odlet: [['cekaVlek'], ['ceka', 300], ['klikVlek'], ['ceka', 900]],
+  daleko: [['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'klinovka'], ['ceka', 14000]],
+  daleko2: [['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'klinovka'], ['ceka', 24000]],
 };
 
 // celá hra od začátku do titulku
@@ -29,6 +38,7 @@ window.SCENARE.cela = [
   ...navstiv('spisovatel', [['klik', 640, 780], ['ceka', 300], ['klik', 950, 680]]),
   ...navstiv('skocka', [['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 1500], ['klik', 1360, 830]]),
   ...navstiv('kantorska', [['klik', 1260, 745]]),
+  ...navstiv('kriz', [['klik', 1236, 870], ['ceka', 900], ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800], ['klik', 1060, 820]]),
   ...navstiv('ranc', [['klik', 1080, 760], ['ceka', 3500], ['klik', 1480, 850]]),
   ...navstiv('jelinek', [['klik', 800, 800], ['ceka', 1600], ['klik', 1150, 800], ['ceka', 1600], ['klik', 1500, 800], ['ceka', 1600], ['klikKolo']]),
   ...navstiv('klinovka', [['klik', 690, 810], ['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 1000, 800]]),
@@ -65,7 +75,7 @@ window.SCENARE.cela = [
     else {
       let p;
       if (s[0] === 'klik') p = { x: s[1], y: s[2] };
-      if (s[0] === 'klikOvce') { const sh = K.sheep[s[1]]; p = { x: sh.x, y: sh.y - 20 * K.scaleAt(sh.y) }; }
+      if (s[0] === 'klikOvce') { const sh = K.sheep[s[1]]; p = { x: sh.x, y: sh.y - 20 * K.scaleAt(sh.x, sh.y) }; }
       if (s[0] === 'klikChalupa') p = K.L.chalupy.find((c) => c.id === s[1]);
       if (s[0] === 'klikKolo') p = K.scene.st.wheel;
       if (s[0] === 'klikVrchol') p = K.L.vrchol;

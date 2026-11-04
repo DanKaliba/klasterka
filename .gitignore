@@ -5,3 +5,5 @@ figures/
 __pycache__/
 # videa natočená Danielem (zdroj zvuků; do hry jdou vystřižené assets/zvuky)
 sounds/
+# stažený terén a OpenStreetMap pro tools/teren.py
+tools/cache/

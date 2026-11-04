@@ -7,13 +7,19 @@ Zadní Planiny (další úkol) → začne sněžit (tma + sněžení) → rozjed
 - Čisté HTML + JS + Canvas 2D, bez frameworku a buildu; běží i z file:// (žádné ES moduly, žádný fetch).
 - Svět 1920×1080 = pixely snímku; plátno se jen škáluje (letterbox). Mobil se řeší později.
 - Hra beze slov (jen obrázky v bublinách). Jediný text je titulek „Klášterka“.
-- Vypálené razítko kamery (vlevo nahoře) zakrývá HUD: batůžek a 6 míst na předměty, které odemknou mrak
+- Vypálené razítko kamery (vlevo nahoře) zakrývá HUD: batůžek a 7 míst na předměty, které odemknou mrak
   na Zadní Planině (2026-11-03 Daniel: datum a hodiny z menu pryč). Předmět vletí do batůžku, ten poskočí.
 - Noc se nefotí (noční snímky šumí): ztmavený denní snímek (multiply) + hvězdy nad čarou obzoru
   + rozsvícená okna chalup + částicový sníh. Přechod podzim → zima se schová pod hustým sněžením.
 - Detaily chalup kreslí Daniel (fotky kreseb s přírodními materiály). Zatím zástupné kresby na papíře;
   nakreslené pozadí se zapne polem `bg: 'assets/sceny/<id>.jpg'` ve specifikaci detailu v js/chalupy.js.
-- Chalupy s úkolem: Spisovatel, Skočka, Kantorská, Ranč, Jelínek, Nová Klínovka. Ostatní jen svítí v noci.
+- Chalupy s úkolem: Spisovatel, Skočka, Kantorská, Ranč, Jelínek (chata č. 85), Nová Klínovka. Ostatní jen svítí v noci.
+- Hrací místo i u božích muk nad Kantorskou (2026-11-04, Daniel): id `kriz` mezi chalupami s `druh: 'kriz'`
+  (nekouří se, nesvítí). Poloha podle Daniela mapy.com/s/kufomadecu (50.7099203N, 15.6511865E), na snímku
+  u osamělého smrčku vedle cesty (640, 302); cesta ve hře tudy vede po skutečné cestě. Fotky muk:
+  pics/muka (gitignore). Pod křížem studánka, ze které teče voda do Kantorské. Zástupný úkol: odklidit
+  3 smrkové větve ze studánky → voda teče trubkou ke Kantorské (rozsvítí se, Kantorka zamává) → natočit
+  vodu do džbánku → předmět `voda`. Klik na kříž = Kristus se zaleskne.
 - Úkoly v chalupách i na vrcholu jsou ZÁSTUPNÉ, skutečné vymyslí Daniel.
 - Veřejné repo https://github.com/DanKaliba/klasterka, hra na https://dankaliba.github.io/klasterka/ (Pages z main,
   od 2026-11-02). Práva k fotkám webkamery se ještě řeší; Daniel se rozhodl zveřejnit i tak.
@@ -27,6 +33,8 @@ Zadní Planiny (další úkol) → začne sněžit (tma + sněžení) → rozjed
 - `js/finale.js` časová osa finále (klíče: snímek, noc, sníh, okna, hvězdy, vlek, události)
 - `js/editor.js` editor rozložení (E), export do `js/rozlozeni.js` (C)
 - `js/rozlozeni.js` souřadnice chalup, cesty, vleku, louky, obzoru, posun zimních snímků
+- `js/teren.js` model terénu (vzdálenost od kamery v mřížce + OSM promítnutá do snímku) generuje
+  `python tools/teren.py` (stahuje terén a OSM do tools/cache/, gitignore)
 - `js/snimky.js` + `assets/frames/*.webp` generuje `python tools/snimky.py` z `pics/`
 - `tools/testy.js` + `tools/test.ps1` skriptované průchody v headless Chromu
 
@@ -37,15 +45,15 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
 2. `.\tools\test.ps1 -Query "test&skript=cela" -Out <png> -Budget 200000` → screenshot + řádek `STAV {...}`
 - `?test` zastaví čas, testy ho posouvají přes `K.update`/`advanceTime`; rAF v testu kreslí jen občas.
 - test.ps1 maže profil Chrome před každým během, jinak se načte starý JS z cache.
-- Scénáře: uvod, ovce, cesta, spisovatel, detail*, skocka, kantorska, ranc, jelinek, klinovka, vrchol,
-  finale (+ `&finale=<s>`), vlek, **cela** (celá hra až po titulek, ~100 s reálně).
+- Scénáře: uvod, ovce, cesta, spisovatel, detail*, skocka, kantorska, kriz/kriz2 (`&scena=kriz`), ranc, jelinek, klinovka, vrchol,
+  finale (+ `&finale=<s>`), vlek, stopy (`&vse`), ptacek/odlet (`&scena=finale&finale=20`), daleko/daleko2 (panáček na horní louce), **cela** (celá hra až po titulek, ~100 s reálně).
 
 ## Stav
 - [x] Celá hra průchozí od začátku do titulku (ověřeno scénářem `cela`).
 - [ ] Daniel: doladit v editoru polohy chalup (jména jsou přiřazená odhadem!), cestu, vlek, chumel, obzor.
 - [ ] Daniel: skutečné úkoly chalup a vrcholu; kresby detailů; postavy (ovce, panáček, chalupníci).
 - [ ] Zvuky: soubory `assets/zvuky/<jméno>.mp3`. Používaná jména: bee, dvere, odmena, sirka, svicka, psani,
-      chrapot, sustot, buch, spatne, zvonek, vrzani, kopyta, rehtani, ptak, poleno, ohen, mrak, vitr, vlek, vlek-stop.
+      chrapot, sustot, buch, spatne, zvonek, voda, vrzani, kopyta, rehtani, ptak, tetrivek, poleno, ohen, mrak, vitr, vlek, vlek-stop.
       Chybějící soubor se tiše přeskočí. Hudba na pozadí zatím není.
 - [x] Kroky po zmrzlé trávě (2026-11-03): `assets/zvuky/krok-1..8.mp3` vystřihuje `python tools/kroky.py`
       z Danielova videa v `sounds/input/` (gitignore). Celé pásmo (verze jen s výškami nad 700 Hz zněla
@@ -66,6 +74,23 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
   zmizí vlevo, vjedou zpátky u `start` a sjíždějí obloučky pod spodní okraj (`sjezd`), odkud se znovu
   objeví zpoza hrany. Za lyžemi zůstává stopa, bledne za TRACK_LIFE = 10 s.
 - Ve finále lze kliknout na lyžující ovci (kotrmelec). Vlek čeká v 9:00 na klik na sloup.
+- Drobnosti (2026-11-04, Daniel vybral z Claudových nápadů): kouř z komínů hotových chalup (body `komin`
+  u chalup, v editoru „komín“; ve finále se kouří ze všech šesti chalup), stopy panáčka v jinovatce (mizí za
+  FOOTPRINT_LIFE = 25 s), na vršku sloupu vleku od rána sedí tetřívek obecný (Daniel 2026-11-04,
+  `K.drawGrouse`): černomodrý, červená růže, bílý pruh na křídle, lyrovitý ocas; občas se otočí nebo toká
+  (bílý vějíř), při rozjezdu vleku odletí nízko doleva (mávání střídá klouzání, zvuk `tetrivek`).
+  Ovce a panáček se zatím neanimují víc — dostanou Danielovu definitivní podobu.
+- Model terénu (2026-11-04, Daniel: použít polohu kamery a mapu údolí): `tools/teren.py` zkalibruje kameru
+  (50.7052917N, 15.6433725E, 8 m nad zemí — odhad) podle 9 chalup známých z fotky i z OSM: natočení 56,3°
+  (SV), zorný úhel 52°, odchylka ~14 px. Pak pro každých 20 px snímku spočítá vzdálenost viditelného terénu
+  (Terrain Tiles z AWS, ~25 m data). `K.scaleAt(x, y)` = 15·d^−0,66 (0,06–1,25): dál = menší, ale pomaleji než
+  ve skutečnosti, ať jsou vzdálené postavy vidět. Dřív jen podle y (tabulka `perspektiva`, zrušená) —
+  Klínovka (1,1 km) a Spisovatel (0,6 km) tak byly stejně velké. Kontroly: vzdálenosti chalup sedí s mapou,
+  sloup vleku vychází 8,5 m vysoký ve 194 m, trasa vleku z OSM jde přes jeho patu.
+  Blízko kamery (přední louka) je model nejméně přesný: hrubý terén + odhad výšky kamery.
+  Ve finále (zimní souřadnice) se před dotazem odečítá posun `snih`.
+  Editor M = OSM cesty/potoky/vlek/chalupy promítnuté do snímku (tečkovaně = zakryté terénem).
+  Jelínek = chata č. 85 (v OSM bez jména), potvrdil Daniel.
 - Skok `?finale=<s>` nespouští časovače (tweeny), takže rychlost vleku/odjezd chumlu se v přetočeném
   stavu dopočítají až po skoku — jen ladicí kosmetika.
 - Možné vylepšení: vrstvit skutečné noční snímky sněžení (01-03 03:00–06:00) slabě přes 'screen' jako texturu vánice.

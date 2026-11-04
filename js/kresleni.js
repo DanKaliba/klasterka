@@ -249,11 +249,144 @@ K.drawDeer = (ctx, x, y, s, o = {}) => {
   });
 };
 
-K.drawBird = (ctx, x, y, s) => {
+// letící pták = mávající „V“; o.sitting = sedí (x, y = místo, kde stojí), o.facing = kam kouká
+K.drawBird = (ctx, x, y, s, o = {}) => {
+  if (o.sitting) {
+    const f = o.facing || 1;
+    ctx.save();
+    ctx.fillStyle = INK;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.6 * s;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.ellipse(x, y - 6 * s, 7 * s, 4.5 * s, -0.25 * f, 0, Math.PI * 2);
+    ctx.arc(x + 5 * f * s, y - 11 * s, 3.4 * s, 0, Math.PI * 2);
+    ctx.fill();
+    stroke(ctx, [[x - 5 * f * s, y - 5 * s], [x - 12 * f * s, y - 1 * s]], 2.4 * s, 91, 0.4); // ocas
+    stroke(ctx, [[x + 8 * f * s, y - 11.5 * s], [x + 11.5 * f * s, y - 10.5 * s]], 1.4 * s, 92, 0.2); // zobák
+    stroke(ctx, [[x - 1 * s, y - 2 * s], [x - 1 * s, y]], 1.2 * s, 93, 0.2);
+    stroke(ctx, [[x + 2 * s, y - 2 * s], [x + 2 * s, y]], 1.2 * s, 94, 0.2);
+    ctx.restore();
+    return;
+  }
   twoPass(ctx, false, () => {
     const w = Math.sin(K.time * 18) * 10 * s;
     stroke(ctx, [[x - 18 * s, y - w], [x, y], [x + 18 * s, y - w]], 4 * s, 90);
   });
+};
+
+// tetřívek obecný (kohout): černomodrý, červená růže nad okem, bílá skvrna na rameni a pruh na křídle,
+// lyrovitý ocas s konci stočenými ven. Sedící: x, y = kde stojí, o.facing, o.display 0–1 = toká
+// (bílý vějíř pod ocasem vztyčený, černá pera po stranách, hlava dopředu). o.flying = letí
+// (o.flap 0–1 = jak moc právě mává, 0 = klouže), o.facing = směr letu.
+const GROUSE_BLACK = '#161b26', GROUSE_WING = '#252b38', GROUSE_BLUE = 'rgba(52, 86, 160, 0.6)';
+const GROUSE_RED = '#e8361f', GROUSE_WHITE = '#f4f1ea';
+K.drawGrouse = (ctx, x, y, s, o = {}) => {
+  const f = o.facing || 1;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(f * s, s);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const ell = (cx, cy, rx, ry, rot, col) => {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, rot, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  const line = (pts, w, col) => {
+    ctx.strokeStyle = col;
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+    ctx.stroke();
+  };
+  // ocas v klidu: klín dozadu, krajní pera se na konci stáčejí ven (nahoru a dolů)
+  const tail = (rx, ry) => {
+    ctx.fillStyle = GROUSE_BLACK;
+    ctx.beginPath();
+    ctx.moveTo(rx, ry - 2.5); ctx.lineTo(rx - 9, ry - 1); ctx.lineTo(rx - 9, ry + 2); ctx.lineTo(rx, ry + 2.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = GROUSE_BLACK;
+    ctx.lineWidth = 1.3;
+    for (const k of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(rx - 8, ry + k * 0.8);
+      ctx.quadraticCurveTo(rx - 12, ry + k * 1.2, rx - 12.5, ry + k * 3.5);
+      ctx.stroke();
+    }
+  };
+  // hlava s růží a zobákem
+  const head = (hx, hy, rose) => {
+    ell(hx, hy, 4, 3.6, 0, GROUSE_BLACK);
+    ctx.fillStyle = '#3a3f47';
+    ctx.beginPath(); ctx.moveTo(hx + 3.2, hy - 0.6); ctx.lineTo(hx + 6, hy + 0.7); ctx.lineTo(hx + 3.2, hy + 1.8); ctx.closePath(); ctx.fill();
+    ell(hx + 0.8, hy - 2.4, 2.2 * rose, 1.1 * rose, 0, GROUSE_RED);
+  };
+  if (o.flying) {
+    const ph = Math.sin(K.time * 32), flap = o.flap ?? 1;
+    const ys = K.lerp(-0.4, ph, flap); // výška křídla: 1 = nahoře, −1 = dole; klouže s křídly mírně dolů
+    const wing = (sc, col) => {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(-4, 0); ctx.lineTo(6, 0); ctx.lineTo(1, -17 * ys * sc); ctx.lineTo(-9, -14 * ys * sc);
+      ctx.closePath();
+      ctx.fill();
+    };
+    wing(0.8, GROUSE_WING); // vzdálené křídlo za tělem
+    tail(-11, 0);
+    ell(0, 0, 12, 4.8, 0, GROUSE_BLACK);
+    head(12, -1.5, 1);
+    wing(1, GROUSE_BLACK);
+    line([[1.5, -2 * ys], [-3.5, -9 * ys]], 1.6, GROUSE_WHITE); // bílý pruh na křídle
+    ctx.restore();
+    return;
+  }
+  const d = o.display || 0;
+  if (d > 0.05) {
+    // tokání: černá pera roztažená do vějíře, uprostřed vztyčený bílý chomáč, krajní pera visí ven
+    ell(-11, -17 - 4 * d, 5 + 2 * d, 4 + 7 * d, -0.35, GROUSE_BLACK);
+    ell(-11, -17 - 4 * d, 3.5 + 2 * d, 3 + 5.5 * d, -0.35, GROUSE_WHITE);
+    for (const k of [0, 1]) {
+      ctx.strokeStyle = GROUSE_BLACK;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-12, -14);
+      ctx.quadraticCurveTo(-19 - 2 * k, -16 - 4 * d, -18 - 3 * k, -8 + 2 * k);
+      ctx.stroke();
+    }
+  } else tail(-11, -11);
+  line([[-2, -5], [-2, 0]], 2, '#59606b'); // opeřené nohy
+  line([[3, -5], [3, 0]], 2, '#59606b');
+  ell(0, -10, 12.5, 7.5, -0.12 + 0.12 * d, GROUSE_BLACK); // tělo
+  ell(-2, -10, 8.5, 4.2, -0.1, GROUSE_WING); // křídlo
+  line([[-7.5, -7.3], [2.5, -6.8]], 1.4, GROUSE_WHITE); // bílý pruh
+  ell(7, -13.5, 1.2, 1.2, 0, GROUSE_WHITE); // skvrna na rameni
+  // krk a hlava; při tokání nafouknutý krk, hlava dopředu a níž
+  const hx = 11 + 3 * d, hy = -21 + 5 * d;
+  ctx.fillStyle = GROUSE_BLACK;
+  ctx.beginPath(); ctx.moveTo(4, -16); ctx.lineTo(hx - 3.5, hy); ctx.lineTo(hx + 2, hy + 2.5); ctx.lineTo(11, -10); ctx.closePath(); ctx.fill();
+  ell(8, -15 + 2 * d, 3.2 + d, 3 + d, 0.4, GROUSE_BLUE); // modrý lesk na hrudi
+  head(hx, hy, 1 + 0.5 * d);
+  ctx.restore();
+};
+
+// kouř z komína: obláčky stoupají, vítr je stáčí doprava, rostou a blednou; size ~ velikost chalupy
+K.drawSmoke = (ctx, x, y, size, seed = 0, alpha = 1) => {
+  const N = 7, k = size / 36;
+  ctx.save();
+  for (let i = 0; i < N; i++) {
+    const u = (K.time * 0.16 + i / N + K.hash(seed) * 0.5) % 1;
+    const wob = Math.sin(K.time * 0.9 + i * 2.3 + seed) * 3 * k * u;
+    const px = x + (u * u * 34 + wob) * k, py = y - u * 62 * k;
+    ctx.globalAlpha = alpha * 0.55 * (1 - u) * Math.min(1, u * 6);
+    ctx.fillStyle = '#ecebe6';
+    ctx.beginPath();
+    ctx.arc(px, py, (2 + u * 9) * k, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 };
 
 // ---------- bublina s obrázkem (hra je beze slov) ----------
@@ -314,6 +447,16 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
     case 'kolo':
       C(0, 0, 9); C(0, 0, 2, true);
       for (let a = 0; a < 6; a++) L([[0, 0], [Math.cos(a) * 9, Math.sin(a) * 9]]);
+      break;
+    case 'voda':
+      // kapka ze studánky
+      ctx.beginPath();
+      ctx.moveTo(0, -10 * u);
+      ctx.bezierCurveTo(4 * u, -4 * u, 8 * u, 0, 8 * u, 3 * u);
+      ctx.arc(0, 3 * u, 8 * u, 0, Math.PI);
+      ctx.bezierCurveTo(-8 * u, 0, -4 * u, -4 * u, 0, -10 * u);
+      ctx.stroke();
+      L([[-4, 3], [-3, 6]]);
       break;
     case 'caj':
       L([[-7, -2], [-6, 8], [5, 8], [6, -2], [-7, -2]]); L([[6, 0], [9, 1], [9, 4], [5, 5]]);
