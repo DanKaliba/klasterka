@@ -308,19 +308,24 @@ function drawRiders(ctx) {
 }
 
 // ---------- tetřívek na sloupu: sedí od rána, občas toká, při rozjezdu vleku uletí ----------
+// sedící tetřívek na vršku sloupu; používá ho i louka (tam je sloup o K.L.snih jinde)
+// displayT = kdy na něj hráč klikl (pak hned toká)
+K.drawPoleGrouse = (ctx, top, s, displayT = null) => {
+  // občas se otočí; v některých chvílích toká: roztáhne bílý vějíř a pokyvuje hlavou
+  const win = Math.floor(K.time / 2.2), u = (K.time / 2.2) % 1;
+  const facing = K.hash(win) < 0.5 ? -1 : 1;
+  let display = K.hash(win + 11) < 0.35 ? Math.sin(u * Math.PI) * (0.85 + 0.15 * Math.sin(K.time * 14)) : 0;
+  const dt = K.time - (displayT ?? -9);
+  if (dt < 1.8) display = Math.max(display, Math.sin((dt / 1.8) * Math.PI) * (0.85 + 0.15 * Math.sin(K.time * 14)));
+  const hop = !display && K.hash(win + 5) < 0.2 ? Math.max(0, Math.sin(K.time * 9)) * 2 * s : 0;
+  K.drawGrouse(ctx, top.x, top.y - 1 - hop, s, { facing, display });
+};
+
 function drawPoleBird(ctx) {
   const b = F.bird;
   if (!b.on) return;
   const top = V().sloup, s = scaleW(top.x, top.y) * 1.6; // větší než ve skutečnosti, ať je vidět
-  if (b.flyAt === null) {
-    // občas se otočí; v některých chvílích toká: roztáhne bílý vějíř a pokyvuje hlavou
-    const win = Math.floor(K.time / 2.2), u = (K.time / 2.2) % 1;
-    const facing = K.hash(win) < 0.5 ? -1 : 1;
-    const display = K.hash(win + 11) < 0.35 ? Math.sin(u * Math.PI) * (0.85 + 0.15 * Math.sin(K.time * 14)) : 0;
-    const hop = !display && K.hash(win + 5) < 0.2 ? Math.max(0, Math.sin(K.time * 9)) * 2 * s : 0;
-    K.drawGrouse(ctx, top.x, top.y - 1 - hop, s, { facing, display });
-    return;
-  }
+  if (b.flyAt === null) return K.drawPoleGrouse(ctx, top, s);
   // tetřívek letí nízko a rovně: chvíli rychle mává, pak klouže
   const t = K.time - b.flyAt;
   if (t > 5) { b.on = false; return; }

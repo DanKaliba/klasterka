@@ -56,7 +56,7 @@ window.render_game_to_text = () => {
     hotove: Object.keys(K.state.solved),
     predmety: K.state.items,
     zvuky: K.soundStats,
-    hrdina: { x: Math.round(hp.x), y: Math.round(hp.y), bodCesty: +K.hero.p.toFixed(2), jde: K.hero.target !== null, videt: K.hero.visible },
+    hrdina: { x: Math.round(hp.x), y: Math.round(hp.y), bodCesty: +K.hero.p.toFixed(2), jde: K.hero.target !== null, volne: !!K.hero.off, videt: K.hero.visible },
     ovce: K.sheep.map((s) => ({ x: Math.round(s.x), y: Math.round(s.y), rezim: s.mode })),
   };
   if (name === 'les') {

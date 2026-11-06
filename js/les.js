@@ -600,8 +600,7 @@ function drawRam(ctx) {
   const rx = K.lerp(190, 175, sd), ry = K.lerp(85, 72, sd) * (1 + breath);
   ctx.save();
   if (st.out > 0) {
-    // odchází po proudu k divákovi
-    ctx.globalAlpha = 1 - st.out;
+    // odchází po proudu k divákovi (průhlednost řeší K.withAlpha u volání)
     ctx.translate(-st.out * 160, st.out * 300);
   }
   ctx.lineJoin = 'round';
@@ -693,9 +692,10 @@ function drawRam(ctx) {
     ctx.font = '600 30px Georgia, serif';
     ctx.fillStyle = K.INK;
     const z = (K.time * 0.5) % 1;
+    ctx.save();
     ctx.globalAlpha *= 1 - z;
     ctx.fillText('z', hx - 70 - z * 20, hy - 30 - z * 60);
-    ctx.globalAlpha = st.out > 0 ? 1 - st.out : 1;
+    ctx.restore();
   }
   // rohy jako kámen: velká spirála dozadu kolem ucha
   const ox = hx + 18, oy = hy - 12;
@@ -758,13 +758,13 @@ K.scenes.les = {
     const bg = K.img(BG), photo = K.ready(bg);
     if (photo) {
       ctx.drawImage(bg, 0, 0, K.W, K.H);
-      drawRam(ctx);
+      K.withAlpha(ctx, 1 - st.out, drawRam);
       drawWaterOver(ctx, bg);
       drawRings(ctx);
     } else {
       drawBackdrop(ctx);
       drawStreamBack(ctx);
-      drawRam(ctx);
+      K.withAlpha(ctx, 1 - st.out, drawRam);
       drawStreamFront(ctx);
       drawBanks(ctx);
       drawWall(ctx);

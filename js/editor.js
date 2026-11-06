@@ -6,6 +6,7 @@ const HELP = [
   'kolečko nad chalupou = velikost',
   'Shift+klik na bod cesty = les (skrytý) ano/ne',
   'N = nový bod cesty u myši,  Del = smazat bod pod myší',
+  'B = nový bod plochy chůze (tyrkys) u myši',
   'S = zimní snímek; šipky = posun zimních snímků',
   'M = podklad z mapy (OSM): cesty, potoky, vlek, chalupy',
   'vlek, chumel a bílou hranu svahu lad na zimním snímku (S)',
@@ -39,6 +40,7 @@ const ed = K.editor = {
     hs.push({ obj: L.vlek.sjezd, kind: 'bod', label: 'konec sjezdu' });
     hs.push({ obj: L.chumel, kind: 'bod', label: 'chumel' });
     L.louka.forEach((c) => hs.push({ obj: c, kind: 'louka', label: '' }));
+    (L.chuze || []).forEach((poly, pi) => poly.forEach((c, i) => hs.push({ obj: c, kind: 'chuze', label: '', pi, i })));
     L.obzor.forEach((c) => hs.push({ obj: c, kind: 'obzor', label: '' }));
     L.hrana.forEach((c) => hs.push({ obj: c, kind: 'hrana', label: '' }));
     return hs.map((h) => ({ ...h, x: h.obj.x + (h.dx || 0), y: h.obj.y + (h.dy || 0) }));
@@ -99,8 +101,21 @@ const ed = K.editor = {
       const n = K.nearestPathIndex(K.mouse).index;
       L.cesta.splice(n + 1, 0, { x: Math.round(K.mouse.x), y: Math.round(K.mouse.y) });
       this.save();
+    } else if ((e.key === 'b' || e.key === 'B') && K.mouse && L.chuze && L.chuze.length) {
+      // nový bod plochy chůze: do plochy s nejbližší hranou, za bližší z jejích dvou bodů
+      let best = null;
+      L.chuze.forEach((poly, pi) => poly.forEach((c, i) => {
+        const d = K.dist(c, K.mouse) + K.dist(poly[(i + 1) % poly.length], K.mouse);
+        if (!best || d < best.d) best = { d, pi, i };
+      }));
+      L.chuze[best.pi].splice(best.i + 1, 0, { x: Math.round(K.mouse.x), y: Math.round(K.mouse.y) });
+      this.save();
     } else if (e.key === 'Delete' && this.hoverH && this.hoverH.kind === 'cesta' && L.cesta.length > 2) {
       L.cesta.splice(this.hoverH.i, 1);
+      this.hoverH = null;
+      this.save();
+    } else if (e.key === 'Delete' && this.hoverH && this.hoverH.kind === 'chuze' && L.chuze[this.hoverH.pi].length > 3) {
+      L.chuze[this.hoverH.pi].splice(this.hoverH.i, 1);
       this.hoverH = null;
       this.save();
     } else if (e.key === 'c' || e.key === 'C') this.exportFile();
@@ -197,6 +212,14 @@ const ed = K.editor = {
     L.louka.forEach((c, i) => (i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y)));
     ctx.closePath();
     ctx.stroke();
+    // plochy, kde se dá chodit kamkoli
+    ctx.strokeStyle = 'rgba(60, 230, 230, 0.9)';
+    for (const poly of L.chuze || []) {
+      ctx.beginPath();
+      poly.forEach((c, i) => (i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y)));
+      ctx.closePath();
+      ctx.stroke();
+    }
     // obzor (nad ním svítí hvězdy)
     ctx.strokeStyle = 'rgba(140, 200, 255, 0.9)';
     ctx.beginPath();
@@ -221,7 +244,7 @@ const ed = K.editor = {
 
     ctx.font = '600 14px system-ui, sans-serif';
     for (const h of this.handles()) {
-      const col = { chalupa: '#ff8a3d', cesta: h.obj.skryto ? '#888' : '#ffe600', bod: '#ff78c8', louka: '#78ff78', obzor: '#8cc8ff', hrana: '#ffffff' }[h.kind];
+      const col = { chalupa: '#ff8a3d', cesta: h.obj.skryto ? '#888' : '#ffe600', bod: '#ff78c8', louka: '#78ff78', chuze: '#3ce6e6', obzor: '#8cc8ff', hrana: '#ffffff' }[h.kind];
       ctx.fillStyle = col;
       ctx.strokeStyle = '#000';
       ctx.beginPath();

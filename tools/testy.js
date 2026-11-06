@@ -21,6 +21,13 @@ window.SCENARE = {
   lesKlice: [['cekaScena', 'les'], ['klik', 118, 440], ['cekaVolno'], ['klik', 118, 440], ['cekaVolno'], ['klik', 118, 440], ['ceka', 7000]],
   lesBeran: [['cekaScena', 'les'], ...STROM, ['klik', 332, 850], ['cekaVolno'], ['klik', 955, 580], ['ceka', 3600]],
   lesPrechod: [['cekaScena', 'les'], ...STROM, ['klik', 332, 850], ['cekaVolno'], ['klik', 955, 580], ['ceka', 6300]],
+  lesOdchod: [['cekaScena', 'les'], ...STROM, ['klik', 332, 850], ['cekaVolno'], ['klik', 955, 580], ['ceka', 8000]],
+  // ovce, která se ptá po beranovi (poslední), a tetřívek na sloupu (klik = zatoká)
+  beranOvce: [['ceka', 2500], ['klikOvce', 5], ['ceka', 800]],
+  tetrivek: [['ceka', 2500], ['klik', 539, 592], ['ceka', 700]],
+  // chůze kamkoli: po dolní louce rovnou, na horní louku přes cestu lesem (les přeskočený)
+  chuze: [['bezLesa'], ['ceka', 2500], ['klik', 250, 800], ['ceka', 5000], ['klik', 1100, 370], ['ceka', 26000]],
+  chuze1: [['bezLesa'], ['ceka', 2500], ['klik', 250, 800], ['ceka', 5000]],
   lesKonec: [['cekaScena', 'les'], ...LES, ['ceka', 1500]],
   skocka: [['ceka', 800], ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 1500], ['klik', 1360, 830], ['ceka', 600]],
   kantorska: [['ceka', 800], ['klik', 820, 745], ['ceka', 200], ['klik', 1260, 745], ['ceka', 900]],

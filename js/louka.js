@@ -1,6 +1,8 @@
 // Louka: hlavní scéna nad snímkem 28. 12. 13:00 — ovce, panáček, cesta k chalupám a na vrchol.
 const MEADOW_FRAME = '2025-12-28_1300';
 const SCARVES = ['#c0392b', '#2e86c1', '#e1b12c', '#27ae60', '#8e44ad', '#e67e22'];
+// poslední ovce se neptá po lyžích, ale po beranovi, který se zatoulal do lesa (Daniel 2026-11-06)
+const RAM_ASKER = SCARVES.length - 1;
 
 // cíl úkolu u každé chalupy a u božích muk (odměna se objeví v HUD). Kolik jich je, tolik klíčů
 // potřebuje mrak na Zadní Planině — tolik míst má batoh a tolik klíčů ukáže strom v lese.
@@ -46,20 +48,66 @@ K.nearestPathIndex = (pt) => {
   return { index: best, dist: bd };
 };
 
+// ---------- plochy, kde se dá chodit kamkoli (K.L.chuze, ladí se v editoru) ----------
+K.walkAreaAt = (pt) => (K.L.chuze || []).find((poly) => K.inPolygon(pt, poly)) || null;
+
+// nejbližší viditelný bod cesty, přednostně ve stejné ploše jako pt (tam se z louky napojí na cestu)
+K.pathIndexNear = (pt) => {
+  const c = K.L.cesta, area = K.walkAreaAt(pt);
+  let ids = c.map((_, i) => i).filter((i) => !c[i].skryto && area && K.inPolygon(c[i], area));
+  if (!ids.length) ids = c.map((_, i) => i).filter((i) => !c[i].skryto);
+  return ids.reduce((best, i) => (K.dist(c[i], pt) < K.dist(c[best], pt) ? i : best), ids[0]);
+};
+
 // ---------- hrdina ----------
+// Chodí po cestě (p = poloha na lomené čáře K.L.cesta) nebo volně po loukách (off = {x, y}).
+// Chůze je fronta úseků: { path: i } po cestě k bodu i, { free: {x, y} } rovně na místo v ploše,
+// { join: i } rovně z louky na bod cesty i (dál zase po cestě). Do chalupy, do lesa a na druhou
+// louku se chodí po cestě; v rámci jedné louky rovnou.
 K.hero = {
-  p: 0, target: null, facing: 1, phase: 0, visible: true, onArrive: null,
+  p: 0, off: null, legs: [], leg: null, target: null, facing: 1, phase: 0, visible: true, onArrive: null,
   frozen: false, // stojí na kraji lesa, dokud se hráč nevrátí z lesní scény
-  get pos() { return K.pathPoint(this.p); },
+  get pos() { return this.off ? { x: this.off.x, y: this.off.y, alpha: 1 } : K.pathPoint(this.p); },
+  plan(legs) {
+    const done = new Promise((r) => { this.onArrive = r; });
+    this.legs = legs.slice();
+    this.nextLeg();
+    return done;
+  },
+  stop() {
+    this.legs = [];
+    this.leg = null;
+    this.target = null;
+  },
+  joinLegs() {
+    return this.off ? [{ join: K.pathIndexNear(this.off) }] : [];
+  },
   walkTo(index) {
-    this.target = index;
-    return new Promise((r) => { this.onArrive = r; });
+    return this.plan([...this.joinLegs(), { path: index }]);
+  },
+  walkFree(pt) {
+    const area = K.walkAreaAt(pt);
+    if (area && K.walkAreaAt(this.pos) === area) return this.plan([{ free: pt }]);
+    return this.plan([...this.joinLegs(), { path: K.pathIndexNear(pt) }, { free: pt }]);
+  },
+  nextLeg() {
+    const L = this.legs.shift();
+    if (!L) return this.arrive();
+    if (L.path === undefined && !this.off) { const p = this.pos; this.off = { x: p.x, y: p.y }; }
+    this.leg = L;
+    this.target = L.path !== undefined ? L.path : L;
+  },
+  endLeg() {
+    this.leg = null;
+    this.target = null;
+    this.nextLeg();
   },
   update(dt) {
     if (this.target === null || this.frozen) return;
+    if (this.leg.path === undefined) return this.updateFree(dt, this.leg);
     const c = K.L.cesta;
     const dir = Math.sign(this.target - this.p);
-    if (dir === 0) return this.arrive();
+    if (dir === 0) return this.endLeg();
     const i = dir > 0 ? Math.floor(this.p) : Math.ceil(this.p) - 1;
     const a = c[Math.max(0, i)], b = c[Math.min(c.length - 1, i + 1)];
     const segLen = Math.max(1, K.dist(a, b));
@@ -71,8 +119,8 @@ K.hero = {
     // Les: dokud není vyřešený, cesta se na jeho kraji přeruší a otevře se lesní scéna (js/les.js).
     // Rozběhnutá chůze (i s čekajícím enterPlace) po návratu pokračuje z druhého kraje lesa.
     if (!K.state.solved.les && K.scene === K.scenes.louka) {
-      const [a, b] = K.forestSpan(), edge = dir > 0 ? a : b;
-      if (a >= 0 && (before - edge) * dir < 0 && (this.p - edge) * dir >= 0) {
+      const [fa, fb] = K.forestSpan(), edge = dir > 0 ? fa : fb;
+      if (fa >= 0 && (before - edge) * dir < 0 && (this.p - edge) * dir >= 0) {
         this.p = edge;
         this.frozen = true;
         K.enterForest(dir);
@@ -81,29 +129,46 @@ K.hero = {
     }
     if ((dir > 0 && this.p >= this.target) || (dir < 0 && this.p <= this.target)) {
       this.p = this.target;
-      return this.arrive();
+      return this.endLeg();
     }
     this.facing = dir * Math.sign(b.x - a.x || 1);
+    this.stepFx(dt, here, (b.x - a.x) / segLen, (b.y - a.y) / segLen);
+  },
+  updateFree(dt, L) {
+    const goal = L.free || K.pathPoint(L.join);
+    const o = this.off, dx = goal.x - o.x, dy = goal.y - o.y, d = Math.hypot(dx, dy);
+    const step = (170 * K.scaleAt(o.x, o.y) + 20) * dt;
+    if (d <= step) {
+      o.x = goal.x;
+      o.y = goal.y;
+      if (L.join !== undefined) { this.off = null; this.p = L.join; }
+      return this.endLeg();
+    }
+    o.x += (dx / d) * step;
+    o.y += (dy / d) * step;
+    if (Math.abs(dx) > 0.5) this.facing = Math.sign(dx);
+    this.stepFx(dt, this.pos, dx / d, dy / d);
+  },
+  // kroky: noha dopadne, když je krok nejdelší; louka je vždy podzimní, takže křupe zmrzlá tráva.
+  // Vzdálený (menší) panáček je slyšet slaběji, v lese ještě slaběji. (ux, uy) = směr chůze.
+  stepFx(dt, here, ux, uy) {
     const step = Math.floor(this.phase / Math.PI + 0.5);
     this.phase += dt * 9;
-    // noha dopadne, když je krok nejdelší; louka je vždy podzimní, takže křupe zmrzlá tráva.
-    // Vzdálený (menší) panáček je slyšet slaběji, v lese ještě slaběji.
-    if (Math.floor(this.phase / Math.PI + 0.5) !== step && K.scene === K.scenes.louka) {
-      const near = 0.45 + 0.55 * K.clamp(K.scaleAt(here.x, here.y));
-      K.sound(K.stepSound(), {
-        volume: K.STEP_VOLUME * near * (0.5 + 0.5 * here.alpha) * K.rand(0.75, 1),
-        rate: K.rand(0.9, 1.12),
-      });
-      // stopa v jinovatce: střídavě levá a pravá noha, kolmo na směr chůze
-      if (here.alpha > 0.5) {
-        const s = K.scaleAt(here.x, here.y), side = step % 2 ? 1 : -1, len = segLen;
-        const nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
-        K.footprints.push({ x: here.x + nx * side * 6 * s, y: here.y + ny * side * 3 * s, s, t: K.time });
-        if (K.footprints.length > 400) K.footprints.shift();
-      }
+    if (Math.floor(this.phase / Math.PI + 0.5) === step || K.scene !== K.scenes.louka) return;
+    const near = 0.45 + 0.55 * K.clamp(K.scaleAt(here.x, here.y));
+    K.sound(K.stepSound(), {
+      volume: K.STEP_VOLUME * near * (0.5 + 0.5 * here.alpha) * K.rand(0.75, 1),
+      rate: K.rand(0.9, 1.12),
+    });
+    // stopa v jinovatce: střídavě levá a pravá noha, kolmo na směr chůze
+    if (here.alpha > 0.5) {
+      const s = K.scaleAt(here.x, here.y), side = step % 2 ? 1 : -1;
+      K.footprints.push({ x: here.x - uy * side * 6 * s, y: here.y + ux * side * 3 * s, s, t: K.time });
+      if (K.footprints.length > 400) K.footprints.shift();
     }
   },
   arrive() {
+    this.leg = null;
     this.target = null;
     const r = this.onArrive;
     this.onArrive = null;
@@ -143,7 +208,7 @@ K.makeSheep = () => {
     const pt = K.randomInPolygon(K.L.louka);
     return {
       x: pt.x, y: pt.y, tx: pt.x, ty: pt.y, facing: i % 2 ? 1 : -1, phase: Math.random() * 6,
-      wait: Math.random() * 3, headUp: false, scarf, rot: 0, mode: 'graze',
+      wait: Math.random() * 3, headUp: false, scarf, rot: 0, mode: 'graze', asksRam: i === RAM_ASKER,
     };
   });
 };
@@ -228,7 +293,7 @@ K.scenes.louka = {
       // bez rozběhnuté chůze (?scena=les) stojí o bod dál, jinak by zůstal neviditelný v lese
       K.hero.p = trip ? (trip.dir < 0 ? a : b) : Math.min(b + 1, K.L.cesta.length - 1);
       K.hero.frozen = false;
-      if (!trip) K.hero.target = null;
+      if (!trip) K.hero.stop();
       K.busy = trip ? trip.busy : 0;
       K.fade.a = 1;
       K.fadeTo(0, 1, K.FOREST_FADE);
@@ -241,6 +306,8 @@ K.scenes.louka = {
       K.busy--;
     } else {
       K.hero.p = 0;
+      K.hero.off = null;
+      K.hero.stop();
       K.fade.a = 1;
       K.fadeTo(0, 1.2, '#000');
       K.hero.walkTo(1);
@@ -277,6 +344,7 @@ K.scenes.louka = {
     }
 
     drawFootprints(ctx);
+    K.drawPoleGrouse(ctx, grouseTop(), grouseScale(), grouseT);
     const hp = K.hero.pos;
     K.drawSheepFlock(ctx, [{ y: hp.y, draw: () => K.hero.draw(ctx) }]);
     if (bubble && bubble.until > K.time) {
@@ -287,7 +355,7 @@ K.scenes.louka = {
   },
 
   hot(p) {
-    if (K.sheepAt(p)) return true;
+    if (K.sheepAt(p) || grouseAt(p)) return true;
     if (!K.state.asked) return false;
     if (K.dist(p, K.L.vrchol) < 50) return true;
     return K.L.chalupy.some((c) => K.CHALETS[c.id] && !K.state.solved[c.id] && K.dist(p, c) < c.w);
@@ -296,12 +364,17 @@ K.scenes.louka = {
   click(p) {
     const sh = K.sheepAt(p);
     if (sh) return sheepTalk(sh);
+    if (grouseAt(p)) {
+      grouseT = K.time;
+      return K.sound('tetrivek-tokani');
+    }
     if (K.state.asked) {
       if (K.dist(p, K.L.vrchol) < 50) return allSolved() ? enterPlace('vrchol', K.L.vrchol) : (lockBubble = K.time + 2);
       const c = K.L.chalupy.find((h) => K.CHALETS[h.id] && !K.state.solved[h.id] && K.dist(p, h) < h.w);
       if (c) return enterPlace(c.id, c);
     }
-    // klik kousek od cesty = dojdi tam
+    // klik do louky = dojdi tam (po jiné louce přes cestu), klik kousek od cesty = dojdi na cestu
+    if (K.walkAreaAt(p)) return K.hero.walkFree(p);
     const n = K.nearestPathIndex(p);
     if (n.dist < 90 && !K.L.cesta[n.index].skryto) K.hero.walkTo(n.index);
   },
@@ -309,10 +382,23 @@ K.scenes.louka = {
 
 function sheepTalk(sh) {
   K.sound('bee');
+  if (sh.asksRam && !K.state.solved.les) {
+    // jen tahle ovce zvedne hlavu a ptá se po beranovi (úkoly chalup to neodemyká)
+    bubble = { sheep: sh, icon: 'beran', until: K.time + 3.2 };
+    sh.headUp = true;
+    return;
+  }
   bubble = { sheep: sh, icon: 'ovceLyze', until: K.time + 3.2 };
   for (const o of K.sheep) o.headUp = true;
   K.state.asked = true;
 }
+
+// tetřívek sedí na vršku sloupu vleku od začátku hry (ve finále při rozjezdu vleku uletí);
+// klik na něj = zatoká. Sloup je v zimních souřadnicích, louka je podzimní snímek.
+let grouseT = null;
+const grouseTop = () => ({ x: K.L.vlek.sloup.x - K.L.snih.x, y: K.L.vlek.sloup.y - K.L.snih.y });
+const grouseScale = () => { const t = grouseTop(); return K.scaleAt(t.x, t.y) * 1.6; };
+const grouseAt = (p) => { const t = grouseTop(), s = grouseScale(); return Math.abs(p.x - t.x) < 26 * s && p.y < t.y + 6 && p.y > t.y - 34 * s; };
 
 async function enterPlace(id, target) {
   K.busy++;

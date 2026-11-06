@@ -34,11 +34,11 @@ function twoPass(ctx, halo, fn) {
 // ---------- panáček (hrdina) ----------
 // y = chodidla, s = měřítko (výška ~130·s)
 K.drawHero = (ctx, x, y, s, o = {}) => {
+  if ((o.alpha ?? 1) < 1) return K.withAlpha(ctx, o.alpha, (c) => K.drawHero(c, x, y, s, { ...o, alpha: 1 }));
   const f = o.facing || 1;
   const sw = o.walking ? Math.sin(o.phase || 0) : 0;
   const bob = o.walking ? Math.abs(Math.cos(o.phase || 0)) * 3 * s : 0;
   ctx.save();
-  ctx.globalAlpha = o.alpha ?? 1;
   twoPass(ctx, o.halo !== false, (pass) => {
     const lw = (pass ? 4.5 : 9) * Math.max(s, 0.35);
     const hy = y - 52 * s - bob, ny = y - 92 * s - bob;
@@ -158,6 +158,7 @@ function drawHat(ctx, hat, x, y, s, f) {
 // o.skis, o.rot (náklon/kotrmelec), o.headUp, o.scarf (barva šály), o.hang (visí na kotvě),
 // o.ram = starý beran z lesa: větší, rohy do spirály a lyže se špičkou stočenou jako rohy
 K.drawSheep = (ctx, x, y, s, o = {}) => {
+  if ((o.alpha ?? 1) < 1) return K.withAlpha(ctx, o.alpha, (c) => K.drawSheep(c, x, y, s, { ...o, alpha: 1 }));
   const f = o.facing || 1;
   if (o.ram) s *= 1.15;
   const step = o.walking ? Math.sin(o.phase || 0) * 6 * s : 0;
@@ -477,6 +478,28 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
       }
       ctx.restore();
       break;
+    case 'beran': {
+      // hlava berana z profilu (čumák vlevo dole) s velkým stočeným rohem a otazníkem: „kde je beran?“
+      ctx.beginPath(); ctx.ellipse(-3 * u, 3 * u, 5.5 * u, 8 * u, 0.55, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(5 * u, 0, 3.6 * u, 1.8 * u, 0.4, 0, Math.PI * 2); ctx.fill();
+      const horn = () => {
+        ctx.beginPath();
+        for (let k = 0; k <= 26; k++) {
+          const a = -Math.PI * 0.7 + k * 0.32, r = 7.5 * u * (1 - k / 34);
+          const px = 2 * u + Math.cos(a) * r, py = -2 * u + Math.sin(a) * r;
+          k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+        }
+        ctx.stroke();
+      };
+      ctx.lineWidth = 3.6 * u; horn();
+      ctx.strokeStyle = '#fffcf4'; ctx.lineWidth = 1.6 * u; horn();
+      ctx.fillStyle = '#fffcf4'; C(-4.5, 1.5, 1.1, true);
+      ctx.fillStyle = color;
+      ctx.font = `700 ${9 * u}px Georgia, serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('?', 10 * u, -6 * u);
+      break;
+    }
     case 'klic':
       C(-5, 0, 4); L([[-1, 0], [10, 0]]); L([[6, 0], [6, 4]]); L([[9, 0], [9, 3]]);
       break;

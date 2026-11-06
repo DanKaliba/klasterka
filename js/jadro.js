@@ -252,6 +252,32 @@ K.stepSound = () => {
   return lastStep;
 };
 
+// ---------- průhlednost postavy jako celku ----------
+// Postava z překrývajících se tvarů (chomáče vlny, hlava, rohy) by při globalAlpha prosvítala
+// sama sebou — byly by vidět kruhy a ovály uvnitř. Proto se nakreslí naplno do vedlejšího plátna
+// se stejnou transformací a zprůhlední se až hotový obrázek. Nevnořovat (plátno je jedno).
+let layerCanvas = null;
+K.withAlpha = (ctx, alpha, fn) => {
+  if (alpha >= 0.999) return fn(ctx);
+  if (alpha <= 0.001) return;
+  const c = ctx.canvas;
+  if (!layerCanvas) layerCanvas = document.createElement('canvas');
+  if (layerCanvas.width !== c.width || layerCanvas.height !== c.height) {
+    layerCanvas.width = c.width;
+    layerCanvas.height = c.height;
+  }
+  const l = layerCanvas.getContext('2d');
+  l.setTransform(1, 0, 0, 1, 0, 0);
+  l.clearRect(0, 0, c.width, c.height);
+  l.setTransform(ctx.getTransform());
+  fn(l);
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(layerCanvas, 0, 0);
+  ctx.restore();
+};
+
 // ---------- stav hry ----------
 // K.ITEMS (předměty = klíče k mraku) je v louka.js podle K.CHALETS
 // bag: batoh dá strom v lese; do té doby HUD jen zakrývá razítko kamery

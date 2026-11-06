@@ -73,7 +73,8 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
 - [ ] Daniel: skutečné úkoly chalup a vrcholu; kresby detailů; postavy (ovce, panáček, chalupníci).
 - [ ] Zvuky: soubory `assets/zvuky/<jméno>.mp3`. Používaná jména: bee, dvere, odmena, sustot, buch, spatne,
       zvonek, voda, ptak, tetrivek, poleno, ohen, mrak, vitr, vlek, vlek-stop; les: nebudme, vrzani (strom se
-      probouzí), coje, chorose (rostou), triangl (padající kapka), chrapot (beran spí), beran (probouzí se), otrepani.
+      probouzí), coje, chorose (rostou), triangl (padající kapka), chrapot (beran spí), beran (probouzí se), otrepani;
+      louka: tetrivek-tokani (klik na tetřívka na sloupu).
       Chybějící soubor se tiše přeskočí. Hudba na pozadí zatím není.
 - [x] Kroky po zmrzlé trávě (2026-11-03): `assets/zvuky/krok-1..8.mp3` vystřihuje `python tools/kroky.py`
       z Danielova videa v `sounds/input/` (gitignore). Celé pásmo (verze jen s výškami nad 700 Hz zněla
@@ -84,6 +85,17 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
       krok po zmrzlé hlíně s ledem (`led-1..4.mp3`, první dva a poslední dva kroky videa, delší 0,4–0,8 s).
 - [ ] Mobil (dotyk, orientace na šířku).
 - [x] GitHub Pages nasazené (2026-11-02). Ověřeno: živý web běží, snímky se načítají.
+
+- [x] 2026-11-06 (Daniel): tetřívek sedí na sloupu vleku už od začátku na louce (`K.drawPoleGrouse`, sloup je
+      v zimních souřadnicích → na podzimní louce minus `K.L.snih`), klik = zatoká. Poslední ovce (`asksRam`) se
+      ptá po beranovi (ikona `beran`), dokud není les vyřešený; úkoly chalup to neodemyká.
+- [x] 2026-11-06 (Daniel): chůze kamkoli. `K.L.chuze` = plochy (dolní louka pod hranou lesa, horní louka u chalup;
+      v editoru tyrkysově, B = nový bod, Del = smazat). Klik do plochy: v téže ploše jde panáček rovně, jinak se
+      napojí na nejbližší bod cesty, jde po ní (lesem, přes lesní scénu) a z cesty zase rovně na místo
+      (`K.hero.walkFree`, fronta úseků path/free/join). Do chalup a na vrchol dál po cestě. Test `chuze`.
+      Minihra s tetřívkem se ještě vymyslí.
+- Průhlednost postav: `K.withAlpha(ctx, a, fn)` nakreslí postavu naplno do vedlejšího plátna a zprůhlední ji
+  jako celek (jinak prosvítají překrývající se chomáče/ovály). Používá drawHero, drawSheep (`o.alpha`) a beran.
 
 ## Nápady / poznámky pro dalšího
 - Zimní snímky jsou proti podzimním posunuté o ~(4, 16) px → `rozlozeni.snih`; v editoru S + šipky.
