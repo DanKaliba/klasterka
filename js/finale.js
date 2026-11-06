@@ -302,7 +302,7 @@ function drawRiders(ctx) {
     ctx.strokeStyle = K.INK;
     ctx.lineWidth = 2.2 * s;
     ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(sh.x + 20 * s, sh.y - 34 * s); ctx.stroke();
-    K.drawSheep(ctx, sh.x, sh.y, s, { facing: sh.facing, rot: sh.rot, skis: true, scarf: sh.scarf });
+    K.drawSheep(ctx, sh.x, sh.y, s, { facing: sh.facing, rot: sh.rot, skis: true, scarf: sh.scarf, ram: sh.ram });
   }
   ctx.restore();
 }
@@ -328,10 +328,10 @@ function drawPoleBird(ctx) {
   K.drawGrouse(ctx, top.x - 170 * t - 25 * t * t, top.y - 14 * s - 55 * t + Math.sin(t * 5) * 4, s * (1 + t * 0.1), { flying: true, facing: -1, flap });
 }
 
-// ---------- kouř z komínů chalup s úkolem (ve finále jsou všechny hotové) ----------
+// ---------- kouř ze všech komínů (ve finále se topí všude) ----------
 function drawChimneys(ctx, m) {
   for (const c of K.L.chalupy) {
-    if (!K.CHALETS[c.id] || !c.komin) continue;
+    if (!c.komin) continue;
     const k = off(c.komin, m);
     K.drawSmoke(ctx, k.x, k.y, c.w, c.x);
   }

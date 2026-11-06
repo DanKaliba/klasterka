@@ -253,8 +253,9 @@ K.stepSound = () => {
 };
 
 // ---------- stav hry ----------
-K.ITEMS = ['plan', 'lyze', 'kotva', 'voda', 'lano', 'kolo', 'caj'];
-K.state = { asked: false, solved: {}, items: [] };
+// K.ITEMS (předměty = klíče k mraku) je v louka.js podle K.CHALETS
+// bag: batoh dá strom v lese; do té doby HUD jen zakrývá razítko kamery
+K.state = { asked: false, solved: {}, items: [], bag: false };
 K.frameNow = '2025-12-28_1300'; // právě zobrazený snímek (pro testy)
 K.fade = { a: 0, color: '#efe6d2' };
 K.busy = 0; // >0 = právě běží scénka, kliky se ignorují
@@ -263,6 +264,7 @@ K.flyingItems = [];
 // batůžek v HUD a vedle něj místa na předměty, které odemknou mrak na Zadní Planině
 K.BAG = { x: 52, y: 32 };
 K.bagBump = -9;
+K.bagT = -9; // kdy strom dal batoh (místa na klíče pak vyskočí)
 K.slotPos = (i) => ({ x: 128 + i * 50, y: 32 });
 
 K.solve = async (id, item, from) => {
@@ -305,6 +307,13 @@ function drawHud(ctx) {
   ctx.beginPath();
   ctx.roundRect(-20, -20, 510, 84, 18);
   ctx.fill();
+  if (!K.state.bag) {
+    ctx.restore();
+    for (const f of K.flyingItems) K.drawIcon(ctx, f.item, f.x, f.y, f.s, '#2b2118');
+    return;
+  }
+  // po převzetí batohu od stromu místa na klíče postupně vyskočí
+  const pop = (i) => K.ease(K.clamp((K.time - K.bagT - 0.25 - i * 0.14) / 0.3));
   const bt = K.time - K.bagBump;
   const bump = bt < 0.6 ? Math.sin(bt / 0.6 * Math.PI * 3) * (1 - bt / 0.6) : 0;
   ctx.save();
@@ -313,11 +322,12 @@ function drawHud(ctx) {
   K.drawIcon(ctx, 'batoh', 0, -18, 46, '#f3e6c8');
   ctx.restore();
   K.ITEMS.forEach((it, i) => {
-    const p = K.slotPos(i);
+    const p = K.slotPos(i), k = pop(i);
+    if (k <= 0) return;
     ctx.strokeStyle = 'rgba(243, 230, 200, 0.35)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 19, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 19 * k, 0, Math.PI * 2);
     ctx.stroke();
     if (K.state.items.includes(it)) K.drawIcon(ctx, it, p.x, p.y, 32, '#f3e6c8');
   });

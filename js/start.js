@@ -1,6 +1,7 @@
 // Start hry a ladicí přepínače v adrese:
-//   ?scena=<louka|spisovatel|skocka|kantorska|kriz|ranc|jelinek|klinovka|vrchol|finale>
+//   ?scena=<louka|les|skocka|kantorska|kriz|jelinek|klinovka|vrchol|finale>
 //   ?vse        — všechny chalupy hotové (rovnou na vrchol)
+//   ?les        — les už prošlý (batoh od stromu, beran ve stádu)
 //   ?finale=40  — finále přetočené o 40 s
 //   ?rychle=4   — čtyřnásobná rychlost
 //   ?editor     — rovnou otevřít editor rozložení
@@ -21,11 +22,13 @@
   // zbytek snímků pro finále se načítá na pozadí během hraní
   K.load(window.SNIMKY.map(K.frameSrc));
 
+  const scena = K.params.get('scena') || 'louka';
+  // les se přeskočí i při skoku rovnou do chalupy, na vrchol nebo do finále (batoh je potřeba pro HUD)
+  if (K.params.has('vse') || K.params.has('les') || !['louka', 'les'].includes(scena)) K.forestDone();
   if (K.params.has('vse')) {
     K.state.asked = true;
     for (const [id, item] of Object.entries(K.CHALETS)) { K.state.solved[id] = true; K.state.items.push(item); }
   }
-  const scena = K.params.get('scena') || 'louka';
   if (scena === 'finale') {
     await K.load(window.SNIMKY.map(K.frameSrc));
     for (const it of K.ITEMS) if (!K.state.items.includes(it)) K.state.items.push(it);
@@ -49,12 +52,17 @@ window.render_game_to_text = () => {
     fade: +K.fade.a.toFixed(2),
     snimek: K.frameNow,
     ovceSePtaly: K.state.asked,
+    batoh: K.state.bag,
     hotove: Object.keys(K.state.solved),
     predmety: K.state.items,
     zvuky: K.soundStats,
     hrdina: { x: Math.round(hp.x), y: Math.round(hp.y), bodCesty: +K.hero.p.toFixed(2), jde: K.hero.target !== null, videt: K.hero.visible },
     ovce: K.sheep.map((s) => ({ x: Math.round(s.x), y: Math.round(s.y), rezim: s.mode })),
   };
+  if (name === 'les') {
+    const s = K.scene.st;
+    out.les = { faze: s.phase, naZidi: s.onWall, mech: +s.moss.toFixed(2), beranStoji: +s.stand.toFixed(2) };
+  }
   if (name === 'finale') {
     const F = K.finale;
     out.finale = { t: +F.t.toFixed(1), klic: F.i, ceka: F.waiting && !F.liftOn, vlek: +F.liftSpeed.toFixed(2), konec: !!F.ended };

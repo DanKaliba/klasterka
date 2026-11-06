@@ -155,9 +155,11 @@ function drawHat(ctx, hat, x, y, s, f) {
 }
 
 // ---------- ovce ----------
-// o.skis, o.rot (náklon/kotrmelec), o.headUp, o.scarf (barva šály), o.hang (visí na kotvě)
+// o.skis, o.rot (náklon/kotrmelec), o.headUp, o.scarf (barva šály), o.hang (visí na kotvě),
+// o.ram = starý beran z lesa: větší, rohy do spirály a lyže se špičkou stočenou jako rohy
 K.drawSheep = (ctx, x, y, s, o = {}) => {
   const f = o.facing || 1;
+  if (o.ram) s *= 1.15;
   const step = o.walking ? Math.sin(o.phase || 0) * 6 * s : 0;
   ctx.save();
   ctx.translate(x, y - 26 * s);
@@ -169,7 +171,8 @@ K.drawSheep = (ctx, x, y, s, o = {}) => {
     legs.forEach(([lx, sx], i) => stroke(ctx, [[lx, 10 * s], [lx + sx, 26 * s]], lw, 20 + i, 0.8));
     // lyže
     if (o.skis) {
-      stroke(ctx, [[-40 * s, 27 * s], [34 * s, 27 * s], [44 * s, 21 * s]].map(([a, b]) => [a * f, b]), lw, 30, 0.6);
+      const tip = o.ram ? [[48, 15], [47, 10], [43, 9], [41, 12], [44, 14]] : [];
+      stroke(ctx, [[-40, 27], [34, 27], [44, 21], ...tip].map(([a, b]) => [a * s * f, b * s]), lw, 30, 0.6);
     }
     // tělo z chomáčků vlny
     ctx.lineWidth = lw;
@@ -195,6 +198,20 @@ K.drawSheep = (ctx, x, y, s, o = {}) => {
       ctx.beginPath();
       ctx.arc(hx + f * 3 * s, hy - 3 * s, 2 * s, 0, Math.PI * 2);
       ctx.fill();
+      if (o.ram) {
+        // rohy jako kámen, točí se od temene dozadu a dolů kolem ucha
+        ctx.save();
+        ctx.strokeStyle = '#9a958b';
+        ctx.lineWidth = 3.4 * s;
+        ctx.beginPath();
+        for (let k = 0; k <= 16; k++) {
+          const a = -Math.PI / 2 - k * 0.36, r = 10 * s * (1 - k / 22);
+          const px = hx - f * 4 * s + Math.cos(a) * r * f, py = hy + Math.sin(a) * r;
+          k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
       if (o.scarf) {
         ctx.strokeStyle = o.scarf;
         ctx.lineWidth = 5 * s;
@@ -459,6 +476,9 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
         L([[-c, -s], [c, s]]);
       }
       ctx.restore();
+      break;
+    case 'klic':
+      C(-5, 0, 4); L([[-1, 0], [10, 0]]); L([[6, 0], [6, 4]]); L([[9, 0], [9, 3]]);
       break;
     case 'zamek':
       ctx.strokeRect(-7 * u, -1 * u, 14 * u, 11 * u);

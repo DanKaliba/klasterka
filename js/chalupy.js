@@ -63,82 +63,6 @@ function closeup(id, spec) {
   K.scenes[id] = scene;
 }
 
-// ============ Spisovatel: rozsviť svíčku, spisovatel se probudí a napíše plán vleku ============
-closeup('spisovatel', {
-  init: () => ({ match: false, lit: false, awake: false, writing: false, hand: null }),
-  draw(ctx, st) {
-    K.drawHouse(ctx, 1520, GROUND + 10, 520, 330, { lit: st.lit });
-    // pařez se sirkami
-    ctx.fillStyle = '#8b6a48';
-    ctx.strokeStyle = K.INK;
-    ctx.lineWidth = 4;
-    ctx.fillRect(590, 790, 100, 80);
-    ctx.strokeRect(590, 790, 100, 80);
-    if (!st.match) {
-      ctx.fillStyle = '#c0392b';
-      ctx.fillRect(615, 768, 50, 22);
-      ctx.strokeRect(615, 768, 50, 22);
-    }
-    // stůl, papír, svíčka
-    K.stroke(ctx, [[860, 720], [1120, 720]], 8, 200);
-    K.stroke(ctx, [[880, 720], [880, GROUND + 10]], 6, 201);
-    K.stroke(ctx, [[1100, 720], [1100, GROUND + 10]], 6, 202);
-    ctx.fillStyle = '#fffdf6';
-    ctx.fillRect(1010, 708, 70, 10);
-    const sx = 950 + shake(st.shakeT);
-    ctx.fillStyle = '#f6efd9';
-    ctx.fillRect(sx - 9, 664, 18, 56);
-    ctx.strokeRect(sx - 9, 664, 18, 56);
-    if (st.lit) {
-      const fl = 1 + Math.sin(K.time * 20) * 0.08;
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      const g = ctx.createRadialGradient(sx, 640, 0, sx, 640, 160);
-      g.addColorStop(0, 'rgba(255, 200, 90, 0.45)');
-      g.addColorStop(1, 'rgba(255, 200, 90, 0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(sx - 160, 480, 320, 320);
-      ctx.restore();
-      ctx.save();
-      ctx.translate(sx, 650);
-      ctx.scale(fl, fl);
-      K.drawIcon(ctx, 'ohen', 0, 0, 30, '#e67e22');
-      ctx.restore();
-    }
-    const o = { hat: 'baret', sit: true, facing: -1, sleep: !st.awake, arm: st.writing ? 'write' : st.hand ? 'hold' : null };
-    K.drawPerson(ctx, 1170, GROUND + 10, 1.7, o);
-    if (st.hand) K.drawIcon(ctx, 'plan', o.hand.x, o.hand.y, 60);
-    // sirka „v ruce“ jde za kurzorem
-    if (st.match && !st.lit && K.mouse) {
-      K.stroke(ctx, [[K.mouse.x, K.mouse.y + 40], [K.mouse.x, K.mouse.y]], 5, 210);
-      K.drawIcon(ctx, 'ohen', K.mouse.x, K.mouse.y - 8, 18, '#e67e22');
-    }
-  },
-  spots: [
-    { x: 640, y: 780, r: 60, when: (st) => !st.match, click: (st) => { st.match = true; K.sound('sirka'); } },
-    {
-      x: 950, y: 680, r: 60, when: (st) => !st.lit,
-      async click(st, scene) {
-        if (!st.match) { st.shakeT = K.time; return; }
-        st.lit = true;
-        K.sound('svicka');
-        K.busy++;
-        await K.after(0.9);
-        st.awake = true;
-        st.writing = true;
-        K.sound('psani');
-        await K.after(1.8);
-        st.writing = false;
-        st.hand = true;
-        await K.after(0.5);
-        K.busy--;
-        scene.reward('plan', { x: 1100, y: 720 });
-      },
-    },
-    { x: 1170, y: 780, r: 90, when: (st) => !st.lit, click: () => K.sound('chrapot') },
-  ],
-});
-
 // ============ Skočka: zatřes stromem, spadnou lyže ============
 closeup('skocka', {
   init: () => ({ shakes: 0, skisY: 430, skisRot: 0, down: false }),
@@ -449,54 +373,6 @@ closeup('kriz', {
       },
     },
     { x: CROSS_X, y: GROUND - 560, r: 200, when: (st) => !st.glintT || K.time - st.glintT > 1.2, click: (st) => { st.glintT = K.time; K.sound('zvonek'); } },
-  ],
-});
-
-// ============ Ranč: otevři ohradu, kůň odejde a pod ním leží lano ============
-closeup('ranc', {
-  init: () => ({ open: 0, horseX: 1480, walking: false, horseT: null }),
-  draw(ctx, st) {
-    if (st.open >= 1) {
-      ctx.strokeStyle = K.INK;
-      for (let i = 0; i < 3; i++) {
-        ctx.lineWidth = 6;
-        ctx.beginPath();
-        ctx.ellipse(1480, GROUND - 6 - i * 4, 60 - i * 12, 18 - i * 3, 0, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    }
-    // ohrada
-    ctx.strokeStyle = K.INK;
-    [700, 860, 1000, 1160, 1320, 1700].forEach((x, i) => K.stroke(ctx, [[x, 690], [x, GROUND + 10]], 9, 500 + i));
-    [730, 790].forEach((y, r) => {
-      K.stroke(ctx, [[700, y], [1000, y]], 6, 510 + r);
-      K.stroke(ctx, [[1160, y], [1700, y]], 6, 520 + r);
-    });
-    // branka se otáčí kolem sloupku vlevo
-    const gw = 160 * Math.cos(st.open * 1.3);
-    [730, 790].forEach((y, r) => K.stroke(ctx, [[1000, y], [1000 + gw, y + st.open * 40]], 6, 530 + r));
-    K.drawHorse(ctx, st.horseX + shake(st.horseT, 6), GROUND + 6, 1.4, { facing: -1, walking: st.walking, phase: K.time * 8 });
-    K.drawPerson(ctx, 560, GROUND + 10, 1.8, { hat: 'klobouk', facing: 1, arm: st.open >= 1 ? 'hold' : null });
-  },
-  spots: [
-    {
-      x: 1080, y: 760, r: 100, when: (st) => st.open === 0,
-      async click(st) {
-        K.sound('vrzani');
-        K.busy++;
-        await K.tween(0.7, (t) => { st.open = t; });
-        st.walking = true;
-        K.sound('kopyta');
-        await K.tween(2.2, (t) => { st.horseX = K.lerp(1480, 900, K.ease(t)); });
-        st.walking = false;
-        K.busy--;
-      },
-    },
-    { x: 1480, y: 780, r: 110, when: (st) => st.open === 0, click: (st) => { st.horseT = K.time; K.sound('rehtani'); } },
-    {
-      x: 1480, y: GROUND - 10, r: 80, when: (st) => st.open >= 1 && !st.done,
-      click: (st, scene) => { st.done = true; scene.reward('lano', { x: 1480, y: GROUND - 10 }); },
-    },
   ],
 });
 

@@ -2,16 +2,17 @@
 const MEADOW_FRAME = '2025-12-28_1300';
 const SCARVES = ['#c0392b', '#2e86c1', '#e1b12c', '#27ae60', '#8e44ad', '#e67e22'];
 
-// cíl úkolu u každé chalupy a u božích muk (odměna se objeví v HUD)
+// cíl úkolu u každé chalupy a u božích muk (odměna se objeví v HUD). Kolik jich je, tolik klíčů
+// potřebuje mrak na Zadní Planině — tolik míst má batoh a tolik klíčů ukáže strom v lese.
+// Spisovatel a Ranč úkol nemají (Daniel 2026-11-05), jen v noci svítí.
 K.CHALETS = {
-  spisovatel: 'plan',
   skocka: 'lyze',
   kantorska: 'kotva',
   kriz: 'voda',
-  ranc: 'lano',
   jelinek: 'kolo',
   klinovka: 'caj',
 };
+K.ITEMS = Object.values(K.CHALETS);
 
 // ---------- cesta ----------
 K.pathPoint = (p) => {
@@ -27,6 +28,15 @@ K.pathPoint = (p) => {
   };
 };
 
+// les mezi dolní a horní loukou = souvislý úsek skrytých bodů cesty (první a poslední index)
+K.forestSpan = () => {
+  const c = K.L.cesta;
+  const a = c.findIndex((p) => p.skryto);
+  let b = a;
+  while (a >= 0 && b + 1 < c.length && c[b + 1].skryto) b++;
+  return [a, b];
+};
+
 K.nearestPathIndex = (pt) => {
   let best = 0, bd = Infinity;
   K.L.cesta.forEach((c, i) => {
@@ -39,13 +49,14 @@ K.nearestPathIndex = (pt) => {
 // ---------- hrdina ----------
 K.hero = {
   p: 0, target: null, facing: 1, phase: 0, visible: true, onArrive: null,
+  frozen: false, // stojí na kraji lesa, dokud se hráč nevrátí z lesní scény
   get pos() { return K.pathPoint(this.p); },
   walkTo(index) {
     this.target = index;
     return new Promise((r) => { this.onArrive = r; });
   },
   update(dt) {
-    if (this.target === null) return;
+    if (this.target === null || this.frozen) return;
     const c = K.L.cesta;
     const dir = Math.sign(this.target - this.p);
     if (dir === 0) return this.arrive();
@@ -55,7 +66,19 @@ K.hero = {
     const here = this.pos;
     // v lese (skrytý úsek) jde rychleji, ať se hráč nenudí
     const speed = (170 * K.scaleAt(here.x, here.y) + 20) * (a.skryto || b.skryto ? 3 : 1);
+    const before = this.p;
     this.p += (dir * speed * dt) / segLen;
+    // Les: dokud není vyřešený, cesta se na jeho kraji přeruší a otevře se lesní scéna (js/les.js).
+    // Rozběhnutá chůze (i s čekajícím enterPlace) po návratu pokračuje z druhého kraje lesa.
+    if (!K.state.solved.les && K.scene === K.scenes.louka) {
+      const [a, b] = K.forestSpan(), edge = dir > 0 ? a : b;
+      if (a >= 0 && (before - edge) * dir < 0 && (this.p - edge) * dir >= 0) {
+        this.p = edge;
+        this.frozen = true;
+        K.enterForest(dir);
+        return;
+      }
+    }
     if ((dir > 0 && this.p >= this.target) || (dir < 0 && this.p <= this.target)) {
       this.p = this.target;
       return this.arrive();
@@ -159,7 +182,7 @@ K.drawSheepFlock = (ctx, extra = [], filter = null, scale = K.scaleAt) => {
   const flock = filter ? K.sheep.filter(filter) : K.sheep;
   const items = [...flock.map((sh) => ({ y: sh.y, draw: () => K.drawSheep(ctx, sh.x, sh.y, scale(sh.x, sh.y), {
     facing: sh.facing, phase: sh.phase, walking: sh.walking, headUp: sh.headUp, rot: sh.rot,
-    skis: sh.skis, scarf: sh.skis ? sh.scarf : null,
+    skis: sh.skis, scarf: sh.skis ? sh.scarf : null, ram: sh.ram,
   }) })), ...extra];
   items.sort((a, b) => a.y - b.y).forEach((it) => it.draw());
 };
@@ -198,7 +221,18 @@ K.scenes.louka = {
     K.frameNow = MEADOW_FRAME;
     K.hero.visible = true;
     if (!K.sheep.length) K.makeSheep();
-    if (arg && arg.from) {
+    if (arg && arg.from === 'les') {
+      // z lesa: panáček vyjde na druhém kraji a dojde, kam měl namířeno
+      const trip = K.forestTrip, [a, b] = K.forestSpan();
+      K.forestTrip = null;
+      // bez rozběhnuté chůze (?scena=les) stojí o bod dál, jinak by zůstal neviditelný v lese
+      K.hero.p = trip ? (trip.dir < 0 ? a : b) : Math.min(b + 1, K.L.cesta.length - 1);
+      K.hero.frozen = false;
+      if (!trip) K.hero.target = null;
+      K.busy = trip ? trip.busy : 0;
+      K.fade.a = 1;
+      K.fadeTo(0, 1, K.FOREST_FADE);
+    } else if (arg && arg.from) {
       const target = arg.from === 'vrchol' ? K.L.vrchol : house(arg.from);
       K.busy++;
       cam.z = 7; cam.k = 1;

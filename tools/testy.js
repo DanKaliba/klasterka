@@ -1,20 +1,33 @@
 // Skriptované průchody hrou pro headless Chrome (Playwright tu nejde). Spouští se ?test&skript=<jméno>.
-// Kroky: ['ceka', ms] | ['klik', x, y] | ['klikOvce', i] | ['klikChalupa', id]
+// Kroky: ['ceka', ms] | ['klik', x, y] | ['klikOvce', i] | ['klikChalupa', id] | ['cekaVolno'] (busy 0)
+//        | ['bezLesa'] (les jako prošlý, ať dlouhé procházky po louce nečekají na lesní scénu)
 // Na konci zapíše render_game_to_text() do <pre id="stav"> a do titulku.
+// strom: 1. pootevře oči, 2. probudí se, 3. „co je?“ + bublina s klíči + batoh
+const STROM = [['klik', 118, 440], ['cekaVolno'], ['klik', 118, 440], ['cekaVolno'], ['klik', 118, 440], ['cekaVolno']];
+// lesní scéna: strom → choroše → schody na zídku, správný rampouch → beran → přechod na louku
+// (konec čeká jen na odchod z lesa: rozběhnutá cesta do chalupy drží busy až do jejího detailu)
+const LES = [['ceka', 300], ...STROM, ['klik', 332, 850], ['cekaVolno'], ['klik', 955, 580], ['cekaMimo', 'les']];
 window.SCENARE = {
   uvod: [['ceka', 3000]],
   ovce: [['ceka', 2500], ['klikOvce', 0], ['ceka', 600]],
-  cesta: [['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'skocka'], ['ceka', 4000]],
-  spisovatel: [['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'spisovatel'], ['ceka', 12000],
-    ['klik', 640, 780], ['ceka', 300], ['klik', 950, 680], ['ceka', 8000]],
-  detailSpisovatel: [['ceka', 800], ['klik', 640, 780], ['ceka', 300], ['klik', 950, 680], ['ceka', 2500]],
+  // z louky do lesa (otevře se sám na kraji lesa), po vyřešení dojde panáček až do Skočky
+  cesta: [['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'skocka'], ['cekaScena', 'les'], ...LES,
+    ['cekaScena', 'skocka'], ['ceka', 500]],
+  // ?scena=les: nejdřív špatně (ze země, voda, roh, mech), screenshot před probuzením
+  les: [['cekaScena', 'les'], ...STROM, ['klik', 955, 580], ['cekaVolno'], ['klik', 332, 850], ['cekaVolno'], ['klik', 815, 580], ['cekaVolno'],
+    ['klik', 885, 560], ['cekaVolno'], ['klik', 1090, 900], ['klik', 1025, 540], ['cekaVolno'], ['ceka', 400]],
+  lesIntro: [['ceka', 2600]],
+  lesStrom: [['cekaScena', 'les'], ['klik', 118, 440], ['ceka', 600]],
+  lesKlice: [['cekaScena', 'les'], ['klik', 118, 440], ['cekaVolno'], ['klik', 118, 440], ['cekaVolno'], ['klik', 118, 440], ['ceka', 7000]],
+  lesBeran: [['cekaScena', 'les'], ...STROM, ['klik', 332, 850], ['cekaVolno'], ['klik', 955, 580], ['ceka', 3600]],
+  lesPrechod: [['cekaScena', 'les'], ...STROM, ['klik', 332, 850], ['cekaVolno'], ['klik', 955, 580], ['ceka', 6300]],
+  lesKonec: [['cekaScena', 'les'], ...LES, ['ceka', 1500]],
   skocka: [['ceka', 800], ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 1500], ['klik', 1360, 830], ['ceka', 600]],
   kantorska: [['ceka', 800], ['klik', 820, 745], ['ceka', 200], ['klik', 1260, 745], ['ceka', 900]],
   kriz: [['ceka', 800], ['klik', 760, 300], ['ceka', 300], ['klik', 1060, 820], ['ceka', 400], ['klik', 1236, 870], ['ceka', 900],
     ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800]],
   kriz2: [['ceka', 800], ['klik', 1236, 870], ['ceka', 900], ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800],
     ['klik', 1060, 820], ['ceka', 1200]],
-  ranc: [['ceka', 800], ['klik', 1080, 760], ['ceka', 3500], ['klik', 1480, 850], ['ceka', 500]],
   jelinek: [['ceka', 800], ['klik', 800, 800], ['ceka', 1600], ['klik', 1150, 800], ['ceka', 1600], ['klik', 1500, 800], ['ceka', 1600]],
   klinovka: [['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 1000, 800], ['ceka', 1500]],
   vrchol: [['ceka', 800], ['klik', 1100, 230], ['ceka', 300], ['klik', 1100, 230], ['ceka', 300], ['klik', 1100, 230], ['ceka', 2600]],
@@ -27,19 +40,19 @@ window.SCENARE = {
   stopy: [['ceka', 2500], ['klik', 866, 809], ['ceka', 4000], ['klik', 519, 931], ['ceka', 1500]],
   ptacek: [['cekaVlek'], ['ceka', 600]],
   odlet: [['cekaVlek'], ['ceka', 300], ['klikVlek'], ['ceka', 900]],
-  daleko: [['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'klinovka'], ['ceka', 14000]],
-  daleko2: [['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'klinovka'], ['ceka', 24000]],
+  daleko: [['bezLesa'], ['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'klinovka'], ['ceka', 14000]],
+  daleko2: [['bezLesa'], ['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'klinovka'], ['ceka', 24000]],
 };
 
 // celá hra od začátku do titulku
 const navstiv = (id, kroky) => [['klikChalupa', id], ['cekaScena', id], ['ceka', 700], ...kroky, ['cekaScena', 'louka'], ['ceka', 1500]];
 window.SCENARE.cela = [
   ['ceka', 2500], ['klikOvce', 0], ['ceka', 300],
-  ...navstiv('spisovatel', [['klik', 640, 780], ['ceka', 300], ['klik', 950, 680]]),
-  ...navstiv('skocka', [['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 1500], ['klik', 1360, 830]]),
+  ['klikChalupa', 'skocka'], ['cekaScena', 'les'], ...LES, ['cekaScena', 'skocka'], ['ceka', 700],
+  ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 1500], ['klik', 1360, 830],
+  ['cekaScena', 'louka'], ['ceka', 1500],
   ...navstiv('kantorska', [['klik', 1260, 745]]),
   ...navstiv('kriz', [['klik', 1236, 870], ['ceka', 900], ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800], ['klik', 1060, 820]]),
-  ...navstiv('ranc', [['klik', 1080, 760], ['ceka', 3500], ['klik', 1480, 850]]),
   ...navstiv('jelinek', [['klik', 800, 800], ['ceka', 1600], ['klik', 1150, 800], ['ceka', 1600], ['klik', 1500, 800], ['ceka', 1600], ['klikKolo']]),
   ...navstiv('klinovka', [['klik', 690, 810], ['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 1000, 800]]),
   ['klikVrchol'], ['cekaScena', 'vrchol'], ['ceka', 700],
@@ -70,6 +83,9 @@ window.SCENARE.cela = [
   for (const s of steps) {
     if (s[0] === 'ceka') await wait(s[1]);
     else if (s[0] === 'cekaScena') await waitFor(sceneIs(s[1]), s[1]);
+    else if (s[0] === 'cekaMimo') await waitFor(() => K.scene !== K.scenes[s[1]], 'mimo ' + s[1]);
+    else if (s[0] === 'cekaVolno') await waitFor(() => K.busy === 0, 'volno');
+    else if (s[0] === 'bezLesa') K.forestDone();
     else if (s[0] === 'cekaVlek') await waitFor(() => K.finale.waiting, 'vlek');
     else if (s[0] === 'cekaKonec') await waitFor(() => K.finale.ended, 'konec');
     else {

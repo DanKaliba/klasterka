@@ -13,7 +13,24 @@ Zadní Planiny (další úkol) → začne sněžit (tma + sněžení) → rozjed
   + rozsvícená okna chalup + částicový sníh. Přechod podzim → zima se schová pod hustým sněžením.
 - Detaily chalup kreslí Daniel (fotky kreseb s přírodními materiály). Zatím zástupné kresby na papíře;
   nakreslené pozadí se zapne polem `bg: 'assets/sceny/<id>.jpg'` ve specifikaci detailu v js/chalupy.js.
-- Chalupy s úkolem: Spisovatel, Skočka, Kantorská, Ranč, Jelínek (chata č. 85), Nová Klínovka. Ostatní jen svítí v noci.
+- Chalupy s úkolem: Skočka, Kantorská, Jelínek (chata č. 85), Nová Klínovka + boží muka = 5 klíčů k mraku.
+  Spisovatel a Ranč úkol nemají (Daniel 2026-11-05, kód jejich detailů je v historii gitu), jen v noci svítí.
+  Počet klíčů = počet položek v `K.CHALETS` (louka.js); podle něj se řídí batoh v HUD i bublina stromu.
+- Les mezi dolní a horní loukou (2026-11-05, Daniel vybral variantu „zatoulaný beran“), `js/les.js`:
+  otevře se sám, když panáček poprvé dojde na kraj lesa (skrytý úsek cesty, `K.forestSpan`); rozběhnutá
+  chůze do chalupy po návratu pokračuje z druhého kraje. Cestou zpět je vyřešený a jen se projde.
+  Starý strom s obličejem v kůře spí (Daniel 2026-11-06): 1. klik pootevře oči („nebuď mě“), 2. klik se
+  probudí, 3. klik „co je?“ → panáček ukáže sníh → animovaná bublina (klíče naskočí do řady, zámek na mraku
+  se otevře, sněží) → strom shodí z větve batoh. Do té doby jde klikat jen na strom a HUD je jen tmavý pruh
+  přes razítko kamery (`K.state.bag`). Choroše na pařezu vyrostou po zídce jako schody,
+  z převisu visí 5 rampouchů (voda, voda, kamenný roh, krk, mech) a jen ten nad krkem berana ho probudí.
+  Beran se otřepe z mechu, postaví se, panáček po něm přejde a beran jde za stádem (`K.addRam`, `sh.ram`):
+  na louce i ve finále má rohy do spirály a lyže se špičkou stočenou jako rohy.
+  Pozadí = fotomontáž `assets/sceny/les.jpg` z Danielových fotek (`python tools/montaz_les.py`, zdroje v pics/,
+  tvary vrstev = souřadnice z les.js): smrky v mlze P1240665, potok les/08.31.19, zídka a převis P1290149,
+  kmen s obličejem DSC00882, listí les/08.30.23, tráva P1240669; spící beran má texturu mechu
+  `les-mech.jpg` (P1240677). Rampouchy, hlíva, pařez, beran, obličej stromu a panáček se kreslí navrch.
+  Bez načteného obrázku se kreslí papírová verze.
 - Hrací místo i u božích muk nad Kantorskou (2026-11-04, Daniel): id `kriz` mezi chalupami s `druh: 'kriz'`
   (nekouří se, nesvítí). Poloha podle Daniela mapy.com/s/kufomadecu (50.7099203N, 15.6511865E), na snímku
   u osamělého smrčku vedle cesty (640, 302); cesta ve hře tudy vede po skutečné cestě. Fotky muk:
@@ -45,15 +62,18 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
 2. `.\tools\test.ps1 -Query "test&skript=cela" -Out <png> -Budget 200000` → screenshot + řádek `STAV {...}`
 - `?test` zastaví čas, testy ho posouvají přes `K.update`/`advanceTime`; rAF v testu kreslí jen občas.
 - test.ps1 maže profil Chrome před každým během, jinak se načte starý JS z cache.
-- Scénáře: uvod, ovce, cesta, spisovatel, detail*, skocka, kantorska, kriz/kriz2 (`&scena=kriz`), ranc, jelinek, klinovka, vrchol,
+- `?les` = les už prošlý; skok do chalupy/vrcholu/finále ho přeskočí sám (`K.forestDone`).
+- Scénáře: uvod, ovce, cesta (louka → les → Skočka), les/lesIntro/lesBeran/lesPrechod/lesKonec (`&scena=les`),
+  skocka, kantorska, kriz/kriz2 (`&scena=kriz`), jelinek, klinovka, vrchol,
   finale (+ `&finale=<s>`), vlek, stopy (`&vse`), ptacek/odlet (`&scena=finale&finale=20`), daleko/daleko2 (panáček na horní louce), **cela** (celá hra až po titulek, ~100 s reálně).
 
 ## Stav
 - [x] Celá hra průchozí od začátku do titulku (ověřeno scénářem `cela`).
 - [ ] Daniel: doladit v editoru polohy chalup (jména jsou přiřazená odhadem!), cestu, vlek, chumel, obzor.
 - [ ] Daniel: skutečné úkoly chalup a vrcholu; kresby detailů; postavy (ovce, panáček, chalupníci).
-- [ ] Zvuky: soubory `assets/zvuky/<jméno>.mp3`. Používaná jména: bee, dvere, odmena, sirka, svicka, psani,
-      chrapot, sustot, buch, spatne, zvonek, voda, vrzani, kopyta, rehtani, ptak, tetrivek, poleno, ohen, mrak, vitr, vlek, vlek-stop.
+- [ ] Zvuky: soubory `assets/zvuky/<jméno>.mp3`. Používaná jména: bee, dvere, odmena, sustot, buch, spatne,
+      zvonek, voda, ptak, tetrivek, poleno, ohen, mrak, vitr, vlek, vlek-stop; les: nebudme, vrzani (strom se
+      probouzí), coje, chorose (rostou), triangl (padající kapka), chrapot (beran spí), beran (probouzí se), otrepani.
       Chybějící soubor se tiše přeskočí. Hudba na pozadí zatím není.
 - [x] Kroky po zmrzlé trávě (2026-11-03): `assets/zvuky/krok-1..8.mp3` vystřihuje `python tools/kroky.py`
       z Danielova videa v `sounds/input/` (gitignore). Celé pásmo (verze jen s výškami nad 700 Hz zněla
