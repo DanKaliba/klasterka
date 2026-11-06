@@ -2,7 +2,7 @@
 // Ladí se v editoru (klávesa E) a exportuje klávesou C — export tenhle soubor celý nahradí.
 // Při ruční změně zvyš "verze", jinak prohlížeč dál používá rozpracovaný stav z editoru.
 window.ROZLOZENI = {
-  "verze": 7,
+  "verze": 8,
   "chalupy": [
     {
       "id": "spisovatel",
@@ -73,8 +73,8 @@ window.ROZLOZENI = {
     },
     {
       "id": "",
-      "x": 557,
-      "y": 420,
+      "x": 550,
+      "y": 429,
       "w": 70
     },
     {
@@ -248,48 +248,48 @@ window.ROZLOZENI = {
         "y": 250
       },
       {
-        "x": 1600,
-        "y": 290
+        "x": 1721,
+        "y": 292
       },
       {
         "x": 1810,
         "y": 372
       },
       {
-        "x": 1600,
-        "y": 400
+        "x": 1584,
+        "y": 421
       },
       {
         "x": 1450,
         "y": 420
       },
       {
-        "x": 1250,
-        "y": 392
+        "x": 1229,
+        "y": 414
       },
       {
-        "x": 1050,
-        "y": 402
+        "x": 887,
+        "y": 386
       },
       {
-        "x": 900,
-        "y": 480
+        "x": 896,
+        "y": 473
       },
       {
         "x": 830,
         "y": 470
       },
       {
-        "x": 700,
-        "y": 410
+        "x": 679,
+        "y": 436
       },
       {
-        "x": 560,
-        "y": 360
+        "x": 543,
+        "y": 384
       },
       {
-        "x": 420,
-        "y": 330
+        "x": 403,
+        "y": 342
       },
       {
         "x": 300,
@@ -345,7 +345,7 @@ window.ROZLOZENI = {
       "y": 703
     },
     "start": {
-      "x": 10,
+      "x": 6,
       "y": 610
     },
     "sjezd": {
@@ -380,8 +380,8 @@ window.ROZLOZENI = {
     }
   ],
   "chumel": {
-    "x": 1383,
-    "y": 1011
+    "x": 1377,
+    "y": 1007
   },
   "obzor": [
     {

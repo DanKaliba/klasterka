@@ -26,7 +26,10 @@ Zadní Planiny (další úkol) → začne sněžit (tma + sněžení) → rozjed
   z převisu visí 5 rampouchů (voda, voda, kamenný roh, krk, mech) a jen ten nad krkem berana ho probudí.
   Beran se otřepe z mechu, postaví se, panáček po něm přejde a beran jde za stádem (`K.addRam`, `sh.ram`):
   na louce i ve finále má rohy do spirály a lyže se špičkou stočenou jako rohy.
-  Pozadí = fotomontáž `assets/sceny/les.jpg` z Danielových fotek (`python tools/montaz_les.py`, zdroje v pics/,
+  Pozadí od 2026-11-06 = obrázek vygenerovaný Danielem podle podkladů v pics/podklady-les (PROMPT.md),
+  zvětšený na 1920×1080 do `assets/sceny/les.jpg`; souřadnice v les.js (zídka, šikmý spodek převisu `iy`,
+  choroše cik-cak po čelní stěně, schody vpravo, větev s batohem `BAG`) jsou změřené na něm.
+  Původní fotomontáž je `les-montaz.jpg` (`python tools/montaz_les.py`, zdroje v pics/,
   tvary vrstev = souřadnice z les.js): smrky v mlze P1240665, potok les/08.31.19, zídka a převis P1290149,
   kmen s obličejem DSC00882, listí les/08.30.23, tráva P1240669; spící beran má texturu mechu
   `les-mech.jpg` (P1240677). Rampouchy, hlíva, pařez, beran, obličej stromu a panáček se kreslí navrch.

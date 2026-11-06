@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageOps
 ROOT = Path(__file__).resolve().parent.parent
 K = ROOT / 'pics' / 'klasterka'
 L = ROOT / 'pics' / 'les'
-OUT = ROOT / 'assets' / 'sceny' / 'les.jpg'
+OUT = ROOT / 'assets' / 'sceny' / 'les-montaz.jpg'  # hra teď používá vygenerované les.jpg
 W, H = 1920, 1080
 
 

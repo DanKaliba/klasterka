@@ -6,7 +6,7 @@
 const STROM = [['klik', 118, 440], ['cekaVolno'], ['klik', 118, 440], ['cekaVolno'], ['klik', 118, 440], ['cekaVolno']];
 // lesní scéna: strom → choroše → schody na zídku, správný rampouch → beran → přechod na louku
 // (konec čeká jen na odchod z lesa: rozběhnutá cesta do chalupy drží busy až do jejího detailu)
-const LES = [['ceka', 300], ...STROM, ['klik', 332, 850], ['cekaVolno'], ['klik', 955, 580], ['cekaMimo', 'les']];
+const LES = [['ceka', 300], ...STROM, ['klik', 590, 925], ['cekaVolno'], ['klik', 955, 430], ['cekaMimo', 'les']];
 window.SCENARE = {
   uvod: [['ceka', 3000]],
   ovce: [['ceka', 2500], ['klikOvce', 0], ['ceka', 600]],
@@ -14,14 +14,14 @@ window.SCENARE = {
   cesta: [['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'skocka'], ['cekaScena', 'les'], ...LES,
     ['cekaScena', 'skocka'], ['ceka', 500]],
   // ?scena=les: nejdřív špatně (ze země, voda, roh, mech), screenshot před probuzením
-  les: [['cekaScena', 'les'], ...STROM, ['klik', 955, 580], ['cekaVolno'], ['klik', 332, 850], ['cekaVolno'], ['klik', 815, 580], ['cekaVolno'],
-    ['klik', 885, 560], ['cekaVolno'], ['klik', 1090, 900], ['klik', 1025, 540], ['cekaVolno'], ['ceka', 400]],
+  les: [['cekaScena', 'les'], ...STROM, ['klik', 955, 430], ['cekaVolno'], ['klik', 590, 925], ['cekaVolno'], ['klik', 815, 440], ['cekaVolno'],
+    ['klik', 885, 430], ['cekaVolno'], ['klik', 1090, 900], ['klik', 1025, 400], ['cekaVolno'], ['ceka', 400]],
   lesIntro: [['ceka', 2600]],
   lesStrom: [['cekaScena', 'les'], ['klik', 118, 440], ['ceka', 600]],
   lesKlice: [['cekaScena', 'les'], ['klik', 118, 440], ['cekaVolno'], ['klik', 118, 440], ['cekaVolno'], ['klik', 118, 440], ['ceka', 7000]],
-  lesBeran: [['cekaScena', 'les'], ...STROM, ['klik', 332, 850], ['cekaVolno'], ['klik', 955, 580], ['ceka', 3600]],
-  lesPrechod: [['cekaScena', 'les'], ...STROM, ['klik', 332, 850], ['cekaVolno'], ['klik', 955, 580], ['ceka', 6300]],
-  lesOdchod: [['cekaScena', 'les'], ...STROM, ['klik', 332, 850], ['cekaVolno'], ['klik', 955, 580], ['ceka', 8000]],
+  lesBeran: [['cekaScena', 'les'], ...STROM, ['klik', 590, 925], ['cekaVolno'], ['klik', 955, 430], ['ceka', 3600]],
+  lesPrechod: [['cekaScena', 'les'], ...STROM, ['klik', 590, 925], ['cekaVolno'], ['klik', 955, 430], ['ceka', 6300]],
+  lesOdchod: [['cekaScena', 'les'], ...STROM, ['klik', 590, 925], ['cekaVolno'], ['klik', 955, 430], ['ceka', 8000]],
   // ovce, která se ptá po beranovi (poslední), a tetřívek na sloupu (klik = zatoká)
   beranOvce: [['ceka', 2500], ['klikOvce', 5], ['ceka', 800]],
   tetrivek: [['ceka', 2500], ['klik', 539, 592], ['ceka', 700]],

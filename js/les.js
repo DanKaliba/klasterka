@@ -8,32 +8,37 @@
 // za krk. Beran se otřepe, postaví se, panáček přejde po jeho hřbetě a beran jde za stádem na louku.
 // Zástupné kresby; pozadí se později složí z fotek (pics/les, pics/klasterka).
 K.FOREST_FADE = '#1f2a1c';
-// fotomontáž pozadí (python tools/montaz_les.py); dokud se nenačte, kreslí se papírová verze
+// Pozadí: obrázek vygenerovaný podle Danielových fotek (2026-11-06, assets/sceny/les.jpg); souřadnice
+// níže jsou změřené na něm. Starší montáž z fotek je les-montaz.jpg (python tools/montaz_les.py).
+// Dokud se obrázek nenačte, kreslí se papírová verze (ta má tvary ještě podle montáže).
 const BG = 'assets/sceny/les.jpg';
 const MOSS = 'assets/sceny/les-mech.jpg'; // fotka mechu na spícího berana (také z montáže)
 K.img(BG);
 K.img(MOSS);
 
-const LG = 880; // chodidla na levém břehu
-const WALL_X = 392; // levá stěna zídky
-const WALL_TOP = 458; // chodidla na zídce a převisu
-const WATER = 955; // hladina potoka
-const STUMP = { x: 332, y: 850 };
+const LG = 950; // chodidla na levém břehu (listí před mechovým kamenem)
+const WALL_X = 392; // levá stěna zídky (papírová verze)
+const WALL_TOP = 302; // chodidla na zídce a převisu
+const WATER = 955; // hladina potoka (papírová verze)
+const STUMP = { x: 590, y: 925 }; // pařez v trávě před zídkou
 const RAM_X = 1090;
 const HERO_S = 1.6;
-// rampouchy pod převisem: kam kápnou (krk = probudí berana)
+// rampouchy pod převisem: iy = spodek převisu (je šikmý), kam kápnou (krk = probudí berana)
 const ICICLES = [
-  { x: 745, len: 80, hit: 'voda', hy: WATER },
-  { x: 815, len: 120, hit: 'voda', hy: WATER },
-  { x: 885, len: 95, hit: 'roh', hy: 866 },
-  { x: 955, len: 130, hit: 'krk', hy: 846 },
-  { x: 1025, len: 85, hit: 'mech', hy: 826 },
+  { x: 745, iy: 391, len: 75, hit: 'kamen', hy: 796 },
+  { x: 815, iy: 387, len: 110, hit: 'kamen', hy: 812 },
+  { x: 885, iy: 381, len: 90, hit: 'roh', hy: 866 },
+  { x: 955, iy: 373, len: 120, hit: 'krk', hy: 846 },
+  { x: 1025, iy: 362, len: 78, hit: 'mech', hy: 826 },
 ];
-// choroše, které vyrostou po stěně zídky jako schody
-const SHELVES = [{ x: 398, y: 808 }, { x: 386, y: 740 }, { x: 398, y: 672 }, { x: 386, y: 604 }, { x: 398, y: 536 }];
-const ICE_Y = 500; // spodek převisu, odkud visí rampouchy
-const CLIMB = [[300, LG], [345, 828], [378, 798], [354, 730], [378, 662], [354, 594], [378, 526], [410, WALL_TOP], [470, WALL_TOP]];
-const EXIT_PATH = [[1600, 868], [1670, 830], [1750, 790], [1830, 750], [1910, 712], [2040, 700]];
+// choroše, které vyrostou cik-cak po čelní stěně zídky jako schody
+const SHELVES = [{ x: 530, y: 858 }, { x: 470, y: 788 }, { x: 530, y: 718 }, { x: 470, y: 648 }, { x: 530, y: 578 },
+  { x: 470, y: 508 }, { x: 530, y: 438 }, { x: 470, y: 368 }];
+const CLIMB = [[470, LG], [590, 902], [530, 846], [470, 776], [530, 706], [470, 636], [530, 566], [470, 496], [530, 426],
+  [470, 356], [500, WALL_TOP], [580, WALL_TOP]];
+// z berana na mechový balvan, po trávě ke schodům a po nich nahoru ke Klínovkám
+const EXIT_PATH = [[1500, 760], [1600, 712], [1660, 665], [1715, 618], [1775, 575], [1835, 532], [1890, 497], [2040, 470]];
+const BAG = { x: 362, y: 252, hook: 190 }; // batoh visí na konci ulomené větve
 
 const shakeOf = (t0, amt) => {
   const d = K.time - (t0 ?? -9);
@@ -51,7 +56,8 @@ const init = () => ({
 });
 
 // ---------- pohyb panáčka ----------
-async function heroGo(pts, speed = 330) {
+// quiet = bez kroků (po chorošech, zídce a beranovi)
+async function heroGo(pts, speed = 330, quiet = false) {
   const h = st.hero;
   for (const [x, y] of pts) {
     const x0 = h.x, y0 = h.y, d = Math.hypot(x - x0, y - y0);
@@ -64,8 +70,7 @@ async function heroGo(pts, speed = 330) {
       h.x = K.lerp(x0, x, t);
       h.y = K.lerp(y0, y, t);
       h.phase = ph0 + (d * t) / 20;
-      // kroky jen po zemi (ne po hlívě, zídce a beranovi)
-      if (h.y >= 840 && Math.floor(h.phase / Math.PI + 0.5) !== Math.floor(before / Math.PI + 0.5)) {
+      if (!quiet && Math.floor(h.phase / Math.PI + 0.5) !== Math.floor(before / Math.PI + 0.5)) {
         K.sound(K.stepSound(), { volume: K.STEP_VOLUME * 0.8 * K.rand(0.75, 1), rate: K.rand(0.9, 1.12) });
       }
     });
@@ -86,7 +91,7 @@ async function hop(x1, y1, dur, height) {
 // panáček přijde ke spícímu stromu; dokud se s ním nedomluví, jde klikat jen na strom
 async function intro() {
   K.busy++;
-  await heroGo([[270, LG]], 280);
+  await heroGo([[400, LG]], 280);
   st.phase = 'tree';
   K.busy--;
 }
@@ -140,7 +145,7 @@ async function treeClick() {
 // batoh visí na větvi, strom ho shodí a přeletí do HUD
 async function giveBag() {
   st.bagHang = false;
-  const from = { x: 290, y: 350 }, bag = K.BAG;
+  const from = { x: BAG.x, y: BAG.y }, bag = K.BAG;
   const fly = { item: 'batoh', x: from.x, y: from.y, s: 70 };
   K.flyingItems.push(fly);
   await K.tween(1.2, (t) => {
@@ -161,7 +166,7 @@ async function growSteps() {
   K.busy++;
   K.sound('chorose');
   await K.tween(1.4, (t) => { st.steps = t; });
-  await heroGo(CLIMB, 260);
+  await heroGo(CLIMB, 260, true);
   st.onWall = true;
   K.busy--;
 }
@@ -175,15 +180,15 @@ async function tapIcicle(i) {
     K.busy--;
     return;
   }
-  await heroGo([[ic.x, WALL_TOP]]);
+  await heroGo([[ic.x, WALL_TOP]], 330, true);
   await hop(ic.x, WALL_TOP, 0.28, 22); // dupne na převis
   st.iceT[i] = K.time;
-  const y0 = ICE_Y + ic.len, d = { x: ic.x, y: y0 };
+  const y0 = ic.iy + ic.len, d = { x: ic.x, y: y0 };
   st.drops.push(d);
   K.sound('triangl'); // padající kapka
-  await K.tween(0.45, (t) => { d.y = K.lerp(y0, ic.hy, t * t); });
+  await K.tween(0.6, (t) => { d.y = K.lerp(y0, ic.hy, t * t); });
   st.drops.splice(st.drops.indexOf(d), 1);
-  if (ic.hit === 'voda') st.rings.push({ x: ic.x, t: K.time });
+  if (ic.hit === 'voda' || ic.hit === 'kamen') st.rings.push({ x: ic.x, y: ic.hy, t: K.time }); // cákne
   if (ic.hit === 'roh') st.headT = K.time; // ťukne o kamenný roh, beran sebou škubne
   if (ic.hit === 'mech') st.wet.push({ x: ic.x, y: ic.hy + 8, t: K.time }); // mech kapku vsákne
   K.busy--;
@@ -209,10 +214,10 @@ async function wake() {
   await K.tween(1.1, (t) => { st.stand = K.ease(t); });
   await K.after(0.5);
   // panáček seskočí z převisu na hřbet a přejde na druhý břeh
-  await heroGo([[1000, WALL_TOP]]);
-  await hop(1110, 745, 0.6, 60); // až za konec převisu, ať čepice nedrhne o skálu
-  await heroGo([[1190, 747]], 240);
-  await hop(1420, 868, 0.55, 60);
+  await heroGo([[1000, WALL_TOP]], 330, true);
+  await hop(1110, 745, 0.75, 50); // dolů z převisu na hřbet
+  await heroGo([[1190, 747]], 240, true);
+  await hop(1360, 800, 0.55, 60); // na mechový balvan na druhém břehu
   // beran jde po proudu za stádem, panáček po schodech ke Klínovkám
   K.tween(2.6, (t) => { st.out = t; });
   await heroGo(EXIT_PATH, 300);
@@ -316,7 +321,7 @@ function drawRings(ctx) {
   for (const g of st.rings) {
     const t = (K.time - g.t) / 1.2;
     ctx.globalAlpha = 1 - t;
-    ctx.beginPath(); ctx.ellipse(g.x, WATER + 4, 8 + t * 60, 3 + t * 14, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(g.x, (g.y ?? WATER) + 4, 6 + t * 30, 2 + t * 8, 0, 0, Math.PI * 2); ctx.stroke();
   }
   ctx.restore();
 }
@@ -390,7 +395,7 @@ function drawIcicles(ctx) {
     ctx.strokeStyle = '#6f8fa8';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(x - 11, ICE_Y - 4); ctx.lineTo(x + 11, ICE_Y - 4); ctx.lineTo(x + 1, ICE_Y + ic.len); ctx.closePath();
+    ctx.moveTo(x - 11, ic.iy - 4); ctx.lineTo(x + 11, ic.iy - 4); ctx.lineTo(x + 1, ic.iy + ic.len); ctx.closePath();
     ctx.fill(); ctx.stroke();
   });
   ctx.fillStyle = 'rgba(160, 205, 230, 0.95)';
@@ -429,18 +434,20 @@ function drawStump(ctx) {
   ctx.fillStyle = '#7a5a3c';
   ctx.strokeStyle = K.INK;
   ctx.lineWidth = 4;
-  ctx.fillRect(STUMP.x - 32, 832, 64, 54);
-  ctx.strokeRect(STUMP.x - 32, 832, 64, 54);
+  ctx.fillRect(STUMP.x - 32, STUMP.y - 18, 64, 54);
+  ctx.strokeRect(STUMP.x - 32, STUMP.y - 18, 64, 54);
   ctx.fillStyle = '#b08c62';
-  ctx.beginPath(); ctx.ellipse(STUMP.x, 832, 32, 9, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(STUMP.x, STUMP.y - 18, 32, 9, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   ctx.restore();
   // malé choroše na pařezu, po kliknutí vyrostou po zídce
   const pulse = st.steps === 0 && st.phase === 'free' ? 1 + Math.sin(K.time * 3) * 0.05 : 1;
   if (st.steps < 1) {
-    drawShelf(ctx, STUMP.x - 18, 852, pulse, 18);
-    drawShelf(ctx, STUMP.x - 24, 870, pulse, 14);
+    drawShelf(ctx, STUMP.x - 18, STUMP.y + 2, pulse, 18);
+    drawShelf(ctx, STUMP.x - 24, STUMP.y + 20, pulse, 14);
   }
-  SHELVES.forEach((s, i) => drawShelf(ctx, s.x, s.y, K.ease(K.clamp(st.steps * 1.6 - i * 0.2))));
+  // rostou postupně odspodu; při steps = 1 jsou všechny celé
+  const lag = 0.6 / SHELVES.length;
+  SHELVES.forEach((s, i) => drawShelf(ctx, s.x, s.y, K.ease(K.clamp(st.steps * (1 + lag * SHELVES.length) - i * lag))));
 }
 
 // photo = kmen je ve fotomontáži, kreslí se jen obličej a batoh
@@ -495,10 +502,10 @@ function drawTree(ctx, photo) {
   }
   // batoh na větvi
   if (st.bagHang) {
-    K.stroke(ctx, [[290, 292], [290, 320]], 3, 980, 0.6);
+    K.stroke(ctx, [[BAG.x, BAG.hook], [BAG.x, BAG.y - 30]], 3, 980, 0.6);
     ctx.fillStyle = '#c9a46a';
-    ctx.beginPath(); ctx.roundRect(290 - 23, 350 - 17, 46, 50, 11); ctx.fill();
-    K.drawIcon(ctx, 'batoh', 290, 350, 70);
+    ctx.beginPath(); ctx.roundRect(BAG.x - 23, BAG.y - 17, 46, 50, 11); ctx.fill();
+    K.drawIcon(ctx, 'batoh', BAG.x, BAG.y, 70);
   }
   ctx.restore();
 }
@@ -546,8 +553,8 @@ function drawTreeBubble(ctx) {
     ctx.restore();
     return;
   }
-  const x = 600, y = 236, r = 132, n = K.ITEMS.length;
-  circle(200, 470, 9); circle(262, 420, 15); circle(340, 360, 22);
+  const x = 650, y = 180, r = 132, n = K.ITEMS.length;
+  circle(205, 455, 9); circle(285, 372, 15); circle(400, 266, 22);
   circle(x, y, r);
   const t = age % KEYS_LOOP;
   const openAt = n * KEY_STEP + 0.4;
@@ -734,7 +741,7 @@ function drawClumps(ctx) {
 
 const inRam = (p) => ((p.x - RAM_X) / 230) ** 2 + ((p.y - 895) / 110) ** 2 < 1;
 const inTree = (p) => (p.x < 215 && p.y > 300 && p.y < 860) || K.dist(p, { x: 120, y: 440 }) < 120;
-const icicleAt = (p) => ICICLES.findIndex((ic) => Math.abs(p.x - ic.x) < 30 && p.y > ICE_Y - 30 && p.y < ICE_Y + ic.len + 25);
+const icicleAt = (p) => ICICLES.findIndex((ic) => Math.abs(p.x - ic.x) < 30 && p.y > ic.iy - 30 && p.y < ic.iy + ic.len + 25);
 
 K.scenes.les = {
   get st() { return st; }, // pro testy
@@ -781,7 +788,7 @@ K.scenes.les = {
     drawTreeBubble(ctx);
     if (K.debug) {
       ctx.strokeStyle = 'rgba(200, 0, 0, 0.7)';
-      ICICLES.forEach((ic) => ctx.strokeRect(ic.x - 30, ICE_Y - 30, 60, ic.len + 55));
+      ICICLES.forEach((ic) => ctx.strokeRect(ic.x - 30, ic.iy - 30, 60, ic.len + 55));
     }
   },
   hot(p) {
