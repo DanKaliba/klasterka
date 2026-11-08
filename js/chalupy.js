@@ -119,7 +119,8 @@ closeup('skocka', {
   ],
 });
 
-// ============ Kantorská: kolik ovcí je na tabuli? ============
+// ============ Kantorská: kolik ovcí je na tabuli? → semínka sněžné květiny ============
+// ZÁSTUPNÉ: semínka mají být v kuchyni na Kantorské (Daniel dodá fotky kuchyně)
 const CARD_DOTS = [2, 4, 3];
 const CARD_X = [820, 1040, 1260];
 closeup('kantorska', {
@@ -176,7 +177,7 @@ closeup('kantorska', {
       K.busy++;
       await K.after(1.2);
       K.busy--;
-      scene.reward('kotva', { x: 1500, y: 640 });
+      scene.reward('semena', { x: 1500, y: 640 });
     },
   })),
 });
@@ -497,17 +498,39 @@ closeup('klinovka', {
   ],
 });
 
-// ============ Vrchol Zadní Planiny: polechtej mrak, začne sněžit ============
-// ZÁSTUPNÝ úkol — skutečný vymyslí Daniel.
+// ============ Vrchol Zadní Planiny: zasadit sněžnou květinu ============
+// (Daniel 2026-11-09) Panáček na hrudku hlíny postupně dá semínka, zaleje je vodou ze studánky a přiloží
+// rampouch (každý klik = další věc z batohu, pořadí jako v herbáři stromu). Květina vyroste, rozkvete a
+// pyl z jejích zvonků se rozletí přes hory jako sníh → finále. Kulisa je zatím papírová (zástupná),
+// květina je Danielův obrázek (python tools/kvetina.py).
+const FLOWER = 'assets/sceny/kvetina.webp';
+K.img(FLOWER);
+const MOUND = { x: 1290, y: 584 };
+const PLANT_H = 400; // výška rozkvetlé květiny na obrazovce
 const flakes = Array.from({ length: 160 }, () => ({ x: Math.random() * K.W, y: Math.random() * K.H, z: Math.random() }));
 K.scenes.vrchol = {
   st: null,
   enter() {
-    this.st = { tickles: 0, t: null, snow: 0 };
+    this.st = { step: 0, seeds: 0, wet: 0, frost: 0, frostT: null, grow: 0, bloom: 0, pollen: [], snow: 0, fly: null, done: false };
     K.fadeTo(0, 0.6, '#efe6d2');
   },
   update(dt) {
-    if (this.st.snow <= 0) return;
+    const st = this.st;
+    for (const p of st.pollen) {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx += 6 * dt;
+      p.vy -= 4 * dt;
+    }
+    st.pollen = st.pollen.filter((p) => K.time - p.t0 < p.life);
+    if (st.bloom >= 1 && !st.done) {
+      // zralé zvonky práší
+      for (let i = 0; i < 3; i++) {
+        const y = MOUND.y - PLANT_H * K.rand(0.45, 0.95);
+        st.pollen.push({ x: MOUND.x + K.rand(-40, 40), y, vx: K.rand(20, 120), vy: K.rand(-90, -20), t0: K.time, life: K.rand(2, 4), r: K.rand(1.5, 4) });
+      }
+    }
+    if (st.snow <= 0) return;
     for (const f of flakes) {
       f.y += (60 + f.z * 160) * dt;
       f.x += Math.sin(K.time + f.z * 9) * 20 * dt;
@@ -537,18 +560,57 @@ K.scenes.vrchol = {
       ctx.fill();
       ctx.stroke();
     });
-    // mrak — s každým polechtáním tmavší
-    const grey = 250 - st.tickles * 45;
-    const dx = shake(st.t, 18);
-    ctx.fillStyle = `rgb(${grey}, ${grey}, ${grey + 4})`;
-    ctx.beginPath();
-    [[-150, 20, 90], [-50, -30, 120], [80, -20, 110], [180, 30, 80], [20, 50, 90]].forEach(([x, y, r]) => {
-      ctx.moveTo(1100 + dx + x + r, 230 + y);
-      ctx.arc(1100 + dx + x, 230 + y, r, 0, Math.PI * 2);
-    });
-    ctx.fill();
-    ctx.stroke();
-    K.drawHero(ctx, 860, 690, 1.6, { facing: 1, halo: false, wave: st.tickles > 0 });
+    // hrudka hlíny: se semínky, mokrá, s jinovatkou
+    const wet = st.wet;
+    ctx.fillStyle = `rgb(${Math.round(K.lerp(122, 78, wet))}, ${Math.round(K.lerp(96, 62, wet))}, ${Math.round(K.lerp(70, 46, wet))})`;
+    ctx.beginPath(); ctx.ellipse(MOUND.x, MOUND.y, 70, 22, 0, Math.PI, 0); ctx.lineTo(MOUND.x + 70, MOUND.y + 6);
+    ctx.lineTo(MOUND.x - 70, MOUND.y + 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    if (st.seeds > 0 && st.grow < 0.2) {
+      ctx.fillStyle = '#f2ece0';
+      [[-22, -8], [6, -14], [26, -6]].forEach(([dx, dy]) => {
+        ctx.globalAlpha = st.seeds;
+        ctx.beginPath(); ctx.ellipse(MOUND.x + dx, MOUND.y + dy, 7, 4.5, 0.4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+    }
+    if (st.frost > 0) {
+      // jinovatka po rampouchu
+      ctx.strokeStyle = `rgba(235, 245, 252, ${0.9 * st.frost})`;
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 9; i++) {
+        const a = Math.PI + (i / 8) * Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(MOUND.x + Math.cos(a) * 40, MOUND.y + Math.sin(a) * 12);
+        ctx.lineTo(MOUND.x + Math.cos(a) * 74, MOUND.y + Math.sin(a) * 26);
+        ctx.stroke();
+      }
+    }
+    // květina roste z hrudky
+    const img = K.img(FLOWER);
+    if (st.grow > 0 && K.ready(img)) {
+      const s = (PLANT_H / img.height) * K.lerp(0.12, 1, K.ease(st.grow));
+      ctx.save();
+      ctx.translate(MOUND.x, MOUND.y + 14);
+      ctx.scale(s, s);
+      ctx.drawImage(img, -img.width / 2, -img.height);
+      ctx.restore();
+      if (st.bloom > 0) {
+        // rozkvetlé zvonky se rozzáří
+        const g = ctx.createRadialGradient(MOUND.x, MOUND.y - PLANT_H * 0.7, 10, MOUND.x, MOUND.y - PLANT_H * 0.7, 220);
+        g.addColorStop(0, `rgba(235, 245, 255, ${0.45 * st.bloom})`);
+        g.addColorStop(1, 'rgba(235, 245, 255, 0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(MOUND.x - 240, MOUND.y - PLANT_H - 120, 480, PLANT_H + 160);
+      }
+    }
+    for (const p of st.pollen) {
+      const a = Math.sin(((K.time - p.t0) / p.life) * Math.PI);
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * a})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    }
+    K.drawHero(ctx, 1140, 600, 1.6, { facing: 1, halo: false, wave: st.bloom > 0 });
+    if (st.fly) K.drawIcon(ctx, st.fly.item, st.fly.x, st.fly.y, 46);
+    if (st.step < 3 && K.busy === 0) K.drawHint(ctx, MOUND.x, MOUND.y - 10, 70);
     if (st.snow > 0) {
       ctx.fillStyle = '#fff';
       for (const f of flakes) {
@@ -559,29 +621,57 @@ K.scenes.vrchol = {
       }
       ctx.globalAlpha = 1;
     }
-    if (st.tickles < 3) K.drawRoundButton(ctx, EXIT.x, EXIT.y, 'zpet');
+    if (st.step === 0) K.drawRoundButton(ctx, EXIT.x, EXIT.y, 'zpet');
   },
   hot(p) {
-    return (this.st.tickles < 3 && K.dist(p, { x: 1100, y: 230 }) < 230) || K.dist(p, EXIT) < 45;
+    return (this.st.step < 3 && K.dist(p, MOUND) < 110) || (this.st.step === 0 && K.dist(p, EXIT) < 45);
   },
   async click(p) {
     const st = this.st;
-    if (st.tickles < 3 && K.dist(p, EXIT) < 45) {
+    if (st.step === 0 && K.dist(p, EXIT) < 45) {
       K.busy++;
       await K.fadeTo(1, 0.5, '#efe6d2');
       K.busy--;
       return K.go('louka', { from: 'vrchol' });
     }
-    if (st.tickles >= 3 || K.dist(p, { x: 1100, y: 230 }) > 230) return;
-    st.tickles++;
-    st.t = K.time;
-    K.sound('mrak');
-    if (st.tickles < 3) return;
+    if (st.step >= 3 || K.dist(p, MOUND) > 110) return;
     K.busy++;
+    // další věc z batohu přiletí na hrudku
+    const item = K.ITEMS[st.step], from = K.slotPos(K.ITEMS.indexOf(item));
+    st.fly = { item, x: from.x, y: from.y };
+    await K.tween(0.9, (t) => {
+      const e = K.ease(t);
+      st.fly.x = K.lerp(from.x, MOUND.x, e);
+      st.fly.y = K.lerp(from.y, MOUND.y - 40, e) - Math.sin(t * Math.PI) * 120;
+    });
+    st.fly = null;
+    st.step++;
+    if (item === 'semena') {
+      K.sound('sustot');
+      await K.tween(0.5, (t) => { st.seeds = t; });
+    } else if (item === 'voda') {
+      K.sound('voda');
+      await K.tween(1.0, (t) => { st.wet = t; });
+    } else {
+      K.sound('cinkani');
+      await K.tween(0.8, (t) => { st.frost = t; });
+      await this.bloom();
+    }
+    K.busy--;
+  },
+  // vyroste, rozkvete, práší jako sníh → finále
+  async bloom() {
+    const st = this.st;
+    await K.after(0.4);
+    K.sound('chorose');
+    await K.tween(3.2, (t) => { st.grow = t; });
+    K.sound('slunce');
+    await K.tween(1.2, (t) => { st.bloom = t; });
+    await K.after(1.5);
     K.sound('vitr');
     await K.tween(2.5, (t) => { st.snow = t; });
+    st.done = true;
     await K.fadeTo(1, 1.5, '#000');
-    K.busy--;
     K.go('finale');
   },
 };

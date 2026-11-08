@@ -1,6 +1,6 @@
 // Start hry a ladicí přepínače v adrese:
 //   ?scena=<louka|les|skocka|kantorska|kriz|jelinek|klinovka|vrchol|finale>
-//   ?vse        — všechny chalupy hotové (rovnou na vrchol)
+//   ?vse        — všechny úkoly hotové, v batohu všechny 3 věci (rovnou na vrchol)
 //   ?les        — les už prošlý (batoh od stromu, beran ve stádu)
 //   ?finale=40  — finále přetočené o 40 s
 //   ?rychle=4   — čtyřnásobná rychlost
@@ -33,6 +33,7 @@
     await K.load(window.SNIMKY.map(K.frameSrc));
     for (const it of K.ITEMS) if (!K.state.items.includes(it)) K.state.items.push(it);
   }
+  if (scena === 'vrchol') for (const it of K.ITEMS) if (!K.state.items.includes(it)) K.state.items.push(it);
   K.go(K.scenes[scena] ? scena : 'louka');
   if (K.paused) window.advanceTime(16);
   if (K.params.has('skript')) {
@@ -61,7 +62,8 @@ window.render_game_to_text = () => {
   };
   if (name === 'les') {
     const s = K.scene.st;
-    out.les = { faze: s.phase, naZidi: s.onWall, mech: +s.moss.toFixed(2), beranStoji: +s.stand.toFixed(2) };
+    out.les = { faze: s.phase, naLavce: s.onBridge, mech: +s.moss.toFixed(2), beranStoji: +s.stand.toFixed(2),
+      slunce: +s.sun.toFixed(2), vetev: s.branch.state, souska: s.snag.state, strom: s.treeStage };
   }
   if (name === 'finale') {
     const F = K.finale;

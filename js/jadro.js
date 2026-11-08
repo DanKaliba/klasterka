@@ -218,6 +218,52 @@ K.sound = (name, o = {}) => {
   s.currentTime = 0;
   s.play().catch(() => {});
 };
+// načíst zvuky předem (třeba při vstupu do scény), ať první zahrání nepřijde pozdě
+K.preloadSounds = (names) => { for (const n of names) getSound(n); };
+// smyčka na pozadí (stádo): K.loop(jméno, hlasitost) se volá každý snímek, změna hlasitosti se plynule
+// dotáhne (~1,5 s), takže mezi scénami se zvuk sám zesílí / ztiší. Smyčka jednou rozběhnutá běží dál,
+// při nule jen potichu. mp3 má na krajích LOOP_PAD s přesahu (tools/zvuky.py), opakuje se úsek mezi nimi.
+const LOOP_PAD = 0.2;
+const loops = {};
+K.loop = (name, level) => {
+  if (K.muted || (!loops[name] && level <= 0)) return;
+  const l = (loops[name] ??= { level: 0, gain: null });
+  const s = getSound(name);
+  if (!s) return; // načítá se nebo chybí
+  if (s instanceof AudioBuffer) {
+    if (actx.state !== 'running') return; // až po prvním kliku (pak se stádo pomalu zesílí z ticha)
+    if (!l.gain) {
+      l.gain = actx.createGain();
+      l.gain.gain.value = 0;
+      l.gain.connect(actx.destination);
+      const src = actx.createBufferSource();
+      src.buffer = s;
+      src.loop = true;
+      src.loopStart = LOOP_PAD;
+      src.loopEnd = s.duration - LOOP_PAD;
+      src.connect(l.gain);
+      src.start(0, K.rand(LOOP_PAD, s.duration - LOOP_PAD)); // pokaždé jinde, ať stádo nezačíná stejně
+    }
+    if (Math.abs(level - l.level) > 0.002) {
+      l.gain.gain.setTargetAtTime(level, actx.currentTime, 0.5);
+      l.level = level;
+    }
+    return;
+  }
+  // <audio> (file://): hlasitost se dotahuje po snímcích
+  s.loop = true;
+  l.level += (level - l.level) * 0.03;
+  s.volume = K.clamp(l.level);
+  if (l.level > 0.002 && s.paused) s.play().catch(() => {});
+};
+// stádo hraje potichu pod kroky (Daniel 2026-11-08: 0.15); ladí se ?stado=0.3
+K.FLOCK_VOLUME = +(K.params.get('stado') ?? 0.15);
+// bečení po kliku na ovci, náhodně ovce-1 / ovce-2 s trochu jinou výškou, jehně má svoje; ladí se ?ovce=0.6
+K.BLEAT_VOLUME = +(K.params.get('ovce') ?? 0.4);
+const BLEATS = ['ovce-1', 'ovce-2'];
+for (const n of [...BLEATS, 'jehne']) getSound(n);
+K.bleat = (sh) => K.sound(sh && sh.lamb ? 'jehne' : BLEATS[Math.floor(Math.random() * BLEATS.length)],
+  { volume: K.BLEAT_VOLUME * K.rand(0.85, 1), rate: K.rand(0.94, 1.06) });
 // kroky po zmrzlé trávě jsou jen v pozadí pod hudbou; ladí se ?kroky=0.4
 K.STEP_VOLUME = +(K.params.get('kroky') ?? 0.25);
 // tráva assets/zvuky/krok-1…8.mp3, zmrzlá hlína s ledem led-1…4.mp3
@@ -396,6 +442,8 @@ K.update = (dt) => {
   K.boil = Math.floor(K.time * 8);
   runTimers(dt);
   if (K.scene && K.scene.update) K.scene.update(dt);
+  // stádo slyšet jen tam, kde jsou ovce vidět (scene.flock vrací 0–1)
+  K.loop('stado', (K.scene && K.scene.flock ? K.scene.flock() : 0) * K.FLOCK_VOLUME);
 };
 
 window.advanceTime = (ms) => {

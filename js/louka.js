@@ -3,18 +3,21 @@ const MEADOW_FRAME = '2025-12-28_1300';
 const SCARVES = ['#c0392b', '#2e86c1', '#e1b12c', '#27ae60', '#8e44ad', '#e67e22'];
 // poslední ovce se neptá po lyžích, ale po beranovi, který se zatoulal do lesa (Daniel 2026-11-06)
 const RAM_ASKER = SCARVES.length - 1;
+const LAMB = 2; // jedna ovce je jehně: menší a mečí po svém
+const LAMB_SIZE = 0.72;
 
-// cíl úkolu u každé chalupy a u božích muk (odměna se objeví v HUD). Kolik jich je, tolik klíčů
-// potřebuje mrak na Zadní Planině — tolik míst má batoh a tolik klíčů ukáže strom v lese.
-// Spisovatel a Ranč úkol nemají (Daniel 2026-11-05), jen v noci svítí.
+// Sněžná květina (Daniel 2026-11-09): strom v lese poradí zasadit ji na vrcholu Zadní Planiny; pyl z jejích
+// květů zasype Krkonoše jako sníh. Potřebuje 3 věci (tolik míst má batoh v HUD, pořadí jako v herbáři):
+// semínka z kuchyně na Kantorské, vodu ze studánky u božích muk a rampouch z lesa (js/les.js).
+K.ITEMS = ['semena', 'voda', 'rampouch'];
+// místa na louce s úkolem → co v nich panáček získá (odměna přeletí do batohu)
+// Skočka, Jelínek a Klínovka teď úkol nemají (detaily v chalupy.js zůstaly, čekají na Danielovo rozhodnutí),
+// Spisovatel a Ranč taky ne (Daniel 2026-11-05); všechny jen v noci svítí.
 K.CHALETS = {
-  skocka: 'lyze',
-  kantorska: 'kotva',
+  kantorska: 'semena',
   kriz: 'voda',
-  jelinek: 'kolo',
-  klinovka: 'caj',
 };
-K.ITEMS = Object.values(K.CHALETS);
+K.hasAllItems = () => K.ITEMS.every((it) => K.state.items.includes(it));
 
 // ---------- cesta ----------
 K.pathPoint = (p) => {
@@ -209,6 +212,7 @@ K.makeSheep = () => {
     return {
       x: pt.x, y: pt.y, tx: pt.x, ty: pt.y, facing: i % 2 ? 1 : -1, phase: Math.random() * 6,
       wait: Math.random() * 3, headUp: false, scarf, rot: 0, mode: 'graze', asksRam: i === RAM_ASKER,
+      lamb: i === LAMB,
     };
   });
 };
@@ -238,14 +242,15 @@ K.updateGrazing = (sh, dt, scale = K.scaleAt) => {
   }
 };
 
+K.sheepSize = (sh) => (sh.lamb ? LAMB_SIZE : 1);
 K.sheepAt = (p, scale = K.scaleAt) => K.sheep.find((sh) => {
-  const s = scale(sh.x, sh.y);
+  const s = scale(sh.x, sh.y) * K.sheepSize(sh);
   return Math.abs(p.x - sh.x) < 50 * s && p.y < sh.y + 6 && p.y > sh.y - 60 * s;
 });
 
 K.drawSheepFlock = (ctx, extra = [], filter = null, scale = K.scaleAt) => {
   const flock = filter ? K.sheep.filter(filter) : K.sheep;
-  const items = [...flock.map((sh) => ({ y: sh.y, draw: () => K.drawSheep(ctx, sh.x, sh.y, scale(sh.x, sh.y), {
+  const items = [...flock.map((sh) => ({ y: sh.y, draw: () => K.drawSheep(ctx, sh.x, sh.y, scale(sh.x, sh.y) * K.sheepSize(sh), {
     facing: sh.facing, phase: sh.phase, walking: sh.walking, headUp: sh.headUp, rot: sh.rot,
     skis: sh.skis, scarf: sh.skis ? sh.scarf : null, ram: sh.ram,
   }) })), ...extra];
@@ -278,10 +283,11 @@ async function zoom(target, inward) {
 // ---------- scéna ----------
 let bubble = null; // { sheep, icon, until }
 let lockBubble = 0;
-const allSolved = () => Object.keys(K.CHALETS).every((id) => K.state.solved[id]);
+const allSolved = () => K.hasAllItems();
 const house = (id) => K.L.chalupy.find((c) => c.id === id);
 
 K.scenes.louka = {
+  flock: () => 1, // stádo na pozadí (js/jadro.js)
   async enter(arg) {
     K.frameNow = MEADOW_FRAME;
     K.hero.visible = true;
@@ -340,7 +346,9 @@ K.scenes.louka = {
     const v = K.L.vrchol;
     if (K.state.asked) {
       if (allSolved()) K.drawHint(ctx, v.x, v.y, 40);
-      if (lockBubble > K.time) K.drawBubble(ctx, v.x, v.y - 6, 0.45, 'zamek');
+      // bez všech tří věcí: bublina s tou, která ještě chybí
+      const missing = K.ITEMS.find((it) => !K.state.items.includes(it));
+      if (lockBubble > K.time && missing) K.drawBubble(ctx, v.x, v.y - 6, 0.45, missing);
     }
 
     drawFootprints(ctx);
@@ -348,7 +356,7 @@ K.scenes.louka = {
     const hp = K.hero.pos;
     K.drawSheepFlock(ctx, [{ y: hp.y, draw: () => K.hero.draw(ctx) }]);
     if (bubble && bubble.until > K.time) {
-      const sh = bubble.sheep, s = K.scaleAt(sh.x, sh.y);
+      const sh = bubble.sheep, s = K.scaleAt(sh.x, sh.y) * K.sheepSize(sh);
       K.drawBubble(ctx, sh.x + sh.facing * 30 * s, sh.y - 55 * s, Math.max(0.6, s), bubble.icon);
     }
     ctx.restore();
@@ -381,7 +389,7 @@ K.scenes.louka = {
 };
 
 function sheepTalk(sh) {
-  K.sound('bee');
+  K.bleat(sh);
   if (sh.asksRam && !K.state.solved.les) {
     // jen tahle ovce zvedne hlavu a ptá se po beranovi (úkoly chalup to neodemyká)
     bubble = { sheep: sh, icon: 'beran', until: K.time + 3.2 };

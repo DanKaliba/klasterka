@@ -147,25 +147,60 @@ const poleHit = () => {
   return { x: sloup.x, y: (sloup.y + pata.y) / 2 };
 };
 
+// body po lomené čáře zhruba po krocích step (pro ručně kreslenou, chvějící se čáru)
+function densify(pts, step) {
+  const out = [];
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], n = Math.max(1, Math.round(K.dist(a, b) / step));
+    for (let k = 0; k < n; k++) out.push([K.lerp(a.x, b.x, k / n), K.lerp(a.y, b.y, k / n)]);
+  }
+  const l = pts[pts.length - 1];
+  out.push([l.x, l.y]);
+  return out;
+}
+
+// kladka na sloupu: rozklepaný kruh fixou a tři loukotě, točí se podle běhu lana
+function drawPulley(ctx, x, y, r, angle, seed) {
+  const ring = [];
+  for (let k = 0; k <= 14; k++) {
+    const a = (k / 14) * Math.PI * 2;
+    ring.push([x + Math.cos(a) * r, y + Math.sin(a) * r]);
+  }
+  K.stroke(ctx, ring, 2.6, seed, 1.1);
+  for (let k = 0; k < 3; k++) {
+    const a = angle + (k / 3) * Math.PI * 2;
+    K.stroke(ctx, [[x, y], [x + Math.cos(a) * r * 0.85, y + Math.sin(a) * r * 0.85]], 2, seed + 10 + k, 0.8);
+  }
+  ctx.beginPath(); ctx.arc(x, y, 1.8, 0, Math.PI * 2); ctx.fill();
+}
+
+// Vlek jako dokreslený fixou do fotky: lano se chvěje (K.boil), čárky na něm běží s lanem, kladky na
+// sloupu se točí a kotvy jsou ručně načmárané (Daniel 2026-11-09).
 function drawLift(ctx, alpha) {
   if (alpha <= 0.01) return;
   const len = cableLen();
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.strokeStyle = K.INK;
+  ctx.fillStyle = K.INK;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   [0, 1].forEach((b) => {
     const pts = cablePts(b);
-    const line = () => { ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke(); };
-    ctx.lineWidth = 2;
-    line();
-    // tečky na laně ukazují, kam běží
-    ctx.lineWidth = 3.5;
-    ctx.setLineDash([2, 26]);
-    ctx.lineDashOffset = (b ? 1 : -1) * F.liftPos;
-    line();
-    ctx.setLineDash([]);
+    // lano: dva tahy fixou přes sebe, mírně jinak rozklepané
+    const line = densify(pts, 38);
+    K.stroke(ctx, line, 2.4, 1400 + b * 50, 1.3);
+    ctx.globalAlpha = alpha * 0.55;
+    K.stroke(ctx, line.map(([x, y]) => [x + 0.8, y + 0.6]), 1.2, 1420 + b * 50, 1.6);
+    ctx.globalAlpha = alpha;
+    // čárky na laně běží s ním (nahoru po větvi 0, dolů po větvi 1)
+    const gap = 44, off = ((b ? -1 : 1) * F.liftPos) % gap;
+    for (let d = (off + gap) % gap, k = 0; d < len; d += gap, k++) {
+      const p = along(pts, d / len), q = along(pts, Math.min(1, (d + 6) / len));
+      const nx = q.x - p.x, ny = q.y - p.y, l = Math.hypot(nx, ny) || 1;
+      K.stroke(ctx, [[p.x - (ny / l) * 3, p.y + (nx / l) * 3], [p.x + (nx / l) * 5 + (ny / l) * 3, p.y + (ny / l) * 5 - (nx / l) * 3]],
+        1.8, 1500 + k * 3 + b, 0.7);
+    }
     // prázdné kotvy
     const n = Math.round(len / 95);
     for (let i = 0; i < n; i++) {
@@ -173,13 +208,15 @@ function drawLift(ctx, alpha) {
       if (b) u = 1 - u;
       if (!b && F.riding.some((r) => Math.abs(r - u) < 0.04)) continue; // tuhle kotvu drží ovce
       const p = along(pts, u), s = scaleW(p.x, p.y + 40);
-      ctx.lineWidth = 2 * s;
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y + 30 * s);
-      ctx.moveTo(p.x - 9 * s, p.y + 30 * s); ctx.lineTo(p.x + 9 * s, p.y + 30 * s);
-      ctx.stroke();
+      K.stroke(ctx, [[p.x, p.y], [p.x + 0.5, p.y + 15 * s], [p.x, p.y + 30 * s]], 2 * s + 0.6, 1600 + i * 7 + b, 0.9);
+      K.stroke(ctx, [[p.x - 9 * s, p.y + 30 * s], [p.x, p.y + 31 * s], [p.x + 9 * s, p.y + 29 * s]], 2 * s + 0.6, 1650 + i * 7 + b, 0.9);
     }
   });
+  // kladky na vršku sloupu, kudy lano obíhá (horní větev nahoru, spodní dolů = točí se stejně)
+  const { sloup } = V();
+  const turn = F.liftPos / 9;
+  drawPulley(ctx, sloup.x, sloup.y - 2, 9, -turn, 1700);
+  drawPulley(ctx, sloup.x + 2, sloup.y + 13, 9, -turn + 0.5, 1730);
   ctx.restore();
   if (F.waiting && !F.liftOn) {
     const h = poleHit();
@@ -298,7 +335,7 @@ function drawRiders(ctx) {
   ctx.closePath();
   ctx.clip();
   for (const sh of riders) {
-    const c = cableAt(Math.min(1, sh.u)), s = scaleW(sh.x, sh.y);
+    const c = cableAt(Math.min(1, sh.u)), s = scaleW(sh.x, sh.y) * K.sheepSize(sh);
     ctx.strokeStyle = K.INK;
     ctx.lineWidth = 2.2 * s;
     ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(sh.x + 20 * s, sh.y - 34 * s); ctx.stroke();
@@ -432,6 +469,8 @@ const EVENTS = {
 
 // ---------- scéna ----------
 K.scenes.finale = {
+  // stádo, dokud chumel neodjede z obrazu
+  flock: () => (K.sheep.some((sh) => sh.mode !== 'gone') ? 1 : 0),
   enter() {
     F.keys = buildTimeline();
     F.t = 0;
@@ -531,7 +570,7 @@ K.scenes.finale = {
     if (F.waiting && !F.liftOn && K.dist(p, poleHit()) < 70) return startLift();
     const sh = K.sheepAt(p, scaleW);
     if (sh) {
-      K.sound('bee');
+      K.bleat(sh);
       if (sh.mode === 'ski' || sh.mode === 'ride') sh.tumbleT = K.time;
       else sh.headUp = !sh.headUp;
     }

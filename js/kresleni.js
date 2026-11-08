@@ -458,6 +458,28 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
       ctx.stroke();
       L([[-4, 3], [-3, 6]]);
       break;
+    case 'semena':
+      // tři semínka sněžné květiny
+      [[-5, -2, 0.5], [4, -4, -0.4], [0, 6, 0.2]].forEach(([sx, sy, r]) => {
+        ctx.beginPath(); ctx.ellipse(sx * u, sy * u, 3.2 * u, 5 * u, r, 0, Math.PI * 2); ctx.stroke();
+      });
+      break;
+    case 'rampouch':
+      // rampouch se zlomeným horním koncem a jiskrou
+      L([[-5, -10], [-2, -8], [1, -10], [5, -9], [1, 11], [-5, -10]]);
+      L([[-1, -5], [0, 4]]);
+      L([[7, -4], [7, 0]]); L([[5, -2], [9, -2]]);
+      break;
+    case 'kvetina':
+      // klas zvonků sněžné květiny
+      L([[0, 11], [0, -11]]);
+      [[-8], [-2], [4]].forEach(([yy], i) => {
+        const sx = i % 2 ? 1 : -1;
+        ctx.beginPath(); ctx.moveTo(0, yy * u); ctx.quadraticCurveTo(sx * 6 * u, (yy - 1) * u, sx * 6 * u, (yy + 4) * u);
+        ctx.lineTo(sx * 2 * u, (yy + 4) * u); ctx.closePath(); ctx.stroke();
+      });
+      L([[0, 9], [-6, 6]]); L([[0, 9], [6, 6]]);
+      break;
     case 'caj':
       L([[-7, -2], [-6, 8], [5, 8], [6, -2], [-7, -2]]); L([[6, 0], [9, 1], [9, 4], [5, 5]]);
       L([[-2, -5], [-3, -8], [-1, -11]]); L([[2, -5], [1, -8], [3, -11]]);

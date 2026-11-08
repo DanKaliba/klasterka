@@ -1,3 +1,9 @@
+/* fraktura pro otázku stromu v lese (UnifrakturMaguntia, SIL OFL, licence v assets/fonty) */
+@font-face {
+  font-family: 'Fraktura';
+  src: url('../assets/fonty/UnifrakturMaguntia-Book.ttf') format('truetype');
+  font-display: block;
+}
 html, body {
   margin: 0;
   height: 100%;
