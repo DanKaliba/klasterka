@@ -104,8 +104,9 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
       3 věci: vodu (studánka u kříže), semínka (kuchyně na Kantorské) a rampouch (z lesa; Daniel
       2026-11-09). Strom v lese už místo zamčeného mraku a klíčů ukazuje herbář (Danielův obrázek podle
       pics/podklady-kvetina/PROMPT-kvetina.md, `python tools/herbar.py` → herbar.jpg + herbar-vybledly.jpg):
-      na vybledlý pergamen se po krocích vpijí semínka, džbánek s vodou, rampouch, zasazení s klíčkem,
-      květina vyroste odspodu a pyl se snáší jako sníh na hory (smyčka 9,6 s, `PLAN_STEPS` v les.js).
+      v kulaté bublině (jako ostatní bubliny stromu) se střídají kroky jeden po druhém přes celou bublinu:
+      semínka, džbánek s vodou, rampouch, zasazení s klíčkem, květina roste odspodu, ze zvonku se snáší
+      pyl jako sníh na hory (smyčka 11 s, `PLAN_STEPS` v les.js; výřezy z listu s rozmazanými okraji).
       Realistická květina na planinu (bílý náprstník se zvonky jako sněženka): `python tools/kvetina.py`
       → assets/sceny/kvetina.webp (celá rostlina) a kvetina-klas.webp (detail klasu), vyříznuté z šedého
       pozadí; kvetina.webp roste na vrcholu, kvetina-klas.webp zatím nepoužitá (na přiblížení).

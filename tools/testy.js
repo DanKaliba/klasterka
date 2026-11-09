@@ -27,9 +27,9 @@ window.SCENARE = {
   lesStrom: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 312, 280], ['ceka', 600]],
   lesOtazka: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 900]],
   // herbář: strom ukazuje postup (semínka, voda, rampouch, zasazení, růst, pyl) — snímky v čase smyčky
-  lesHerbar1: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 3700 + 2600]],
-  lesHerbar2: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 3700 + 5000]],
-  lesHerbar3: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 3700 + 8200]],
+  lesHerbar1: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 3700 + 2000]],
+  lesHerbar2: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 3700 + 7200]],
+  lesHerbar3: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 3700 + 9800]],
   lesKlice: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 7000]],
   lesVoda: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 900, 950], ['ceka', 1500]],
   lesKonecLavky: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 700, 590], ['cekaVolno'], ['klik', 1500, 600], ['ceka', 1300]],

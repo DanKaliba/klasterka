@@ -175,7 +175,7 @@ async function intro() {
 }
 
 const mouth = (sec) => { st.mouthUntil = K.time + sec; };
-const PLAN_SHOW = 9.6; // jak dlouho je vidět herbář (jedna celá smyčka)
+const PLAN_SHOW = 11; // jak dlouho je vidět herbář (jedna celá smyčka kroků, PLAN_LOOP)
 function showPlan(sec) {
   st.bubble = { kind: 'herbar', t0: K.time, until: K.time + sec };
   mouth(Math.min(sec, 2.2));
@@ -864,68 +864,120 @@ function drawTree(ctx) {
   ctx.restore();
 }
 
-// Herbář sněžné květiny (python tools/herbar.py): na vybledlý pergamen se postupně „vpijí“ kroky z plné
-// kresby — semínka, voda ze džbánku, rampouch, zasazení s klíčkem, květina roste odspodu, pyl se snáší
-// jako sníh na hory; nakonec se dobarví celý list i s úponky. Oblasti jsou v px obrázku 640×640.
+// Herbář sněžné květiny (python tools/herbar.py) v kulaté bublině jako ostatní bubliny stromu. Kroky se
+// střídají jeden po druhém přes celou bublinu (Daniel 2026-11-09): semínka, voda ze džbánku, rampouch,
+// zasazení s klíčkem, květina roste odspodu, ze zvonku se snáší pyl jako sníh na hory.
+// r = oblast kroku v px obrázku 640×640, d = jak dlouho je vidět (s).
 const HERBAR = 'assets/sceny/herbar.jpg', HERBAR_FADED = 'assets/sceny/herbar-vybledly.jpg';
 K.img(HERBAR);
 K.img(HERBAR_FADED);
 const PLAN_STEPS = [
-  { t: 0.4, r: [60, 50, 160, 136] }, // semínka
-  { t: 1.3, r: [88, 166, 212, 384] }, // džbánek s vodou
-  { t: 2.2, r: [504, 43, 574, 245] }, // rampouch
-  { t: 3.1, r: [22, 376, 212, 604] }, // zasazení, klíček
-  { t: 4.0, r: [204, 33, 445, 632], grow: 1.6 }, // květina roste odspodu
-  { t: 6.0, r: [402, 350, 638, 604] }, // zralý zvonek, pyl, hory
+  { d: 1.4, r: [60, 50, 160, 136] }, // semínka
+  { d: 1.5, r: [88, 166, 212, 384] }, // džbánek s vodou
+  { d: 1.4, r: [504, 43, 574, 245] }, // rampouch
+  { d: 1.6, r: [22, 376, 212, 604] }, // zasazení, klíček
+  { d: 2.6, r: [204, 33, 445, 632], grow: 1.6 }, // květina roste odspodu
+  { d: 2.6, r: [452, 350, 638, 604], snow: true }, // zralý zvonek, pyl, hory
 ];
-const PLAN_ALL = 7.6; // dobarví se celý list
-const PLAN_LOOP = 9.6;
-const PAGE = { x: 578, y: 14, s: 440 / 640, rot: -0.025 };
+const PLAN_LOOP = PLAN_STEPS.reduce((sum, st0) => sum + st0.d, 0);
+const PLAN_FADE = 0.35; // prolnutí mezi kroky
+const PLAN_BUBBLE = { x: 800, y: 228, r: 214 };
+
+// výřezy kroků s rozmazanými okraji (ať nejsou vidět obdélníky) a barva pergamenu na výplň bubliny
+let planArt = null;
+function buildPlanArt(full, faded) {
+  const F = 44; // šířka rozmazaného okraje (px obrázku)
+  const cut = (img, [x0, y0, x1, y1]) => {
+    const w = x1 - x0, h = y1 - y0, c = canvasOf(w, h), g = c.getContext('2d');
+    g.drawImage(img, x0, y0, w, h, 0, 0, w, h);
+    g.globalCompositeOperation = 'destination-in';
+    for (const [ax, ay, bx, by, len] of [[0, 0, w, 0, w], [0, 0, 0, h, h]]) {
+      const lg = g.createLinearGradient(ax, ay, bx, by), e = Math.min(0.45, F / len);
+      lg.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      lg.addColorStop(e, 'rgba(0, 0, 0, 1)');
+      lg.addColorStop(1 - e, 'rgba(0, 0, 0, 1)');
+      lg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      g.fillStyle = lg;
+      g.fillRect(0, 0, w, h);
+    }
+    return c;
+  };
+  // průměrná barva vybledlého listu = pergamen
+  const probe = canvasOf(16, 16), pg = probe.getContext('2d');
+  pg.drawImage(faded, 0, 0, 16, 16);
+  const d = pg.getImageData(0, 0, 16, 16).data, sum = [0, 0, 0];
+  for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) sum[k] += d[i + k];
+  planArt = {
+    paper: `rgb(${sum.map((v) => Math.round(v / 256)).join(', ')})`,
+    steps: PLAN_STEPS.map((st0) => cut(full, st0.r)),
+  };
+}
+
+// jeden krok vycentrovaný v kruhu o poloměru 320 (k = viditelnost, u = 0–1 čas v kroku)
+function drawPlanStep(ctx, i, k, u, t) {
+  const step = PLAN_STEPS[i], [x0, y0, x1, y1] = step.r, w = x1 - x0, h = y1 - y0;
+  const sc = Math.min(2.2, 440 / w, 500 / h);
+  const dw = w * sc, dh = h * sc, dx = 320 - dw / 2, dy = 320 - dh / 2;
+  ctx.save();
+  ctx.globalAlpha *= k;
+  if (step.grow) {
+    // roste odspodu nahoru
+    const top = K.lerp(dy + dh, dy, K.ease(K.clamp((u * step.d) / step.grow)));
+    ctx.beginPath(); ctx.rect(dx - 10, top, dw + 20, dy + dh - top); ctx.clip();
+  }
+  ctx.drawImage(planArt.steps[i], dx, dy, dw, dh);
+  ctx.restore();
+  if (step.snow) {
+    // pyl ze zvonku se snáší jako sníh k horám
+    const bx = dx + (528 - x0) * sc, by = dy + (445 - y0) * sc, my = dy + (560 - y0) * sc;
+    for (let j = 0; j < 16; j++) {
+      const f = (t * 0.35 + j / 16) % 1;
+      const fx = bx + Math.sin(j * 2.3 + t * 1.5) * (10 + f * 60), fy = by + f * (my - by);
+      ctx.globalAlpha = k * Math.sin(f * Math.PI) * K.clamp(u * 3);
+      K.drawIcon(ctx, 'snih', fx, fy, 14 + (j % 3) * 4, '#8fb0c8');
+    }
+  }
+}
 
 function drawPlan(ctx, t, a) {
   const full = K.img(HERBAR), faded = K.img(HERBAR_FADED);
-  if (!K.ready(full) || !K.ready(faded)) return;
+  const B = PLAN_BUBBLE, ready = K.ready(full) && K.ready(faded);
+  if (ready && !planArt) buildPlanArt(full, faded);
+  // bublina: pergamenová výplň, obrys stejně jako ostatní bubliny
   ctx.save();
-  ctx.translate(PAGE.x, PAGE.y);
-  ctx.rotate(PAGE.rot);
-  ctx.scale(PAGE.s, PAGE.s);
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-  ctx.shadowBlur = 24;
-  ctx.shadowOffsetY = 8;
-  ctx.drawImage(faded, 0, 0);
-  ctx.shadowColor = 'transparent';
-  const out = K.clamp((PLAN_LOOP - t) / 0.35); // na konci smyčky se zase vytratí
-  for (const step of PLAN_STEPS) {
-    const k = K.clamp((t - step.t) / 0.5) * out;
-    if (k <= 0) continue;
-    const [x0, y0, x1, y1] = step.r;
-    let top = y0;
-    if (step.grow) top = K.lerp(y1, y0, K.ease(K.clamp((t - step.t) / step.grow))); // odspodu nahoru
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetY = 6;
+  ctx.fillStyle = planArt ? planArt.paper : '#efe4c8';
+  ctx.beginPath(); ctx.arc(B.x, B.y, B.r, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  if (ready) {
     ctx.save();
-    ctx.globalAlpha = a * (step.grow ? Math.min(1, k * 2) : k);
-    ctx.beginPath(); ctx.rect(x0, top, x1 - x0, y1 - top); ctx.clip();
-    ctx.drawImage(full, 0, 0);
+    ctx.beginPath(); ctx.arc(B.x, B.y, B.r - 2, 0, Math.PI * 2); ctx.clip();
+    // jemně zažloutlé okraje jako starý papír
+    const g = ctx.createRadialGradient(B.x, B.y, B.r * 0.55, B.x, B.y, B.r);
+    g.addColorStop(0, 'rgba(160, 120, 60, 0)');
+    g.addColorStop(1, 'rgba(160, 120, 60, 0.22)');
+    ctx.fillStyle = g;
+    ctx.fillRect(B.x - B.r, B.y - B.r, B.r * 2, B.r * 2);
+    ctx.translate(B.x, B.y);
+    ctx.scale(B.r / 320, B.r / 320);
+    ctx.translate(-320, -320);
+    ctx.globalAlpha = a;
+    // který krok právě běží; na konci se prolne do dalšího (poslední zpět do prvního)
+    let start = 0, i = 0;
+    while (i < PLAN_STEPS.length - 1 && t >= start + PLAN_STEPS[i].d) start += PLAN_STEPS[i++].d;
+    const d = PLAN_STEPS[i].d, u = (t - start) / d, left = d - (t - start);
+    const fadeOut = K.clamp(left / PLAN_FADE);
+    drawPlanStep(ctx, i, fadeOut, u, t);
+    if (fadeOut < 1) drawPlanStep(ctx, (i + 1) % PLAN_STEPS.length, 1 - fadeOut, 0, t);
     ctx.restore();
   }
-  const all = K.clamp((t - PLAN_ALL) / 0.6) * out;
-  if (all > 0) {
-    ctx.globalAlpha = a * all;
-    ctx.drawImage(full, 0, 0);
-  }
-  // pyl ze zvonku se snáší jako sníh k horám
-  const snow = K.clamp((t - 6.3) / 0.4) * out;
-  if (snow > 0) {
-    for (let j = 0; j < 14; j++) {
-      const f = (t * 0.35 + j / 14) % 1;
-      const fx = 545 + Math.sin(j * 2.3 + t * 1.5) * (12 + f * 46), fy = 445 + f * 110;
-      ctx.globalAlpha = a * snow * Math.sin(f * Math.PI);
-      K.drawIcon(ctx, 'snih', fx, fy, 9 + (j % 3) * 3, '#8fb0c8');
-    }
-  }
+  ctx.save();
   ctx.globalAlpha = a;
-  ctx.strokeStyle = 'rgba(29, 23, 18, 0.55)';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(0, 0, 640, 640);
+  ctx.strokeStyle = K.INK;
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(B.x, B.y, B.r, 0, Math.PI * 2); ctx.stroke();
   ctx.restore();
 }
 
