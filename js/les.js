@@ -6,7 +6,8 @@
 //   opěra a na jejím kraji suchá souška bez kůry. Potok je ledový (u kraje se panáček otřese zimou).
 // - Panáček vyleze po kořenech stromu na lávku a dojde na roztříštěný konec (zavrávorá).
 // - Rampouch je jedna ze 3 věcí pro sněžnou květinu (s vodou a semínky, viz K.ITEMS): první rampouch, nad
-//   kterým panáček dupne (kromě toho nad krkem berana), se utrhne a skočí do batohu (Daniel 2026-11-09).
+//   kterým panáček dupne (kromě toho nad krkem berana), se utrhne a skočí do batohu (Daniel 2026-11-09);
+//   jen pokud už batoh má (bez něj se rampouch jen zachvěje nebo kápne).
 //   Bez rampouchu po spadlé soušce nepřejde (ukáže ho v bublině a utrhne si jiný).
 // - Rampouchy pod lávkou jsou ve stínu větve s listím: když na lávku dupne, jen se zachvějí.
 //   Panáček větev stáhne do potoka (odplave), vysvitne slunce, rampouchy se zalesknou a teprve pak kapou.
@@ -33,9 +34,6 @@ const WATER_MASK = 'assets/sceny/les-voda.png';
 const VODA_BOX = { x: 790, y: 840, w: 410, h: 240 }; // stejný výřez jako BOX v tools/voda_les.py
 const FLOW_SPEED = 32; // px/s, proud teče k divákovi (dolů)
 for (const f of [BG, BG_PO, SNAG_IMG, SNAG_PATCH, WATER_MASK]) K.img(f);
-// stará fraktura na otázku stromu (css/hra.css); plátno si písmo samo nenačte, tak předem
-const FRAKTUR = "'Fraktura', Georgia, serif";
-if (document.fonts) document.fonts.load(`80px ${FRAKTUR}`).catch(() => {});
 
 const LG = 860; // chodidla na levém břehu (listí pod stromem)
 const HERO_S = 1.6;
@@ -130,11 +128,7 @@ async function heroGo(pts, speed = 330, wood = false) {
       h.x = K.lerp(x0, x, t);
       h.y = K.lerp(y0, y, t);
       h.phase = ph0 + (d * t) / 20;
-      if (Math.floor(h.phase / Math.PI + 0.5) !== Math.floor(before / Math.PI + 0.5)) {
-        K.sound(K.stepSound(), wood
-          ? { volume: K.STEP_VOLUME * 0.7 * K.rand(0.75, 1), rate: K.rand(0.72, 0.84) }
-          : { volume: K.STEP_VOLUME * 0.8 * K.rand(0.75, 1), rate: K.rand(0.9, 1.12) });
-      }
+      K.walkStep(before, h.phase, wood);
     });
   }
   h.walking = false;
@@ -214,8 +208,8 @@ async function treeTalk() {
   st.hero.facing = -1;
   K.sound('coje');
   mouth(0.9);
-  st.bubble = { kind: 'coje', t0: K.time, until: K.time + 1.5 };
-  await K.after(1.6);
+  st.bubble = { kind: 'coje', t0: K.time, until: K.time + 1.9 };
+  await K.after(2.0);
   st.heroIcon = { icon: 'snih', until: K.time + 1.9 };
   await K.after(2.1);
   showPlan(PLAN_SHOW);
@@ -239,13 +233,13 @@ async function treeCrash() {
 async function giveBag() {
   st.bagHang = false;
   const from = { x: BAG.x, y: BAG.y }, bag = K.BAG;
-  const fly = { item: 'batoh', x: from.x, y: from.y, s: 70 };
+  const fly = { item: 'batoh', x: from.x, y: from.y, s: 90 };
   K.flyingItems.push(fly);
   await K.tween(1.2, (t) => {
     const e = K.ease(t);
     fly.x = K.lerp(from.x, bag.x, e);
     fly.y = K.lerp(from.y, bag.y, e) - Math.sin(t * Math.PI) * 140;
-    fly.s = K.lerp(70, 46, e);
+    fly.s = K.lerp(90, 46, e);
   });
   K.flyingItems.splice(K.flyingItems.indexOf(fly), 1);
   K.state.bag = true;
@@ -328,7 +322,8 @@ async function tapIcicle(i) {
   await onDeck(x);
   await hop(x, deckY(x), 0.28, 22); // dupne na lávku
   st.iceT[i] = K.time;
-  if (!hasIcicle() && ic.hit !== 'krk') {
+  // utrhne se, jen když už má od stromu batoh (Daniel 2026-11-10: dřív šel vzít rampouch bez batohu)
+  if (K.state.bag && !hasIcicle() && ic.hit !== 'krk') {
     await takeIcicle(i);
     K.busy--;
     return;
@@ -856,10 +851,9 @@ function drawTree(ctx) {
   }
   // batoh na větvi
   if (st.bagHang) {
-    K.stroke(ctx, [[BAG.x, BAG.hook], [BAG.x, BAG.y - 30]], 3, 980, 0.6);
-    ctx.fillStyle = '#c9a46a';
-    ctx.beginPath(); ctx.roundRect(BAG.x - 23, BAG.y - 17, 46, 50, 11); ctx.fill();
-    K.drawIcon(ctx, 'batoh', BAG.x, BAG.y, 70);
+    // visí za poutko na řemínku (fotka batohu, viz K.drawIcon)
+    K.stroke(ctx, [[BAG.x, BAG.hook], [BAG.x, BAG.y - 38]], 3, 980, 0.6);
+    K.drawIcon(ctx, 'batoh', BAG.x, BAG.y, 90);
   }
   ctx.restore();
 }
@@ -981,7 +975,67 @@ function drawPlan(ctx, t, a) {
   ctx.restore();
 }
 
-// bubliny stromu: „?“ (fraktura) a herbář se sněžnou květinou
+// otazník stromu kreslený tahem: od kulatého horního konce dolů, pak hranatá tečka jednou zapulsuje
+// (tvar podle Danielovy předlohy, souřadnice předlohy 420×630, střed tvaru ASK_C)
+const ASK_PTS = [[114, 148], [104, 100], [134, 62], [200, 48], [262, 60], [300, 108], [304, 170], [283, 234],
+  [248, 290], [220, 335], [207, 372], [205, 404]];
+const ASK_W = [10, 12, 11, 10, 15, 24, 28, 25, 19, 15, 14, 14];   // poloviční tloušťka tahu v bodech
+const ASK_BALL = { x: 123, y: 175, r: 38 }, ASK_DOT = { x: 195, y: 566, r: 47 }, ASK_C = { x: 212, y: 330 };
+const ASK_S = 0.135, ASK_DRAW = [0.15, 0.75], ASK_POP = [0.8, 1.2];   // měřítko, čas tahu a tečky (s od otevření bubliny)
+const ASK_LINE = (() => {
+  // Catmull-Rom přes body, šířka lineárně mezi body
+  const P = ASK_PTS, out = [], n = 10;
+  for (let i = 0; i < P.length - 1; i++) {
+    const p0 = P[Math.max(i - 1, 0)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(i + 2, P.length - 1)];
+    for (let k = 0; k < n; k++) {
+      const t = k / n, t2 = t * t, t3 = t2 * t;
+      const f = (a, b, c, d) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      out.push({ x: f(p0[0], p1[0], p2[0], p3[0]), y: f(p0[1], p1[1], p2[1], p3[1]), w: ASK_W[i] + (ASK_W[i + 1] - ASK_W[i]) * t });
+    }
+  }
+  out.push({ x: P[P.length - 1][0], y: P[P.length - 1][1], w: ASK_W[ASK_W.length - 1] });
+  return out;
+})();
+
+// kreslí se na vlastní plátno plnou barvou a do bubliny se vloží jedním drawImage: překryvy
+// kulatých konců úseků by se jinak při prolínání bubliny (globalAlpha < 1) sčítaly do tmavých korálků
+const ASK_BOX = { x: 60, y: 20, w: 300, h: 620 }, ASK_RES = 2;   // výřez předlohy, rozlišení plátna
+let askCanvas = null;
+function drawAsk(ctx, cx, cy, age) {
+  const ease = (u) => u * u * (3 - 2 * u);
+  const p = ease(K.clamp((age - ASK_DRAW[0]) / (ASK_DRAW[1] - ASK_DRAW[0])));
+  if (p <= 0) return;
+  const k = ASK_S * ASK_RES;
+  askCanvas ??= Object.assign(document.createElement('canvas'), { width: Math.ceil(ASK_BOX.w * k), height: Math.ceil(ASK_BOX.h * k) });
+  const g = askCanvas.getContext('2d');
+  g.setTransform(k, 0, 0, k, -ASK_BOX.x * k, -ASK_BOX.y * k);
+  g.clearRect(ASK_BOX.x, ASK_BOX.y, ASK_BOX.w, ASK_BOX.h);
+  g.fillStyle = g.strokeStyle = K.INK;
+  // kulatý konec naroste jako první kápnutí pera
+  const br = ASK_BALL.r * ease(K.clamp(p / 0.08));
+  g.beginPath(); g.arc(ASK_BALL.x, ASK_BALL.y, br, 0, Math.PI * 2); g.fill();
+  const L = ASK_LINE, end = p * (L.length - 1);
+  for (let j = 1; j <= Math.ceil(end); j++) {
+    const a = L[j - 1], b = L[j], u = Math.min(1, end - (j - 1));
+    // spodní konec je rovně useknutý, jinak kulaté spoje
+    g.lineCap = j === L.length - 1 ? 'butt' : 'round';
+    g.lineWidth = 2 * (a.w + (b.w - a.w) * u);
+    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(a.x + (b.x - a.x) * u, a.y + (b.y - a.y) * u); g.stroke();
+  }
+  // tečka: objeví se, přeroste a usadí se (jediný pulz); časuje ji jen ASK_POP
+  const q = K.clamp((age - ASK_POP[0]) / (ASK_POP[1] - ASK_POP[0]));
+  if (q > 0) {
+    const r = ASK_DOT.r * (q < 0.55 ? 1.35 * (1 - (1 - q / 0.55) ** 2) : 1.35 - 0.35 * ease((q - 0.55) / 0.45));
+    g.beginPath();
+    g.moveTo(ASK_DOT.x, ASK_DOT.y - r); g.lineTo(ASK_DOT.x + r, ASK_DOT.y);
+    g.lineTo(ASK_DOT.x, ASK_DOT.y + r); g.lineTo(ASK_DOT.x - r, ASK_DOT.y);
+    g.closePath(); g.fill();
+  }
+  ctx.drawImage(askCanvas, cx + (ASK_BOX.x - ASK_C.x) * ASK_S, cy + (ASK_BOX.y - ASK_C.y) * ASK_S,
+    ASK_BOX.w * ASK_S, ASK_BOX.h * ASK_S);
+}
+
+// bubliny stromu: kreslený „?“ a herbář se sněžnou květinou
 function drawTreeBubble(ctx) {
   const b = st.bubble;
   if (!b || K.time > b.until) return;
@@ -996,10 +1050,7 @@ function drawTreeBubble(ctx) {
   if (b.kind === 'coje') {
     circle(366, 312, 8); circle(400, 282, 13);
     circle(452, 250, 52);
-    ctx.fillStyle = K.INK;
-    ctx.font = `76px ${FRAKTUR}`;
-    ctx.textAlign = 'center';
-    ctx.fillText('?', 452, 276);
+    drawAsk(ctx, 452, 250, age);
     ctx.restore();
     return;
   }

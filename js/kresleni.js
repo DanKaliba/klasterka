@@ -46,7 +46,9 @@ K.drawHero = (ctx, x, y, s, o = {}) => {
     stroke(ctx, [[x, hy], [x - sw * 20 * s, y]], lw, 2);
     stroke(ctx, [[x, ny], [x, hy]], lw, 3);
     const armUp = o.wave ? -40 * s + Math.sin(K.time * 10) * 8 * s : 0;
-    stroke(ctx, [[x, ny + 6 * s], [x + f * (16 + sw * 10) * s, ny + 34 * s + armUp]], lw, 4);
+    // o.reach: přední ruka zdvižená nad hlavu (kuchyně: pohrabáčem k oknu)
+    const hand = o.reach ? [x + f * 8 * s, ny - 30 * s] : [x + f * (16 + sw * 10) * s, ny + 34 * s + armUp];
+    stroke(ctx, [[x, ny + 6 * s], hand], lw, 4);
     stroke(ctx, [[x, ny + 6 * s], [x - f * (16 + sw * 10) * s, ny + 34 * s]], lw, 5);
     // hlava
     ctx.lineWidth = lw;
@@ -412,10 +414,20 @@ K.drawBubble = (ctx, x, y, s, icon) => {
 };
 
 // ---------- ikony ----------
+// batoh je fotka (Daniel 2026-11-10, python tools/batoh.py); dokud se nenačte, kreslí se čárou
+const BAG_IMG = 'assets/predmety/batoh.png';
+K.img(BAG_IMG);
 K.drawIcon = (ctx, name, x, y, size, color = INK) => {
   const u = size / 24;
   ctx.save();
   ctx.translate(x, y);
+  const bagImg = name === 'batoh' && K.img(BAG_IMG);
+  if (bagImg && K.ready(bagImg)) {
+    const h = size * 0.9, w = (h * bagImg.width) / bagImg.height;
+    ctx.drawImage(bagImg, -w / 2, -h / 2, w, h);
+    ctx.restore();
+    return;
+  }
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
   ctx.lineWidth = Math.max(1.5, 2 * u);
@@ -535,6 +547,25 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
     case 'znovu':
       ctx.beginPath(); ctx.arc(0, 0, 8 * u, -Math.PI * 0.3, Math.PI * 1.5); ctx.stroke();
       L([[0, -12], [0, -8], [4, -6]]);
+      break;
+    case 'hrnek':
+      // hrnek s jedním ouškem a nad ním semínka (kuchyně na Kantorské)
+      L([[-7, -1], [-6, 10], [5, 10], [6, -1], [-7, -1]]);
+      ctx.beginPath(); ctx.arc(7 * u, 4 * u, 3.4 * u, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+      [[-3, -6, 0.5], [2, -8, -0.4], [4, -4, 0.2]].forEach(([sx, sy, r]) => {
+        ctx.beginPath(); ctx.ellipse(sx * u, sy * u, 1.6 * u, 2.5 * u, r, 0, Math.PI * 2); ctx.fill();
+      });
+      break;
+    case 'pohrabac':
+      // pohrabáč: očko nahoře, tyč a háček dole
+      C(-2, -9, 2.6);
+      L([[-1.6, -6.4], [1.4, 8]]);
+      L([[1.4, 8], [2.4, 11], [6, 10.4], [6.4, 7]]);
+      break;
+    case 'rosti':
+      // volná náruč roští (nesvázaná, Daniel 2026-11-09)
+      L([[-11, 6], [10, -3]]); L([[-10, -2], [11, 5]]); L([[-8, 9], [9, 0]]);
+      L([[-6, -6], [8, 8]]); L([[-2, 10], [4, -9]]); L([[5, -7], [7, -10]]); L([[-9, 2], [-11, -1]]);
       break;
     case 'ohen':
       ctx.beginPath();

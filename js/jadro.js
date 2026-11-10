@@ -297,6 +297,14 @@ K.stepSound = () => {
   lastStep = stepBag.pop();
   return lastStep;
 };
+// krok při chůzi bokem (les, kuchyně): zazní, když fáze chůze (20 px na jednotku) přejde přes další krok.
+// wood = dřevo (lávka, kmen, podlaha): tytéž kroky hlouběji a tišeji
+K.walkStep = (before, after, wood = false) => {
+  if (Math.floor(after / Math.PI + 0.5) === Math.floor(before / Math.PI + 0.5)) return;
+  K.sound(K.stepSound(), wood
+    ? { volume: K.STEP_VOLUME * 0.7 * K.rand(0.75, 1), rate: K.rand(0.72, 0.84) }
+    : { volume: K.STEP_VOLUME * 0.8 * K.rand(0.75, 1), rate: K.rand(0.9, 1.12) });
+};
 
 // ---------- průhlednost postavy jako celku ----------
 // Postava z překrývajících se tvarů (chomáče vlny, hlava, rohy) by při globalAlpha prosvítala

@@ -119,68 +119,7 @@ closeup('skocka', {
   ],
 });
 
-// ============ Kantorská: kolik ovcí je na tabuli? → semínka sněžné květiny ============
-// ZÁSTUPNÉ: semínka mají být v kuchyni na Kantorské (Daniel dodá fotky kuchyně)
-const CARD_DOTS = [2, 4, 3];
-const CARD_X = [820, 1040, 1260];
-closeup('kantorska', {
-  init: () => ({ wrongT: [], correct: false }),
-  draw(ctx, st) {
-    ctx.fillStyle = '#2f4a3a';
-    ctx.strokeStyle = '#6b4a30';
-    ctx.lineWidth = 16;
-    ctx.fillRect(780, 240, 600, 320);
-    ctx.strokeRect(780, 240, 600, 320);
-    for (let i = 0; i < 3; i++) K.drawSheep(ctx, 860 + i * 125, 420, 1.0, { halo: false, facing: 1 });
-    ctx.fillStyle = '#e8e8e0';
-    ctx.font = '700 80px Georgia, serif';
-    ctx.fillText('= ?', 1215, 440);
-    CARD_X.forEach((x, i) => {
-      const dx = shake(st.wrongT[i], 10);
-      const glow = st.correct && i === 2;
-      ctx.fillStyle = glow ? '#fff6c8' : '#fffdf6';
-      ctx.strokeStyle = K.INK;
-      ctx.lineWidth = 4;
-      ctx.fillRect(x - 70 + dx, 690, 140, 110);
-      ctx.strokeRect(x - 70 + dx, 690, 140, 110);
-      ctx.fillStyle = K.INK;
-      for (let d = 0; d < CARD_DOTS[i]; d++) {
-        ctx.beginPath();
-        ctx.arc(x + dx - ((CARD_DOTS[i] - 1) * 28) / 2 + d * 28, 745, 10, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    });
-    // zvonek
-    ctx.save();
-    ctx.translate(1600, 300);
-    ctx.rotate(st.correct ? Math.sin(K.time * 18) * 0.4 : 0);
-    ctx.fillStyle = '#d4a017';
-    ctx.strokeStyle = K.INK;
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(-40, 90);
-    ctx.quadraticCurveTo(-36, 10, 0, 0);
-    ctx.quadraticCurveTo(36, 10, 40, 90);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-    K.stroke(ctx, [[1600, 220], [1600, 300]], 4, 400);
-    K.drawPerson(ctx, 1560, GROUND + 10, 1.8, { hat: 'drdol', facing: -1, arm: st.correct ? 'up' : 'hold' });
-  },
-  spots: CARD_X.map((x, i) => ({
-    x, y: 745, r: 75, when: (st) => !st.correct,
-    async click(st, scene) {
-      if (CARD_DOTS[i] !== 3) { st.wrongT[i] = K.time; K.sound('spatne'); return; }
-      st.correct = true;
-      K.sound('zvonek');
-      K.busy++;
-      await K.after(1.2);
-      K.busy--;
-      scene.reward('semena', { x: 1500, y: 640 });
-    },
-  })),
-});
+// Kantorská (kuchyně, semínka sněžné květiny) je ve vlastním souboru js/kuchyne.js
 
 // ============ Boží muka nad Kantorskou: vyčisti studánku, natoč vodu do džbánku ============
 // Kříž podle Danielových fotek (pics/muka): šedý kovový kříž, zlatý Kristus, podstavec z červeného

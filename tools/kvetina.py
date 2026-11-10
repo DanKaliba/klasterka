@@ -2,7 +2,7 @@
 
 Zdroj je na rovném šedém pozadí: pozadí = barva blízko šedé z rohů, bez sytosti. Výstup do assets/sceny:
 - kvetina.webp      celá rostlina (růžice listů s klasem)
-- kvetina-klas.webp detail klasu zvonků (na přiblížení)
+(detail klasu zvonků na přiblížení: přidat do VYREZY 'kvetina-klas.webp': (815, 0, 1190, 768))
 Spuštění z kořene projektu:  python tools/kvetina.py
 """
 import os
@@ -11,7 +11,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 from scipy import ndimage
 
-VYREZY = {'kvetina.webp': (90, 20, 700, 750), 'kvetina-klas.webp': (815, 0, 1190, 768)}
+VYREZY = {'kvetina.webp': (90, 20, 700, 750)}
 
 
 def main():

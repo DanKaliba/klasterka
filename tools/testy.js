@@ -3,6 +3,8 @@
 //        | ['bezLesa'] (les jako prošlý, ať dlouhé procházky po louce nečekají na lesní scénu)
 // Na konci zapíše render_game_to_text() do <pre id="stav"> a do titulku.
 // strom: 1. pootevře oči, 2. probudí se, 3. „co je?“ + bublina s klíči + batoh
+// od třetího kliku na strom do začátku herbáře: bublina „?“ (2,0 s) + panáček ukáže sníh (2,1 s), viz treeTalk v les.js
+const TREE_TALK = 4100;
 const STROM = [['klik', 312, 280], ['cekaVolno'], ['klik', 312, 280], ['cekaVolno'], ['klik', 312, 280], ['cekaVolno']];
 // lesní scéna (bez stromu — probudí ho až rána padající soušky): stáhnout větev z lávky (vysvitne
 // slunce), rampouch nad krkem berana → trk do opěry, souška spadne přes mezeru; pak utrhnout rampouch
@@ -12,6 +14,9 @@ const VETEV = [['klik', 890, 585], ['cekaVolno']];
 const KRK = ['klik', 1040, 690];
 const PRES = [['cekaVolno'], ['klik', 900, 690], ['cekaVolno'], ['klik', 1500, 600]];
 const LES = [['ceka', 300], ['cekaVolno'], ...VETEV, KRK, ...PRES, ['cekaMimo', 'les']];
+// kuchyně: kouř → pohrabáč z tyče sporáku → okno; pak roští od dveří babce → … → semínka z koše
+const OKNO = [['cekaVolno'], ['klik', 772, 760], ['cekaVolno'], ['klik', 1515, 520], ['cekaVolno']];
+const KUCHYNE = [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['klik', 446, 920]];
 const LES_BERAN = [['cekaScena', 'les'], ['cekaVolno'], ...VETEV, KRK];
 window.SCENARE = {
   uvod: [['ceka', 3000]],
@@ -25,18 +30,23 @@ window.SCENARE = {
     ['klik', 1500, 600], ['cekaVolno'], ['klik', 1040, 830], ['ceka', 400]],
   lesIntro: [['ceka', 2600]],
   lesStrom: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 312, 280], ['ceka', 600]],
-  lesOtazka: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 900]],
+  lesOtazka: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 1500]],
+  // otazník: rozepsaný tah, tečka v přerůstání
+  lesOtazka1: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 450]],
+  lesOtazka2: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 1020]],
   // herbář: strom ukazuje postup (semínka, voda, rampouch, zasazení, růst, pyl) — snímky v čase smyčky
-  lesHerbar1: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 3700 + 2000]],
-  lesHerbar2: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 3700 + 7200]],
-  lesHerbar3: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 3700 + 9800]],
-  lesKlice: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', 7000]],
+  lesHerbar1: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', TREE_TALK + 2000]],
+  lesHerbar2: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', TREE_TALK + 7200]],
+  lesHerbar3: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', TREE_TALK + 9800]],
+  lesKlice: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', TREE_TALK + 3300]],
   lesVoda: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 900, 950], ['ceka', 1500]],
   lesKonecLavky: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 700, 590], ['cekaVolno'], ['klik', 1500, 600], ['ceka', 1300]],
   lesVetev: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 890, 585], ['ceka', 1500]],
-  // první dupnutí rampouch utrhne do batohu, další na slunci kápne
+  // bez batohu se rampouch jen zachvěje (nic do batohu); s batohem od stromu ho první dupnutí utrhne,
+  // další na slunci kápne
   lesRampouch: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 830, 690], ['ceka', 1200]],
-  lesSlunce: [['cekaScena', 'les'], ['cekaVolno'], ...VETEV, ['klik', 830, 690], ['cekaVolno'], ['klik', 900, 690], ['ceka', 1250]],
+  lesRampouchBatoh: [['cekaScena', 'les'], ['cekaVolno'], ...STROM, ['klik', 830, 690], ['cekaVolno'], ['ceka', 300]],
+  lesSlunce: [['cekaScena', 'les'], ['cekaVolno'], ...STROM, ...VETEV, ['klik', 830, 690], ['cekaVolno'], ['klik', 900, 690], ['ceka', 1250]],
   // bez rampouchu po kmeni nepřejde (bublina s rampouchem)
   lesBezRampouchu: [['cekaScena', 'les'], ['cekaVolno'], ...VETEV, KRK, ['cekaVolno'], ['klik', 1500, 600], ['ceka', 1500]],
   lesBeran: [...LES_BERAN, ['ceka', 4000]],
@@ -54,7 +64,27 @@ window.SCENARE = {
   chuze1: [['bezLesa'], ['ceka', 2500], ['klik', 250, 800], ['ceka', 5000]],
   lesKonec: [['cekaScena', 'les'], ...LES, ['ceka', 1500]],
   skocka: [['ceka', 800], ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 300], ['klik', 1450, 480], ['ceka', 1500], ['klik', 1360, 830], ['ceka', 600]],
-  kantorska: [['ceka', 800], ['klik', 820, 745], ['ceka', 200], ['klik', 1260, 745], ['ceka', 900]],
+  // kuchyně: kouř (kašel) → bez pohrabáče na okno nedosáhne → s pohrabáčem okno otevře, kouř vytáhne
+  kantorska: [['ceka', 2600]],
+  kuchKasel: [['cekaVolno'], ['klik', 1250, 750], ['ceka', 300]],
+  kuchOknoBez: [['cekaVolno'], ['klik', 1515, 520], ['cekaVolno'], ['ceka', 300]],
+  kuchPohrabac: [['cekaVolno'], ['klik', 772, 760], ['cekaVolno'], ['klik', 1515, 520], ['ceka', 1900]],
+  kuchHak: [['cekaVolno'], ['klik', 772, 760], ['cekaVolno'], ['klik', 1515, 520], ['ceka', 2900]],
+  kuchVzduch: [...OKNO, ['ceka', 300]],
+  // pak děda (nápověda z kouře), roští od dveří babce → oheň → kocour shodí hrnek → semínka z koše
+  kuchDeda: [...OKNO, ['klik', 1250, 750], ['ceka', 2600]],
+  kuchBabka: [...OKNO, ['klik', 300, 750], ['cekaVolno'], ['ceka', 300]],
+  kuchPolice: [...OKNO, ['klik', 560, 290], ['ceka', 900]],
+  kuchNesu: [...OKNO, ['klik', 1735, 900], ['ceka', 4500]],
+  kuchPrilozi: [...OKNO, ['klik', 1735, 900], ['ceka', 7050]],
+  kuchOhen: [...OKNO, ['klik', 1735, 900], ['ceka', 9000]],
+  kuchKocour: [...OKNO, ['klik', 1735, 900], ['ceka', 15000]],
+  kuchPolicka: [...OKNO, ['klik', 1735, 900], ['ceka', 19500]],
+  kuchHrnek: [...OKNO, ['klik', 1735, 900], ['ceka', 23200]],
+  kuchKos: [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['ceka', 500]],
+  kuchHotovo: [...KUCHYNE, ['cekaScena', 'louka'], ['ceka', 300]],
+  // zpět: rovnou prolnutí na louku, žádná chůze přes celou kuchyni
+  kuchZpet: [['cekaScena', 'kantorska'], ['cekaVolno'], ['klik', 90, 990], ['ceka', 900]],
   kriz: [['ceka', 800], ['klik', 760, 300], ['ceka', 300], ['klik', 1060, 820], ['ceka', 400], ['klik', 1236, 870], ['ceka', 900],
     ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800]],
   kriz2: [['ceka', 800], ['klik', 1236, 870], ['ceka', 900], ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800],
@@ -81,7 +111,7 @@ const navstiv = (id, kroky) => [['klikChalupa', id], ['cekaScena', id], ['ceka',
 window.SCENARE.cela = [
   ['ceka', 2500], ['klikOvce', 0], ['ceka', 300],
   ['klikChalupa', 'kantorska'], ['cekaScena', 'les'], ...LES, ['cekaScena', 'kantorska'], ['ceka', 700],
-  ['klik', 1260, 745], ['cekaScena', 'louka'], ['ceka', 1500],
+  ...KUCHYNE, ['cekaScena', 'louka'], ['ceka', 1500],
   ...navstiv('kriz', [['klik', 1236, 870], ['ceka', 900], ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800], ['klik', 1060, 820]]),
   ['klikVrchol'], ['cekaScena', 'vrchol'], ['ceka', 700],
   ['klik', 1290, 580], ['cekaVolno'], ['klik', 1290, 580], ['cekaVolno'], ['klik', 1290, 580],
