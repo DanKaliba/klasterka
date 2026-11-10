@@ -26,8 +26,8 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   Starý strom s obličejem v kůře spí (Daniel 2026-11-06): 1. klik pootevře oči („nebuď mě“), 2. klik se
   probudí, 3. klik „co je?“ (fraktura) → panáček ukáže sníh → herbář se sněžnou květinou (viz níže) →
   strom shodí z větve batoh. Dokud batoh nemá, HUD je jen tmavý pruh přes razítko
-  kamery (`K.state.bag`). Batoh: obrázek `assets/predmety/batoh.png` (`python tools/batoh.py` z `pics/batoh/batoh.png`, kreslí ho
-  `K.drawIcon('batoh')`, bez obrázku čára). Čeká na Danielovu ilustraci; iStock fotka se nepublikuje (licence).
+  kamery (`K.state.bag`). Batoh: ilustrace od Daniela (Gemini, 2026-11-10) → `assets/predmety/batoh.png` (`python tools/batoh.py` z
+  `pics/batoh/batoh.jpg`), kreslí ho `K.drawIcon('batoh')`, na větvi visí za poutko. iStock fotka se nepublikuje.
   Les s rozbitou dřevěnou lávkou (Daniel 2026-11-08; převis ze zídky vypadal „rádoby počítačově“ a jako by
   nemohl stát; v Krkonoších jsou lávky pro pěší dřevěné). Na všechno jde klikat hned. Potok je ledový
   (u kraje se panáček otřese). Po kořenech stromu vyleze na lávku ze tří kmenů; povodeň utrhla její pravou
