@@ -68,7 +68,8 @@ window.render_game_to_text = () => {
   if (name === 'kantorska') {
     const s = K.scene.st;
     out.kuchyne = { faze: s.phase, kour: +s.smoke.toFixed(2), okno: +s.win.toFixed(2), pohrabac: s.poker, ohen: +s.fire.toFixed(2),
-      kocour: s.cat.pose, kocourX: Math.round(s.cat.x), hrnek: s.mug.state, rosti: s.pile, hrdinaX: Math.round(s.hero.x) };
+      kocour: s.cat.pose, kocourX: Math.round(s.cat.x), hrnek: s.mug.state, rosti: s.pile, hrdinaX: Math.round(s.hero.x),
+      babka: s.pose.babka.k, deda: s.pose.deda.k, rosti2: s.twigs ? Math.round(s.twigs.x) + ',' + Math.round(s.twigs.y) : null };
   }
   if (name === 'finale') {
     const F = K.finale;

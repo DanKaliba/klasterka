@@ -68,11 +68,17 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   starých Krkonoš; prompt pics/podklady-kuchyne/PROMPT-kuchyne.md), podklady `python tools/kuchyne.py`.
   Verze 2 (2026-11-10): prázdná kuchyně z promptu A (`kuchyne-B.png`) a věci z promptu E (`veci-E.png`:
   volná hromádka roští u dveří, která po sebrání zmizí, náruč, hrnek, křížaly na tyči, které se v teple
-  houpou a kocour o ně zavadí). Babka, její koš a děda jsou DOČASNĚ vyříznutí ze staré verze (`kuchyne-A.png`,
-  GrabCut, `pip install opencv-python-headless`): jen dýchají, kašlou a babka se předkloní; čekají na pózy
-  z promptů B a C. Kocour je zatím kreslený zástupce (prompt D).
+  houpou a kocour o ně zavadí). Babčin koš je DOČASNĚ vyříznutý ze staré verze (`kuchyne-A.png`,
+  GrabCut, `pip install opencv-python-headless`). Kocour je zatím kreslený zástupce (prompt D).
+  Babka a děda (2026-11-12): kresba tuší podle ovčáka ze Zapomenutých řemesel, děda má vlasy a vousy
+  z opravdového lišejníku, babka šátek z opravdové látky (prompty B2, C2 v
+  `pics/podklady-kuchyne/PROMPT-postavy-lisejnik.md`). Pózy vyřezává `python tools/postavy.py` z modrého
+  pozadí; hra mezi nimi krátce prolíná. Babka: 1 kouká do ohně, 2 kašle, 3 prosí o roští, 4 přikládá,
+  5 spokojená (když hoří). Děda: 1 dýmka, 2 kašle, 3 vyfukuje nápovědu a kouká na ni, 4 se směje, když
+  kocour shodí hrnek (můj nápad). Děda má zatím kreslenou dýmku; porcelánová fajfka (`fajfka-F2.jpg`,
+  prompt F2) je připravená pro úpravu dědy a jako možný předmět později.
   Úvod (Daniel 2026-11-10): v kuchyni je kouř (čadí z otevřených dvířek), babka s dědou kašlou → okno.
-  Panáček na okno nedosáhne (bublina s pohrabáčem) → vezme pohrabáč z tyče sporáku (můj nápad), háčkem
+  Panáček na okno nedosáhne (jen vyskočí; bez nápovědy a kroužků, Daniel 2026-11-10) → vezme pohrabáč z tyče sporáku (můj nápad), háčkem
   zachytí spodek křídla, přitáhne okno dovnitř, kouř vytáhne ven, pohrabáč vrátí. Pak jako dřív:
   děda vyfoukne kouř s nápovědou (květina → hrnek), panáček donese babce roští od dveří → oheň, hrnec se
   rozvaří, vůně vzbudí kocoura na kamnech → po polici dojde k hrnku a shodí ho do koše → semínka z koše

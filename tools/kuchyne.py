@@ -1,8 +1,8 @@
 # Kuchyně na Kantorské, verze 2 (Daniel 2026-11-10): z Danielových obrázků udělá podklady do hry.
 #   pics/podklady-kuchyne/kuchyne-B.png  prázdná kuchyně (prompt A)  → assets/sceny/kuchyne.jpg
 #   pics/podklady-kuchyne/veci-E.png     roští, náruč, hrnek, křížaly (prompt E)
-#   pics/podklady-kuchyne/kuchyne-A.png  stará verze s babkou a dědou: DOČASNĚ z ní vyřízne babku, její koš
-#                                        a dědu, dokud Daniel nedodá pózy podle promptů B a C
+#   pics/podklady-kuchyne/kuchyne-A.png  stará verze s babkou a dědou: DOČASNĚ z ní vyřízne babčin koš
+#                                        (babku a dědu dělá tools/postavy.py z nových póz)
 # Výstupy (assets/sceny/kuchyne-*.png) jsou už ve velikosti pro hru; levý horní roh každého výřezu na
 # obrazovce 1920×1080 vypíše skript na konci a stejná čísla jsou v js/kuchyne.js (BOX).
 # Potřebuje OpenCV: pip install opencv-python-headless
@@ -104,7 +104,7 @@ ven = cv2.inpaint(ven, m, 7, cv2.INPAINT_TELEA)
 ven = cv2.convertScaleAbs(ven, alpha=1.06, beta=8)  # bez skla je venku světleji
 save('kuchyne-okno-ven.png', ven)
 
-# ---------- babka a její koš (DOČASNĚ ze staré verze) ----------
+# ---------- koš (DOČASNĚ ze staré verze, stál před babkou) ----------
 A = load('kuchyne-A.png', (W, H))
 # babka: obrys od GrabCutu; zástěra je světlá jako zeď, proto je vyznačená ručně, kousky zdi u zad také
 g_maybe = poly_mask(A.shape, [[(85, 455), (555, 455), (555, 1035), (85, 1035)]])
@@ -122,30 +122,10 @@ granny = tidy(granny & np.where(kos > 128, 0, 255).astype(np.uint8), close=5)
 # na nové místo: ruce k dvířkům topeniště nového sporáku, koš na podlahu (zmenšené jako sporák)
 G_S = 0.86
 place = lambda x, y: (round(478 + (x - 540) * G_S), round(985 + (y - 1022) * G_S))
-for name, alpha in (('babka', granny), ('kos', kos)):
-    rgba, sx, sy = sprite(A, alpha, G_S)
-    save(f'kuchyne-{name}.png', rgba)
-    boxes[name.upper()] = place(sx, sy)
-
-# ---------- děda (DOČASNĚ ze staré verze) ----------
-# sedí před tmavými kachlemi, kabát je skoro stejně tmavý: obrys je obkreslený a GrabCut doladí okraje
-DEDA = [(1415, 287), (1440, 270), (1500, 272), (1535, 322), (1527, 340), (1527, 365), (1512, 382),
-        (1540, 398), (1580, 432), (1600, 472), (1612, 530), (1617, 600), (1608, 660), (1602, 748),
-        (1645, 752), (1645, 778), (1628, 782), (1610, 975), (1590, 978), (1562, 785), (1548, 785),
-        (1525, 850), (1508, 940), (1480, 952), (1478, 1018), (1400, 1022), (1398, 968), (1415, 950), (1418, 800),
-        (1408, 790), (1378, 940), (1362, 940), (1362, 960), (1362, 1000), (1240, 998), (1228, 975), (1255, 925),
-        (1240, 845), (1230, 720), (1240, 670), (1270, 600), (1285, 550), (1305, 510), (1312, 488), (1328, 470),
-        (1325, 430), (1345, 410), (1372, 408), (1420, 422), (1405, 385), (1410, 330)]
-d_maybe = poly_mask(A.shape, [DEDA])
-cv2.polylines(d_maybe, [np.array([(1378, 425), (1412, 393), (1450, 372)])], False, 255, 10)  # dýmka
-d_fg = cv2.erode(d_maybe, np.ones((25, 25), np.uint8))
-cv2.polylines(d_fg, [np.array([(1384, 420), (1412, 395), (1444, 376)])], False, 255, 3)
-deda = grabcut(A, cv2.dilate(d_maybe, np.ones((5, 5), np.uint8)), d_fg)
-deda = tidy(deda, close=3)
-D_S = 0.78
-rgba, sx, sy = sprite(A, deda, D_S)
-save('kuchyne-deda.png', rgba)
-boxes['DEDA'] = (round(1085 + (sx - 1228) * D_S), round(1010 + (sy - 1022) * D_S))
+# babka sama se už nevyřezává (nové pózy dělá tools/postavy.py), její obrys jen odděluje koš
+rgba, sx, sy = sprite(A, kos, G_S)
+save('kuchyne-kos.png', rgba)
+boxes['KOS'] = place(sx, sy)
 
 # ---------- věci z obrázku E (šedé pozadí) ----------
 E = load('veci-E.png')
