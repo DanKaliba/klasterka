@@ -49,7 +49,7 @@ const SPOUT = { x: 1672, y: 781 };
 const SPOUT_GROUND = 850; // tráva pod koncem žlábku
 const JUG_FILL = { x: 1676, y: FY + 6 }; // dno hrnku pod koncem žlábku
 const MUG_IMG = S + 'kuchyne-hrnek.png'; // hrnek z kuchyně (63×51)
-const MUG_S = 1.3;
+const MUG_S = 0.95; // menší, ať se vejde do ruky loutky
 const MUG_H = 51 * MUG_S;
 const SPOUT_HIT = { x: SPOUT.x + 5, y: 815, r: 70 };
 const HEAP = { x: 1440, y: 712 }; // kam letí vytažené větvičky (tráva za studánkou)
@@ -185,7 +185,7 @@ async function squirt() {
   await K.after(0.35);
   K.sound('cvrk');
   // proud kapek ze zadku žáby do obličeje panáčka
-  const from = { x: f.x + FROG_REAR[0] * FROG_S, y: f.y + FROG_REAR[1] * FROG_S }, to = { x: h.x - 10, y: h.y - 150 };
+  const from = { x: f.x + FROG_REAR[0] * FROG_S, y: f.y + FROG_REAR[1] * FROG_S }, to = mouth();
   for (let i = 0; i < 18; i++) {
     st.drops.push({ x0: from.x, y0: from.y, x1: to.x + K.rand(-10, 10), y1: to.y + K.rand(-12, 12), t0: K.time + i * 0.025, dur: 0.32 });
   }
@@ -200,7 +200,10 @@ async function squirt() {
 
 // fajfka: panáček si ji dá do pusy, dvakrát bafne (z hlavičky se kouří) a foukne dým na žábu.
 // Žábě smrdí: vyděsí se, nad ní se vlní smrad a odskáče pryč.
-const mouth = () => { const h = st.hero; return { x: h.x + h.facing * 14, y: h.y - 143 - h.hopY }; };
+const mouth = () => {
+  const h = st.hero;
+  return K.heroMouth(h.x, h.y - h.hopY, HERO_S, { facing: h.facing }) || { x: h.x + h.facing * 14, y: h.y - 143 - h.hopY };
+};
 function pipeBowl() {
   const m = mouth(), L = 240 * PIPE_S * 0.92, rot = -st.hero.facing * PIPE_ROT;
   return { x: m.x - Math.sin(rot) * L, y: m.y + Math.cos(rot) * L };
@@ -261,10 +264,22 @@ async function springFree() {
 }
 
 // held = nástroj v ruce (hrnek se musí vytáhnout z batůžku, jinak panáček nastaví dlaně)
+// hrnek drží loutka v přední ruce před sebou (arm 'hold'), dno kousek pod dlaní; bez loutky nízko u nohou
+const MUG_BELOW_HAND = 40;
+function mugAt() {
+  const h = st.hero, hp = K.heroHand(h.x, h.y - h.hopY, HERO_S, { facing: h.facing, arm: 'hold' });
+  return hp ? { x: hp.x, y: hp.y + MUG_BELOW_HAND } : { x: h.x + h.facing * 52, y: h.y + 6 - h.hopY };
+}
+// kde stát, aby byl hrnek přesně pod koncem žlábku (panáček kouká doleva)
+function mugStandX() {
+  const hp = K.heroHand(0, 0, HERO_S, { facing: -1, arm: 'hold' });
+  return JUG_FILL.x - (hp ? hp.x : -52);
+}
+
 async function jugTry(held) {
   K.busy++;
   const j = st.jug, h = st.hero;
-  await heroGo(JUG_FILL.x + 52, 260);
+  await heroGo(mugStandX(), 260);
   face(-1);
   const ready = st.clear > 0.98;
   if (held !== 'hrnecek') {
@@ -664,13 +679,15 @@ const scene = {
     ctx.save();
     ctx.translate(h.x, h.y);
     ctx.rotate(-h.lean * h.facing + wet);
-    K.drawHero(ctx, 0, -h.hopY, HERO_S, { facing: h.facing, walking: h.walking, phase: h.phase, halo: false, reach: h.reach });
+    K.drawHero(ctx, 0, -h.hopY, HERO_S, { facing: h.facing, walking: h.walking, phase: h.phase, halo: false, reach: h.reach,
+      face: K.time - h.wetT < 1.3 ? 'wet' : null, arm: j.held ? 'hold' : h.pipe ? 'mouth' : null });
     ctx.restore();
     if (h.pipe) drawPipe(ctx);
     if (j.held) {
       const sh = K.time - j.shakeT < 0.6 ? Math.sin(K.time * 50) * 6 : 0;
-      j.x = h.x + h.facing * 52;
-      j.y = h.y + 6 - h.hopY; // nízko, ať je vidět pramínek do hrnku
+      const m = mugAt();
+      j.x = m.x;
+      j.y = m.y;
       drawJug(ctx, { x: j.x + sh, y: j.y }, j.full);
     }
     drawDrops(ctx);

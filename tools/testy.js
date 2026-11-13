@@ -80,6 +80,7 @@ window.SCENARE = {
   kuchPohrabac: [['cekaVolno'], ['klik', 772, 760], ['cekaVolno'], ['klik', 1515, 520], ['ceka', 1900]],
   kuchHak: [['cekaVolno'], ['klik', 772, 760], ['cekaVolno'], ['klik', 1515, 520], ['ceka', 2900]],
   kuchVzduch: [...OKNO, ['ceka', 300]],
+  kuchHacek: [['cekaVolno'], ['klik', 772, 760], ['cekaVolno'], ['klik', 1515, 520], ['ceka', 2400]], // háček pohrabáče u okna
   // pak děda (nápověda z kouře), roští od dveří babce → oheň → kocour shodí hrnek → semínka z koše
   kuchDeda: [...OKNO, ['klik', 1250, 750], ['ceka', 2600]],
   kuchBabka: [...OKNO, ['klik', 300, 750], ['cekaVolno'], ['ceka', 300]],

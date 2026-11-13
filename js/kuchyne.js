@@ -47,8 +47,12 @@ const GRANDPA_AT = { x: 1400, y: 1008 }; // pravá noha stoličky
 const POSE_FADE = 0.18;
 const FY = 1045; // chodidla na podlaze
 const HERO_S = 1.9; // Daniel 2026-11-13: hrdina větší (dřív 1.3)
-// výskok s pohrabáčem k oknu: háček má být ve stejné výšce jako dřív při HERO_S 1.3 a výskoku 88
-const WIN_HOP = Math.max(16, 88 - 122 * (HERO_S - 1.3));
+// výskok s pohrabáčem k oknu: ruka s háčkem má být 247 px nad podlahou (jako dřív při HERO_S 1.3 a výskoku 88);
+// loutka sahá výš než panáček z čar, proto se výskok počítá z polohy její ruky
+const winHop = () => {
+  const hp = K.heroHand(0, 0, HERO_S, { reach: true });
+  return Math.max(10, 88 + 122 * 1.3 - (hp ? -hp.y : 122 * HERO_S));
+};
 const DOOR_X = 1990; // dveře vpravo za obrazem
 const START_X = 1580;
 const EXIT = { x: 90, y: 990 };
@@ -199,6 +203,7 @@ async function windowTry() {
     return;
   }
   st.phase = 'air';
+  const WIN_HOP = winHop();
   await K.tween(0.3, (t) => { h.hopY = Math.sin((t * Math.PI) / 2) * WIN_HOP; }); // háček zachytí rám
   K.sound('vrzani', { volume: 0.5 });
   const x0 = h.x;
@@ -786,7 +791,8 @@ function drawPoker(ctx, onRail) {
   }
   if (st.poker !== 'hero') return;
   const h = st.hero, f = h.facing, s = HERO_S, y = h.y - h.hopY;
-  const hand = h.reach ? [h.x + f * 8 * s, y - 122 * s] : [h.x + f * 21 * s, y - 60 * s];
+  const hp = K.heroHand(h.x, y, s, { facing: f, reach: h.reach });
+  const hand = hp ? [hp.x, hp.y] : h.reach ? [h.x + f * 8 * s, y - 122 * s] : [h.x + f * 21 * s, y - 60 * s];
   ctx.save();
   ctx.translate(hand[0], hand[1]);
   ctx.rotate(Math.PI + (h.reach ? 0 : f * 0.35));
@@ -1076,7 +1082,8 @@ const scene = {
     drawPuffs(ctx);
     if (st.twigs) drawImgAt(ctx, IMG.naruc, st.twigs.x, st.twigs.y, st.twigs.s, st.twigs.rot, st.twigs.a);
     const h = st.hero, ck = coughK(st.cough.hero);
-    K.drawHero(ctx, h.x + ck * 3, h.y - h.hopY, HERO_S, { facing: h.facing, walking: h.walking, phase: h.phase, halo: false, reach: h.reach });
+    K.drawHero(ctx, h.x + ck * 3, h.y - h.hopY, HERO_S, { facing: h.facing, walking: h.walking, phase: h.phase, halo: false, reach: h.reach,
+      face: ck ? 'wet' : null }); // v kouři mžourá
     drawPoker(ctx, false);
     // náruč roští nad hlavou
     if (st.carry) drawImgAt(ctx, IMG.naruc, h.x + h.facing * 6, h.y - 202 * HERO_S - h.hopY + Math.abs(Math.sin(h.phase)) * 3, 1, Math.PI / 2 - 0.08 * h.facing);

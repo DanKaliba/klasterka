@@ -33,8 +33,122 @@ function twoPass(ctx, halo, fn) {
 
 // ---------- panáček (hrdina) ----------
 // y = chodidla, s = měřítko (výška ~130·s)
+// ---------- hrdina jako loutka ----------
+// Danielovy díly (2026-11-13, python tools/sprity.py): hlava s čepicí z troudnatce (3 výrazy, prompt H2,
+// K.SPRITY.hrdinaDily) a kloubové díly z H3 (K.SPRITY.hrdinaKlouby): trup, paže + předloktí a stehno +
+// lýtko, bližší i vzdálené. Ruka se ohýbá v rameni a lokti, noha v kyčli a koleni.
+// Klouby v px dílů (kotva každého dílu = střed horního kraje), postava hlavou doprava:
+const HJ = {
+  hip: { f: [62, 168], b: [70, 166] }, // kyčle na trupu
+  shoulder: { f: [64, 50], b: [50, 48] }, // ramena na trupu
+  neck: [75, 28], // spodek krku hlavy na trupu
+  upper: 100, // rameno → loket
+  thigh: 118, // kyčel → koleno
+  mouth: [13, -33], // pusa vůči spodku krku hlavy
+};
+// úhly (rad, 0 = visí dolů, kladně = konec jde dozadu) podle toho, co panáček dělá
+function heroAngles(o) {
+  const ph = o.phase || 0, walk = o.walking ? 1 : 0;
+  const legs = (side) => {
+    const p = ph + (side === 'f' ? 0 : Math.PI);
+    return { thigh: -0.38 * walk * Math.sin(p), knee: walk * 0.55 * Math.max(0, Math.cos(p)) };
+  };
+  const arm = { f: { up: 0.3 * walk * Math.sin(ph), fore: -0.25 }, b: { up: -0.3 * walk * Math.sin(ph), fore: -0.25 } };
+  if (o.arm === 'hold') arm.f = { up: -0.35, fore: -1.25 }; // drží něco před sebou (hrnek)
+  if (o.arm === 'mouth') arm.f = { up: -0.55, fore: -2.35 }; // ruka u pusy (fajfka)
+  if (o.reach) arm.f = { up: -(Math.PI - 0.4), fore: -0.15 }; // natahuje se nahoru
+  if (o.wave) arm.f = { up: -(Math.PI - 0.7), fore: -0.6 + Math.sin(K.time * 10) * 0.45 };
+  return { legF: legs('f'), legB: legs('b'), armF: arm.f, armB: arm.b };
+}
+const rotV = (a, len) => [-Math.sin(a) * len, Math.cos(a) * len]; // vektor délky len pod úhlem a
+// polohy kloubů v px dílů vůči chodidlům (trup se posadí tak, aby níž položené chodidlo bylo na zemi)
+function heroJoints(o, P) {
+  const a = heroAngles(o);
+  const shin = P.lytko.sp.h;
+  const foot = (hip, l) => {
+    const knee = [hip[0] + rotV(l.thigh, HJ.thigh)[0], hip[1] + rotV(l.thigh, HJ.thigh)[1]];
+    const end = rotV(l.thigh + l.knee, shin);
+    return { knee, toe: [knee[0] + end[0], knee[1] + end[1]] };
+  };
+  // nejdřív s trupem v 0, pak posun dolů, aby nejnižší chodidlo bylo na y = 0
+  const legAt = (side) => [HJ.hip[side][0], HJ.hip[side][1]];
+  const ff = foot(legAt('f'), a.legF), fb = foot(legAt('b'), a.legB);
+  const lift = Math.max(ff.toe[1], fb.toe[1]);
+  const T = [-HJ.hip.f[0], -lift]; // levý horní roh trupu
+  const at = (p) => [T[0] + p[0], T[1] + p[1]];
+  const arm = (side, an) => {
+    const sh = at(HJ.shoulder[side]);
+    const elbow = [sh[0] + rotV(an.up, HJ.upper)[0], sh[1] + rotV(an.up, HJ.upper)[1]];
+    const fore = P[side === 'f' ? 'predlokti' : 'predlokti2'].sp.h * 0.92;
+    const hand = [elbow[0] + rotV(an.up + an.fore, fore)[0], elbow[1] + rotV(an.up + an.fore, fore)[1]];
+    return { sh, elbow, hand, an };
+  };
+  const leg = (side, l) => {
+    const hip = at(HJ.hip[side]);
+    const knee = [hip[0] + rotV(l.thigh, HJ.thigh)[0], hip[1] + rotV(l.thigh, HJ.thigh)[1]];
+    return { hip, knee, l };
+  };
+  const neck = at(HJ.neck);
+  return { T, neck, armF: arm('f', a.armF), armB: arm('b', a.armB), legF: leg('f', a.legF), legB: leg('b', a.legB),
+    top: neck[1] - (P.hlava ? P.hlava.sp.ay : 121) };
+}
+function heroParts(o) {
+  const g = (n) => K.sprite('hrdinaKlouby', n);
+  const h = (n) => K.sprite('hrdinaDily', n);
+  const P = { trup: g('trup'), paze: g('paze'), predlokti: g('predlokti'), paze2: g('paze2'), predlokti2: g('predlokti2'),
+    stehno: g('stehno'), lytko: g('lytko'), stehno2: g('stehno2'), lytko2: g('lytko2'),
+    hlava: h(o.face === 'wet' ? 'hlavaMzouri' : o.face === 'startle' ? 'hlavaLek' : 'hlava') };
+  return Object.values(P).every(Boolean) ? P : null;
+}
+// měřítko: celá loutka (chodidla → vršek čepice ve stoji) = 150 * s jako dřív panáček z čar
+let heroRef = 0;
+function heroK(s, P) {
+  if (!heroRef) heroRef = -heroJoints({}, P).top;
+  return (150 * s) / heroRef;
+}
+// přední ruka a pusa ve světě (pro pohrabáč, hrnek, fajfku); null, dokud se loutka nenačte
+K.heroHand = (x, y, s, o = {}) => {
+  const P = heroParts(o);
+  if (!P) return null;
+  const j = heroJoints(o, P), k = heroK(s, P), f = o.facing || 1;
+  return { x: x + f * k * j.armF.hand[0], y: y + k * j.armF.hand[1] };
+};
+K.heroMouth = (x, y, s, o = {}) => {
+  const P = heroParts(o);
+  if (!P) return null;
+  const j = heroJoints(o, P), k = heroK(s, P), f = o.facing || 1;
+  return { x: x + f * k * (j.neck[0] + HJ.mouth[0]), y: y + k * (j.neck[1] + HJ.mouth[1]) };
+};
+// o.face: 'wet' (mžourá: mokrý, kašle) | 'startle' (vyděšený); o.arm: 'hold' | 'mouth'; o.reach, o.wave
+function drawHeroPuppet(ctx, x, y, s, o) {
+  const P = heroParts(o);
+  if (!P) return false;
+  const j = heroJoints(o, P), k = heroK(s, P), f = o.facing || 1;
+  const part = (p, at, rot) => {
+    ctx.save();
+    ctx.translate(at[0], at[1]);
+    if (rot) ctx.rotate(rot);
+    ctx.drawImage(p.img, -p.sp.ax, -p.sp.ay);
+    ctx.restore();
+  };
+  const arm = (a, up, fore) => { part(fore, a.elbow, a.an.up + a.an.fore); part(up, a.sh, a.an.up); };
+  const leg = (l, th, sh) => { part(sh, l.knee, l.l.thigh + l.l.knee); part(th, l.hip, l.l.thigh); };
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(f * k, k);
+  arm(j.armB, P.paze2, P.predlokti2); // vzdálená ruka a noha za trupem
+  leg(j.legB, P.stehno2, P.lytko2);
+  leg(j.legF, P.stehno, P.lytko);
+  ctx.drawImage(P.trup.img, j.T[0], j.T[1]);
+  part(P.hlava, j.neck, o.reach ? -0.12 : 0);
+  arm(j.armF, P.paze, P.predlokti); // bližší ruka před trupem
+  ctx.restore();
+  return true;
+}
+
 K.drawHero = (ctx, x, y, s, o = {}) => {
   if ((o.alpha ?? 1) < 1) return K.withAlpha(ctx, o.alpha, (c) => K.drawHero(c, x, y, s, { ...o, alpha: 1 }));
+  if (drawHeroPuppet(ctx, x, y, s, o)) return;
   const f = o.facing || 1;
   const sw = o.walking ? Math.sin(o.phase || 0) : 0;
   const bob = o.walking ? Math.abs(Math.cos(o.phase || 0)) * 3 * s : 0;
@@ -167,40 +281,68 @@ K.sprite = (set, pose) => {
 };
 
 // ---------- ovce ----------
-// Ovce jsou Danielův obrázek (2026-11-13, prompt OV1: tělo z kotrče kadeřavého, hlava a nohy tuší):
-// pózy stand / graze / walk / bleat, jehně (lamb) a beran (ram). Chůze střídá stand a walk.
-// Výška ovce ve hře = SHEEP_H * s (stejně velká jako dřív kreslená čarou).
-const SHEEP_H = 58;
+// Ovce jsou loutka z Danielových dílů (2026-11-13, opravené OV2: tělo z kotrče kadeřavého, hlavy tuší;
+// python tools/sprity.py → K.SPRITY.ovceDily). Nohy kreslí hra tuší, ať se při chůzi střídají
+// a dají se na ně nasadit lyže. Hlava se při pasení skloní (otáčí se kolem krku), při bečení zvedne.
+// Rozměry při s = 1 (stejná velikost jako dřív kreslená ovce):
+K.SHEEP = { bodyW: 60, legs: 15, neckX: 0.36, neckY: -0.12 };
+// beran a jehně: s už obsahuje jejich velikost (o.ram ×1.15, jehně LAMB_SIZE v louka.js);
+// tělo jehněte je na obrázku menší, proto vlastní šířka
+const LAMB_BODY_W = 50;
+K.sheepParts = (o) => ({
+  body: K.sprite('ovceDily', o.lamb ? 'teloJehne' : 'telo'),
+  head: K.sprite('ovceDily', o.ram ? 'hlavaBeran' : o.lamb ? 'hlavaJehne' : o.bleat ? 'beci' : 'hlava'),
+});
+// kde je krk a jak velký je obrázek (pro beranův čumák v lese, šálu)
+K.sheepNeck = (s, o) => {
+  const S = K.SHEEP, bw = (o.lamb ? LAMB_BODY_W : S.bodyW) * s, body = K.SPRITY.ovceDily[o.lamb ? 'teloJehne' : 'telo'];
+  const k = bw / body.w, bh = body.h * k, cy = -S.legs * s + 4 * s - bh / 2;
+  return { x: S.neckX * bw, y: cy + S.neckY * bh, k, cy, bw, bh };
+};
 function drawSheepSprite(ctx, x, y, s, o) {
-  const f = o.facing || 1;
-  let pose = o.headUp ? 'stand' : 'graze';
-  if (o.walking) pose = Math.sin(o.phase || 0) > 0 ? 'walk' : 'stand';
-  if (o.skis) pose = 'stand';
-  if (o.lamb) pose = 'lamb';
-  if (o.ram) pose = 'ram';
-  const spr = K.sprite('ovce', pose);
-  if (!spr) return false;
-  const { sp, img } = spr;
-  // jehně: obrázek je menší, ale velikost už určuje s (LAMB_SIZE v louka.js)
-  const k = (s * SHEEP_H) / (o.lamb ? sp.h : K.SPRITY.ovce.stand.h);
-  const bob = o.walking ? Math.abs(Math.sin(o.phase || 0)) * 2 * s : 0;
+  const { body, head } = K.sheepParts(o);
+  if (!body || !head) return false;
+  const f = o.facing || 1, S = K.SHEEP;
+  const n = K.sheepNeck(s, o), k = n.k;
+  const ph = o.phase || 0, walk = o.walking && !o.skis;
+  const bob = walk ? Math.abs(Math.sin(ph)) * 1.5 * s : 0;
   ctx.save();
   ctx.translate(x, y - 26 * s); // otáčí se kolem středu těla jako dřív (kotrmelec, náklon na vleku)
   if (o.rot) ctx.rotate(o.rot);
+  ctx.translate(0, 26 * s);
+  ctx.scale(f, 1);
+  // nohy: tuš se světlou vlnou uvnitř a tmavým kopýtkem; zadní pár tmavší
+  const legW = Math.max(0.6, 4.4 * s), top = n.cy + n.bh * 0.2;
+  [[-0.3, 1, 0], [0.16, 1, 1], [-0.17, 0, 1], [0.29, 0, 0]].forEach(([lx, back, alt]) => {
+    const sw = walk ? Math.sin(ph + (alt ? Math.PI : 0)) * 5 * s : 0;
+    const x0 = lx * n.bw, x1 = x0 + sw;
+    const leg = (w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, top - bob); ctx.lineTo(x1, -bob * 0.3); ctx.stroke(); };
+    ctx.lineCap = 'round';
+    leg(legW, INK);
+    leg(legW * 0.5, back ? '#cfc6b4' : '#efe8da');
+    ctx.fillStyle = '#2f2721';
+    ctx.beginPath(); ctx.ellipse(x1, -bob * 0.3 - 1.2 * s, legW * 0.45, 2 * s, 0, 0, Math.PI * 2); ctx.fill();
+  });
+  // tělo
+  ctx.drawImage(body.img, -n.bw / 2, n.cy - n.bh / 2 - bob, n.bw, n.bh);
+  // hlava: kotva = spodek krku, posazený na přední horní kraj těla
+  let rot = 0, dy = 0;
+  if (!o.headUp && !o.walking && !o.skis && !o.bleat) { rot = 1.15 + Math.sin(K.time * 1.6 + x * 0.05) * 0.05; dy = 4 * s; } // pase se
+  if (o.bleat) rot = -0.25;
   ctx.save();
-  ctx.scale(f * (sp.right ? 1 : -1) * k, k);
-  ctx.drawImage(img, -sp.ax, -sp.ay + (26 * s - bob) / k);
+  ctx.translate(n.x, n.y + dy - bob);
+  ctx.rotate(rot);
+  ctx.scale(k, k);
+  ctx.drawImage(head.img, -head.sp.ax, -head.sp.ay);
   ctx.restore();
   if (o.scarf) {
-    // šála kolem krku (krk pózy stand / ram je vpravo nahoře, asi 0.3 šířky před kotvou)
-    const nx = f * 0.3 * sp.w * k, ny = 26 * s - 0.56 * sp.h * k;
     ctx.strokeStyle = o.scarf;
-    stroke(ctx, [[nx - f * 5 * s, ny - 8 * s], [nx + f * 4 * s, ny + 3 * s], [nx - f * 3 * s, ny + 13 * s]], 5 * s, 60, 0.6);
+    stroke(ctx, [[n.x - 3 * s, n.y - 8 * s], [n.x + 5 * s, n.y + 2 * s], [n.x - 1 * s, n.y + 11 * s]], 5 * s, 60, 0.6);
   }
   if (o.skis) {
     ctx.strokeStyle = INK;
     const tip = o.ram ? [[40, 15], [39, 10], [35, 9], [33, 12], [36, 14]] : [];
-    stroke(ctx, [[-30, 27], [26, 27], [36, 21], ...tip].map(([a, b]) => [a * s * f, b * s]), 3.2 * Math.max(s, 0.35), 30, 0.6);
+    stroke(ctx, [[-30, 1], [26, 1], [36, -5], ...tip.map(([a, b]) => [a, b - 26])].map(([a, b]) => [a * s, b * s]), 3.2 * Math.max(s, 0.35), 30, 0.6);
   }
   ctx.restore();
   return true;

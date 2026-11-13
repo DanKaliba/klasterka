@@ -51,53 +51,161 @@ K.SPRITY = {
    "right": true
   }
  },
- "ovce": {
-  "stand": {
-   "src": "assets/postavy/ovce-stand.png",
-   "w": 149,
-   "h": 160,
-   "ax": 63,
-   "ay": 158,
+ "ovceDily": {
+  "telo": {
+   "src": "assets/postavy/ovceDily-telo.png",
+   "w": 200,
+   "h": 142,
+   "ax": 100,
+   "ay": 71,
    "right": true
   },
-  "graze": {
-   "src": "assets/postavy/ovce-graze.png",
-   "w": 148,
+  "hlava": {
+   "src": "assets/postavy/ovceDily-hlava.png",
+   "w": 99,
+   "h": 84,
+   "ax": 40,
+   "ay": 82,
+   "right": true
+  },
+  "beci": {
+   "src": "assets/postavy/ovceDily-beci.png",
+   "w": 98,
+   "h": 87,
+   "ax": 41,
+   "ay": 86,
+   "right": true
+  },
+  "hlavaJehne": {
+   "src": "assets/postavy/ovceDily-hlavaJehne.png",
+   "w": 77,
+   "h": 66,
+   "ax": 34,
+   "ay": 64,
+   "right": true
+  },
+  "teloJehne": {
+   "src": "assets/postavy/ovceDily-teloJehne.png",
+   "w": 109,
+   "h": 87,
+   "ax": 54,
+   "ay": 43,
+   "right": true
+  },
+  "hlavaJehne2": {
+   "src": "assets/postavy/ovceDily-hlavaJehne2.png",
+   "w": 78,
+   "h": 68,
+   "ax": 33,
+   "ay": 66,
+   "right": true
+  },
+  "hlavaBeran": {
+   "src": "assets/postavy/ovceDily-hlavaBeran.png",
+   "w": 118,
+   "h": 97,
+   "ax": 57,
+   "ay": 96,
+   "right": true
+  }
+ },
+ "hrdinaDily": {
+  "hlava": {
+   "src": "assets/postavy/hrdinaDily-hlava.png",
+   "w": 94,
+   "h": 123,
+   "ax": 45,
+   "ay": 121,
+   "right": true
+  },
+  "hlavaMzouri": {
+   "src": "assets/postavy/hrdinaDily-hlavaMzouri.png",
+   "w": 97,
+   "h": 124,
+   "ax": 44,
+   "ay": 122,
+   "right": true
+  },
+  "hlavaLek": {
+   "src": "assets/postavy/hrdinaDily-hlavaLek.png",
+   "w": 96,
    "h": 126,
-   "ax": 74,
+   "ax": 47,
    "ay": 124,
    "right": true
-  },
-  "walk": {
-   "src": "assets/postavy/ovce-walk.png",
-   "w": 151,
-   "h": 157,
-   "ax": 68,
-   "ay": 155,
+  }
+ },
+ "hrdinaKlouby": {
+  "trup": {
+   "src": "assets/postavy/hrdinaKlouby-trup.png",
+   "w": 126,
+   "h": 207,
+   "ax": 73,
+   "ay": 1,
    "right": true
   },
-  "bleat": {
-   "src": "assets/postavy/ovce-bleat.png",
-   "w": 145,
-   "h": 162,
-   "ax": 62,
-   "ay": 160,
+  "paze": {
+   "src": "assets/postavy/hrdinaKlouby-paze.png",
+   "w": 50,
+   "h": 112,
+   "ax": 19,
+   "ay": 1,
    "right": true
   },
-  "lamb": {
-   "src": "assets/postavy/ovce-lamb.png",
-   "w": 90,
-   "h": 102,
-   "ax": 39,
-   "ay": 100,
+  "predlokti": {
+   "src": "assets/postavy/hrdinaKlouby-predlokti.png",
+   "w": 53,
+   "h": 95,
+   "ax": 30,
+   "ay": 0,
    "right": true
   },
-  "ram": {
-   "src": "assets/postavy/ovce-ram.png",
-   "w": 164,
-   "h": 162,
-   "ax": 65,
-   "ay": 160,
+  "paze2": {
+   "src": "assets/postavy/hrdinaKlouby-paze2.png",
+   "w": 52,
+   "h": 112,
+   "ax": 25,
+   "ay": 1,
+   "right": true
+  },
+  "predlokti2": {
+   "src": "assets/postavy/hrdinaKlouby-predlokti2.png",
+   "w": 64,
+   "h": 85,
+   "ax": 42,
+   "ay": 0,
+   "right": true
+  },
+  "stehno": {
+   "src": "assets/postavy/hrdinaKlouby-stehno.png",
+   "w": 65,
+   "h": 134,
+   "ax": 35,
+   "ay": 1,
+   "right": true
+  },
+  "lytko": {
+   "src": "assets/postavy/hrdinaKlouby-lytko.png",
+   "w": 80,
+   "h": 148,
+   "ax": 23,
+   "ay": 1,
+   "right": true
+  },
+  "stehno2": {
+   "src": "assets/postavy/hrdinaKlouby-stehno2.png",
+   "w": 65,
+   "h": 134,
+   "ax": 35,
+   "ay": 1,
+   "right": true
+  },
+  "lytko2": {
+   "src": "assets/postavy/hrdinaKlouby-lytko2.png",
+   "w": 83,
+   "h": 148,
+   "ax": 26,
+   "ay": 1,
    "right": true
   }
  }

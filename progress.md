@@ -126,9 +126,17 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
 - `js/jadro.js` plátno, smyčka, časovače (`K.after/K.tween/K.until`), HUD, přechody, `advanceTime`
 - `js/kresleni.js` zástupné kresby (panáček, ovce, chalupníci, zvířata, ikony, papír); ovce z obrázku (`K.sprite`)
 - `js/sprity.js` pózy postav z obrázků (kocour, ovce: zdroj, kotva, směr) generuje `python tools/sprity.py`
-  z pics/podklady-postavy/ (Daniel 2026-11-13: ovce OV1 s tělem z kotrče, kocour KC; hrdina čeká na díly H2)
-  Beran v lese (les.js): bokem je obrázek berana z OV1 (drawRamSideSprite, čumák na místě kresleného),
-  zezadu kreslená hlava a rohy, tělo vyplněné kotrčem z obrázku; obrázky zezadu čekají na prompt OV3.
+  z pics/podklady-postavy/ (Daniel 2026-11-13: kocour KC; ovce a hrdina jako loutky z dílů OV2b a H2)
+  Ovce (kresleni.js drawSheepSprite): tělo z kotrče + hlava z obrázku, nohy tuší kreslí hra (chůze, lyže),
+  hlava se při pasení skloní kolem krku; jehně a beran mají vlastní díly. Hrdina (drawHeroPuppet): hlava
+  z H2 (3 výrazy: o.face 'wet' / 'startle'), kloubové díly z H3 (trup, paže + předloktí a stehno + lýtko,
+  bližší i vzdálené; Gemini je částečně spojil, opravuje je fix_h3 v tools/sprity.py). Ruka se ohýbá
+  v rameni a lokti (o.reach, o.wave, o.arm 'hold' = hrnek před sebou, 'mouth' = fajfka u pusy), noha
+  v kyčli a koleni (při chůzi se ohne koleno). K.heroHand a K.heroMouth dávají polohu ruky a pusy
+  (pohrabáč v kuchyni, hrnek a fajfka u studánky). Výška loutky = 150 * s jako dřív panáček z čar,
+  ten zůstal jako záloha.
+  Beran v lese (les.js): bokem je loutka berana (drawRamSideSprite, čumák na místě kresleného),
+  zezadu kreslená hlava a rohy, tělo vyplněné kotrčem z dílu; obrázky zezadu čekají na prompt OV3.
 - `js/louka.js` hlavní scéna nad fotkou, cesta, ovce, přiblížení do chalupy
 - `js/chalupy.js` detaily chalup + vrchol (malé stavové automaty)
 - `js/kuchyne.js` kuchyně na Kantorské (semínka), `js/muka.js` studánka u božích muk (voda), `js/les.js` les s lávkou (rampouch)
