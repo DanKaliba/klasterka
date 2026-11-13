@@ -89,7 +89,11 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   Verze 2 (2026-11-10): prázdná kuchyně z promptu A (`kuchyne-B.png`) a věci z promptu E (`veci-E.png`:
   volná hromádka roští u dveří, která po sebrání zmizí, náruč, hrnek, křížaly na tyči, které se v teple
   houpou a kocour o ně zavadí). Babčin koš je DOČASNĚ vyříznutý ze staré verze (`kuchyne-A.png`,
-  GrabCut, `pip install opencv-python-headless`). Kocour je zatím kreslený zástupce (prompt D).
+  GrabCut, `pip install opencv-python-headless`). Kocour je Danielův obrázek (2026-11-13, prompt KC v pics/podklady-postavy/PROMPT-postavy.md: kresba tuší,
+  srst z jívových kočiček), `python tools/sprity.py` → assets/postavy/kocour-*.png; kreslený zůstal jako záloha.
+  Kocour z obrázku je menší (CAT_K 0.72) a hrdina v kuchyni větší (HERO_S 1.9, dřív 1.3; výskok s pohrabáčem
+  WIN_HOP a náruč roští se počítají z HERO_S), Daniel 2026-11-13. Děda se po skoku kocoura na hlavu nesměje,
+  lekne se (póza 3) a zlobí se (třese se, zvuk bruceni); nové pózy 5 a 6 čekají na prompt C3.
   Babka a děda (2026-11-12): kresba tuší podle ovčáka ze Zapomenutých řemesel, děda má vlasy a vousy
   z opravdového lišejníku, babka šátek z opravdové látky (prompty B2, C2 v
   `pics/podklady-kuchyne/PROMPT-postavy-lisejnik.md`). Pózy vyřezává `python tools/postavy.py` z modrého
@@ -120,7 +124,11 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
 
 ## Struktura
 - `js/jadro.js` plátno, smyčka, časovače (`K.after/K.tween/K.until`), HUD, přechody, `advanceTime`
-- `js/kresleni.js` zástupné kresby (panáček, ovce, chalupníci, zvířata, ikony, papír)
+- `js/kresleni.js` zástupné kresby (panáček, ovce, chalupníci, zvířata, ikony, papír); ovce z obrázku (`K.sprite`)
+- `js/sprity.js` pózy postav z obrázků (kocour, ovce: zdroj, kotva, směr) generuje `python tools/sprity.py`
+  z pics/podklady-postavy/ (Daniel 2026-11-13: ovce OV1 s tělem z kotrče, kocour KC; hrdina čeká na díly H2)
+  Beran v lese (les.js): bokem je obrázek berana z OV1 (drawRamSideSprite, čumák na místě kresleného),
+  zezadu kreslená hlava a rohy, tělo vyplněné kotrčem z obrázku; obrázky zezadu čekají na prompt OV3.
 - `js/louka.js` hlavní scéna nad fotkou, cesta, ovce, přiblížení do chalupy
 - `js/chalupy.js` detaily chalup + vrchol (malé stavové automaty)
 - `js/kuchyne.js` kuchyně na Kantorské (semínka), `js/muka.js` studánka u božích muk (voda), `js/les.js` les s lávkou (rampouch)

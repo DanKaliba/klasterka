@@ -12,7 +12,7 @@
 // - Vůně brambor dojde až na kamna, kde na dece spí kocour. Probudí se, protáhne a jde za vůní:
 //   seskočí na římsu kamen a na polici, po polici dojde k hrnku a shodí ho. Hrnek spadne do koše
 //   a semínka se vysypou. Kocour se vrátí po polici a skočí dědovi na hlavu, děda se lekne a upustí
-//   fajfku (Daniel 2026-11-13). Kocour seskočí dolů a přede, děda se zasměje.
+//   fajfku (Daniel 2026-11-13). Kocour seskočí dolů a přede, děda se zlobí.
 // - Panáček vybere z koše semínka (→ batoh) i hrnek a sebere fajfku (nástroje pro studánku u božích
 //   muk: do hrnku nabere vodu, fajfka se hodí na žábu). Až má všechno, odejde dveřmi.
 // Pozadí je prázdná kuchyně (prompt A), věci z promptu E jsou samostatně. Babka a děda jsou kresby
@@ -38,12 +38,17 @@ const BOX = { kos: { x: 352, y: 841 }, pohrabac: { x: 755, y: 663 } };
 // pózy babky a dědy: kotva = bod výřezu na podlaze (vypisuje tools/postavy.py), AT = kam na podlahu
 // babka: 1 smutně kouká do ohně, 2 kašle, 3 prosí, 4 přikládá (ruce k dvířkům), 5 spokojená
 // děda: 1 dýmka v puse, 2 kašle, 3 vyfukuje kouř a kouká nahoru, 4 se směje
+// dědovy pózy pro kocoura na hlavě: leknutí a zlost. Až budou nové pózy 5 a 6 (úprava C3 v
+// pics/podklady-kuchyne/PROMPT-postavy-lisejnik.md), přepnout na 5 a 6; do té doby 3 a 1 s třesením.
+const DEDA_STARTLE = 3, DEDA_ANGRY = 1;
 const POSE_ANCHOR = { babka: [[1, 498], [1, 478], [1, 501], [1, 408], [1, 519]], deda: [[310, 588], [320, 533], [336, 615], [311, 603]] };
 const GRANNY_AT = { x: 83, y: 975 }; // paty
 const GRANDPA_AT = { x: 1400, y: 1008 }; // pravá noha stoličky
 const POSE_FADE = 0.18;
 const FY = 1045; // chodidla na podlaze
-const HERO_S = 1.3;
+const HERO_S = 1.9; // Daniel 2026-11-13: hrdina větší (dřív 1.3)
+// výskok s pohrabáčem k oknu: háček má být ve stejné výšce jako dřív při HERO_S 1.3 a výskoku 88
+const WIN_HOP = Math.max(16, 88 - 122 * (HERO_S - 1.3));
 const DOOR_X = 1990; // dveře vpravo za obrazem
 const START_X = 1580;
 const EXIT = { x: 90, y: 990 };
@@ -74,6 +79,7 @@ const WATCH_X = 880; // odkud se pak dívá
 const STRINGS = [1050, 1100, 1150].map((x) => ({ x, y: 126 }));
 // kocour: z deky na kamnech na římsu, skok na polici, po polici k hrnku, skok na zem
 const CAT_S = 1.35;
+const CAT_K = 0.72; // kocour z obrázku je menší než dřív kreslený (Daniel 2026-11-13)
 const CAT_BED = { x: 1290, y: 292 };
 const CAT_BLANKET_END = 1100;
 const CAT_LEDGE = { x: 1036, y: 357 };
@@ -107,7 +113,7 @@ const init = () => ({
   heroIcon: null, grannyIcon: null,
   smoke: 1, win: 0, poker: 'rail', // rail | hero
   cough: { granny: -9, grandpa: -9, hero: -9 }, nextCough: 1.2, coughWho: 0,
-  lean: 0, reach: false, laughT: -9, startleT: -9, carry: false, pile: true, twigs: null,
+  lean: 0, reach: false, angryT: -9, startleT: -9, carry: false, pile: true, twigs: null,
   pipe: { state: 'hand', x: PIPE_HAND.x, y: PIPE_HAND.y, rot: 0.3 }, // hand | fall | floor | taken
   pose: { babka: { k: 1, prev: 1, t: -9 }, deda: { k: 1, prev: 1, t: -9 } },
   fire: 0, boil: 0, smell: 0, lidT: -9,
@@ -193,12 +199,12 @@ async function windowTry() {
     return;
   }
   st.phase = 'air';
-  await K.tween(0.3, (t) => { h.hopY = Math.sin((t * Math.PI) / 2) * 88; }); // háček zachytí rám
+  await K.tween(0.3, (t) => { h.hopY = Math.sin((t * Math.PI) / 2) * WIN_HOP; }); // háček zachytí rám
   K.sound('vrzani', { volume: 0.5 });
   const x0 = h.x;
   await K.tween(1.1, (t) => {
     const e = K.ease(t);
-    h.hopY = 88 * (1 - Math.min(1, t * 1.6));
+    h.hopY = WIN_HOP * (1 - Math.min(1, t * 1.6));
     h.x = x0 - 80 * e; // couvá a táhne
     st.win = e;
   });
@@ -349,7 +355,8 @@ async function catWake() {
   c.facing = -1; // kouká k ohni a hrnci
   c.purrT = K.time;
   K.sound('predeni', { volume: 0.7 });
-  st.laughT = K.time; // děda se tomu nakonec zasměje
+  st.angryT = K.time; // děda se zlobí (Daniel 2026-11-13: nesmát se, naštvaný a polekaný)
+  K.sound('bruceni', { volume: 0.6 });
   st.phase = 'seeds';
 }
 
@@ -562,10 +569,10 @@ function grannyPose() {
   return st.fire > 0 ? 5 : 1;
 }
 function grandpaPose() {
-  if (K.time - st.startleT < 1.6) return 3; // leknutí: kouká nahoru na kocoura
+  if (K.time - st.startleT < 1.6) return DEDA_STARTLE; // leknutí: kouká nahoru na kocoura
   if (K.time - st.cough.grandpa < COUGH_POSE) return 2;
   if (st.cloud && K.time - st.cloud.t0 < CLOUD_LEN) return 3;
-  if (K.time - st.laughT < 3.2) return 4;
+  if (K.time - st.angryT < 3.2) return DEDA_ANGRY;
   return 1;
 }
 function setPose(who, k) {
@@ -596,9 +603,10 @@ function drawGranny(ctx) {
   drawFigure(ctx, 'babka', GRANNY_AT, 12 * st.lean, Math.abs(k) * 3, Math.sin(K.time * 1.7) * 0.006);
 }
 function drawGrandpa(ctx) {
-  const k = coughK(st.cough.grandpa), sT = K.time - st.startleT;
+  const k = coughK(st.cough.grandpa), sT = K.time - st.startleT, aT = K.time - st.angryT;
   const jump = sT < 0.45 ? -Math.sin((sT / 0.45) * Math.PI) * 40 : 0; // leknutím nadskočí
-  drawFigure(ctx, 'deda', GRANDPA_AT, 0, Math.abs(k) * 3 + jump, Math.sin(K.time * 1.3 + 1) * 0.006);
+  const shake = aT < 1.4 ? Math.sin(K.time * 32) * 4 * (1 - aT / 1.4) : 0; // vztekle se otřese
+  drawFigure(ctx, 'deda', GRANDPA_AT, shake, Math.abs(k) * 3 + jump, Math.sin(K.time * 1.3 + 1) * 0.006);
 }
 function drawPipe(ctx) {
   const p = st.pipe;
@@ -885,7 +893,27 @@ function catTail(ctx, pts, w = 10) {
   ctx.restore();
 }
 
+// kocour je Danielův obrázek (2026-11-13, prompt KC: kresba tuší, srst z jívových kočiček, python
+// tools/sprity.py): pózy sleep / stretch / walk / leap / sniff / sit, kotva = střed spodku tlap.
+// Obrázek je ve velikosti dřív kresleného kocoura (CAT_S), ve hře se zmenší na CAT_K.
 function drawCat(ctx) {
+  const c = st.cat, t = K.time, spr = K.sprite('kocour', c.pose);
+  if (!spr) return drawCatPaper(ctx);
+  const { sp, img } = spr;
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.scale(c.facing * CAT_K, CAT_K);
+  ctx.rotate(c.rot); // zrcadlení už směr otočí samo
+  if (!sp.right) ctx.scale(-1, 1);
+  if (c.pose === 'sleep') ctx.scale(1, 1 + Math.sin(t * 1.8) * 0.025); // dýchá
+  if (t - c.purrT < 2.5) ctx.translate(Math.sin(t * 40) * 0.6, 0); // přede
+  const bob = c.pose === 'walk' ? Math.abs(Math.sin(c.phase)) * 3 : 0;
+  ctx.drawImage(img, -sp.ax, -sp.ay - bob);
+  ctx.restore();
+}
+
+// kreslený kocour (dokud se nenačte obrázek)
+function drawCatPaper(ctx) {
   const c = st.cat, t = K.time;
   ctx.save();
   ctx.translate(c.x, c.y);
@@ -946,7 +974,7 @@ function drawPaper(ctx) {
   K.ground(ctx, 960, '#8a6a48');
 }
 
-const inCat = (p) => K.dist(p, { x: st.cat.x, y: st.cat.y - 30 * CAT_S }) < 70 * CAT_S;
+const inCat = (p) => K.dist(p, { x: st.cat.x, y: st.cat.y - 30 * CAT_S * CAT_K }) < 70 * CAT_S * CAT_K;
 const busyPhase = () => st.phase === 'intro' || st.phase === 'air' || st.phase === 'chain' || st.phase === 'done';
 
 const scene = {
@@ -1051,7 +1079,7 @@ const scene = {
     K.drawHero(ctx, h.x + ck * 3, h.y - h.hopY, HERO_S, { facing: h.facing, walking: h.walking, phase: h.phase, halo: false, reach: h.reach });
     drawPoker(ctx, false);
     // náruč roští nad hlavou
-    if (st.carry) drawImgAt(ctx, IMG.naruc, h.x + h.facing * 6, h.y - 262 - h.hopY + Math.abs(Math.sin(h.phase)) * 3, 1, Math.PI / 2 - 0.08 * h.facing);
+    if (st.carry) drawImgAt(ctx, IMG.naruc, h.x + h.facing * 6, h.y - 202 * HERO_S - h.hopY + Math.abs(Math.sin(h.phase)) * 3, 1, Math.PI / 2 - 0.08 * h.facing);
     drawSmoke(ctx);
     if (st.heroIcon && K.time < st.heroIcon.until) K.drawBubble(ctx, h.x + 24, h.y - 240, 0.95, st.heroIcon.icon);
     if (st.grannyIcon && K.time < st.grannyIcon.until) K.drawBubble(ctx, 500, 520, 0.95, st.grannyIcon.icon);

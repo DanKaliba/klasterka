@@ -252,7 +252,7 @@ K.drawSheepFlock = (ctx, extra = [], filter = null, scale = K.scaleAt) => {
   const flock = filter ? K.sheep.filter(filter) : K.sheep;
   const items = [...flock.map((sh) => ({ y: sh.y, draw: () => K.drawSheep(ctx, sh.x, sh.y, scale(sh.x, sh.y) * K.sheepSize(sh), {
     facing: sh.facing, phase: sh.phase, walking: sh.walking, headUp: sh.headUp, rot: sh.rot,
-    skis: sh.skis, scarf: sh.skis ? sh.scarf : null, ram: sh.ram,
+    skis: sh.skis, scarf: sh.skis ? sh.scarf : null, ram: sh.ram, lamb: sh.lamb,
   }) })), ...extra];
   items.sort((a, b) => a.y - b.y).forEach((it) => it.draw());
 };

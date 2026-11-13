@@ -156,13 +156,64 @@ function drawHat(ctx, hat, x, y, s, f) {
   ctx.restore();
 }
 
+// ---------- postavy z obrázků (js/sprity.js, python tools/sprity.py) ----------
+if (K.SPRITY) for (const set of Object.values(K.SPRITY)) for (const sp of Object.values(set)) K.img(sp.src);
+// { sp, img } načtené pózy, nebo null (pak se kreslí čarou)
+K.sprite = (set, pose) => {
+  const sp = K.SPRITY && K.SPRITY[set] && K.SPRITY[set][pose];
+  if (!sp) return null;
+  const img = K.img(sp.src);
+  return K.ready(img) ? { sp, img } : null;
+};
+
 // ---------- ovce ----------
+// Ovce jsou Danielův obrázek (2026-11-13, prompt OV1: tělo z kotrče kadeřavého, hlava a nohy tuší):
+// pózy stand / graze / walk / bleat, jehně (lamb) a beran (ram). Chůze střídá stand a walk.
+// Výška ovce ve hře = SHEEP_H * s (stejně velká jako dřív kreslená čarou).
+const SHEEP_H = 58;
+function drawSheepSprite(ctx, x, y, s, o) {
+  const f = o.facing || 1;
+  let pose = o.headUp ? 'stand' : 'graze';
+  if (o.walking) pose = Math.sin(o.phase || 0) > 0 ? 'walk' : 'stand';
+  if (o.skis) pose = 'stand';
+  if (o.lamb) pose = 'lamb';
+  if (o.ram) pose = 'ram';
+  const spr = K.sprite('ovce', pose);
+  if (!spr) return false;
+  const { sp, img } = spr;
+  // jehně: obrázek je menší, ale velikost už určuje s (LAMB_SIZE v louka.js)
+  const k = (s * SHEEP_H) / (o.lamb ? sp.h : K.SPRITY.ovce.stand.h);
+  const bob = o.walking ? Math.abs(Math.sin(o.phase || 0)) * 2 * s : 0;
+  ctx.save();
+  ctx.translate(x, y - 26 * s); // otáčí se kolem středu těla jako dřív (kotrmelec, náklon na vleku)
+  if (o.rot) ctx.rotate(o.rot);
+  ctx.save();
+  ctx.scale(f * (sp.right ? 1 : -1) * k, k);
+  ctx.drawImage(img, -sp.ax, -sp.ay + (26 * s - bob) / k);
+  ctx.restore();
+  if (o.scarf) {
+    // šála kolem krku (krk pózy stand / ram je vpravo nahoře, asi 0.3 šířky před kotvou)
+    const nx = f * 0.3 * sp.w * k, ny = 26 * s - 0.56 * sp.h * k;
+    ctx.strokeStyle = o.scarf;
+    stroke(ctx, [[nx - f * 5 * s, ny - 8 * s], [nx + f * 4 * s, ny + 3 * s], [nx - f * 3 * s, ny + 13 * s]], 5 * s, 60, 0.6);
+  }
+  if (o.skis) {
+    ctx.strokeStyle = INK;
+    const tip = o.ram ? [[40, 15], [39, 10], [35, 9], [33, 12], [36, 14]] : [];
+    stroke(ctx, [[-30, 27], [26, 27], [36, 21], ...tip].map(([a, b]) => [a * s * f, b * s]), 3.2 * Math.max(s, 0.35), 30, 0.6);
+  }
+  ctx.restore();
+  return true;
+}
+
 // o.skis, o.rot (náklon/kotrmelec), o.headUp, o.scarf (barva šály), o.hang (visí na kotvě),
-// o.ram = starý beran z lesa: větší, rohy do spirály a lyže se špičkou stočenou jako rohy
+// o.ram = starý beran z lesa: větší, rohy do spirály a lyže se špičkou stočenou jako rohy, o.lamb = jehně
+// Bez načteného obrázku se kreslí čarou (dole).
 K.drawSheep = (ctx, x, y, s, o = {}) => {
   if ((o.alpha ?? 1) < 1) return K.withAlpha(ctx, o.alpha, (c) => K.drawSheep(c, x, y, s, { ...o, alpha: 1 }));
   const f = o.facing || 1;
   if (o.ram) s *= 1.15;
+  if (drawSheepSprite(ctx, x, y, s, o)) return;
   const step = o.walking ? Math.sin(o.phase || 0) * 6 * s : 0;
   ctx.save();
   ctx.translate(x, y - 26 * s);

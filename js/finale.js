@@ -339,7 +339,7 @@ function drawRiders(ctx) {
     ctx.strokeStyle = K.INK;
     ctx.lineWidth = 2.2 * s;
     ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(sh.x + 20 * s, sh.y - 34 * s); ctx.stroke();
-    K.drawSheep(ctx, sh.x, sh.y, s, { facing: sh.facing, rot: sh.rot, skis: true, scarf: sh.scarf, ram: sh.ram });
+    K.drawSheep(ctx, sh.x, sh.y, s, { facing: sh.facing, rot: sh.rot, skis: true, scarf: sh.scarf, ram: sh.ram, lamb: sh.lamb });
   }
   ctx.restore();
 }

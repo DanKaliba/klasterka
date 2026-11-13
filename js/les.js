@@ -1136,6 +1136,12 @@ function drawRamBack(ctx, jig) {
   ctx.save();
   body();
   ctx.clip();
+  // vlna z kotrče jako u ostatních ovcí (výřez těla berana z obrázku OV1), mech přes ni
+  const fleece = K.sprite('ovce', 'ram');
+  if (fleece) {
+    const { sp, img } = fleece;
+    ctx.drawImage(img, sp.w * 0.06, sp.h * 0.3, sp.w * 0.6, sp.h * 0.45, cx - rx - 12, cy - ry - 12, (rx + 12) * 2, (ry + 12) * 2);
+  }
   if (m > 0 && K.ready(bg)) {
     ctx.globalAlpha *= m;
     const S = RAM_SKIN;
@@ -1158,8 +1164,27 @@ function drawRamBack(ctx, jig) {
   ctx.stroke();
 }
 
-// beran bokem, hlavou doleva (doprava řeší zrcadlení u volání)
+// beran bokem z obrázku (Daniel 2026-11-13, OV1: tělo z kotrče, rohy tuší), hlavou doleva;
+// čumák je tam, kde byl u kresleného berana (RAM_SNOUT), ať trkne do souše na stejném místě
+const RAM_SIDE_K = 1.6, RAM_SNOUT = -241;
+function drawRamSideSprite(ctx, jig) {
+  const spr = K.sprite('ovce', 'ram');
+  if (!spr) return false;
+  const { sp, img } = spr;
+  const bob = st.ram.walk ? Math.abs(Math.sin(K.time * 12)) * 5 : 0;
+  const snout = -(sp.w - sp.ax) * RAM_SIDE_K; // čumák zrcadleného obrázku vůči kotvě
+  ctx.save();
+  ctx.translate(jig + RAM_SNOUT - snout, -bob);
+  if (st.ram.walk) ctx.rotate(Math.sin(K.time * 12) * 0.02);
+  ctx.scale(-RAM_SIDE_K, RAM_SIDE_K);
+  ctx.drawImage(img, -sp.ax, -sp.ay);
+  ctx.restore();
+  return true;
+}
+
+// beran bokem, hlavou doleva (doprava řeší zrcadlení u volání); kreslený, dokud se nenačte obrázek
 function drawRamSide(ctx, jig) {
+  if (drawRamSideSprite(ctx, jig)) return;
   const cx = jig, cy = -90, rx = 175, ry = 72;
   const step = st.ram.walk ? Math.sin(K.time * 12) * 14 : 0;
   [-120, -60, 60, 120].forEach((lx, i) => {

@@ -8,7 +8,7 @@ ticha na začátku zní nejlíp.
 **Už jsou:** `krok-1…8` (tráva), `led-1…4` (zmrzlá hlína), `ovce-1`, `ovce-2`, `jehne`, `stado`
 (smyčka), `strom-pada`, `triangl-1`, `triangl-2`.
 
-Celkem chybí **46 zvuků**: 43 v příběhu a 3 ve vedlejších scénách. Některé zazní na víc místech, proto
+Celkem chybí **47 zvuků**: 44 v příběhu a 3 ve vedlejších scénách. Některé zazní na víc místech, proto
 jsou ve více tabulkách.
 
 ## Všude
@@ -58,6 +58,7 @@ jsou ve více tabulkách.
 | `poklice` | poklice na hrnci cvaká, opakuje se každé 3–4 s, potichu |
 | `mnau` | kocour zamňouká (protáhne se, lekne se) |
 | `lek` | děda se lekne kocoura (vyjeknutí) |
+| `bruceni` | děda se zlobí na kocoura, co mu skočil na hlavu (vztekle zabručí) |
 | `hrnek` | hrnek spadne z police |
 | `buch` | hrnek dopadne do košíku |
 | `semena` | semínka se vysypou do síta (sypání) |
