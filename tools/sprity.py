@@ -48,6 +48,42 @@ SETS = {
         'drop': ['trup', 'ruka', 'noha'],  # od H3 se berou jen hlavy
         'ref': ('noha', 'h', 240),
     },
+    # tetřívek na vrcholu (Daniel 2026-11-13, prompt T v pics/podklady-vrchol/PROMPT-vrchol.md): 5 póz,
+    # všechny koukají doleva (sedí, toká s vějířem, tahá kartu zobákem, načepýřený poražený, odlétá)
+    'tetrivek': {
+        'src': '../podklady-vrchol/tetrivek-T.png', 'grid': 0,
+        'poses': ['sit', 'display', 'pluck', 'sulk', 'fly'],
+        'right': [False] * 5,
+        'ref': ('display', 'h', 330),
+    },
+    # karty na oko bere (Daniel 2026-11-13, prompt KA): jeden obrázek na barvu, 6 karet v řadě. Gemini kreslí
+    # puntíky v rozích v nesprávné barvě a počtu, proto je fix_karty z rohů vygumuje (inpaint) a hra je
+    # dokreslí sama. Kotva = střed karty; ve hře se karta kreslí do obdélníku CARD_W × CARD_H.
+    'kartyZvirata': {
+        'src': '../podklady-vrchol/karty-zvirata.png', 'grid': 0, 'fix': 'fix_karty',
+        'poses': ['sykora', 'vyr', 'tetrev', 'liska', 'jelen', 'medved'],
+        'right': [True] * 6,
+        'center': ['sykora', 'vyr', 'tetrev', 'liska', 'jelen', 'medved'],
+        'ref': ('sykora', 'h', 360),
+    },
+    # rub karty (pera) a rabuše z opravdového dřeva (prompt KR); u rabuše se změří zářezy (notches)
+    'vrcholVeci': {
+        'src': '../podklady-vrchol/rub-rabuse.png', 'grid': 0,
+        'poses': ['rub', 'rabuse'],
+        'right': [True, True],
+        'center': ['rub', 'rabuse'],
+        'notches': ['rabuse'],
+        'ref': ('rub', 'h', 360),
+    },
+    'kartyRostlinyPovolani': {
+        'src': '../podklady-vrchol/karty-rostliny-povolani.png', 'grid': 2, 'fix': 'fix_karty',
+        'poses': ['boruvka', 'prha', 'horec', 'jerab', 'kosodrevina', 'smrk',
+                  'ovcak', 'drevorubec', 'tkadlec', 'hornik', 'sklar', 'ucitel'],
+        'right': [True] * 12,
+        'center': ['boruvka', 'prha', 'horec', 'jerab', 'kosodrevina', 'smrk',
+                   'ovcak', 'drevorubec', 'tkadlec', 'hornik', 'sklar', 'ucitel'],
+        'ref': ('boruvka', 'h', 360),
+    },
     # kloubové díly hrdiny (Daniel 2026-11-13, prompt H3). Gemini díly částečně spojil, opravuje je fix_h3:
     # předloktí se vyříznou z ohnutých rukou (od lokte k dlani) a otočí dolů, bližší lýtko se odřízne od
     # ohnuté nohy, stehno se natočí svisle a bližší je zesvětlené vzdálené. Měřítko jako trup v H2.
@@ -147,6 +183,48 @@ def fix_h3(poses):
     return [trup, paze, predlokti, paze2, predlokti2, stehno, lytko, stehno2, lytko2]
 
 
+def fix_karty(poses):
+    """Karty: vygumuje puntíky v levém horním a pravém dolním rohu (tmavé a červené skvrny na papíře),
+    hra je dokreslí v barvě barvy a správném počtu."""
+    out = []
+    for rgba in poses:
+        rgb = np.ascontiguousarray(rgba[..., :3])
+        h, w = rgb.shape[:2]
+        b, g, r = [rgb[..., i].astype(np.int16) for i in range(3)]
+        spot = ((r + g + b) < 380) | ((r - g) > 50)  # černé nebo červené puntíky
+        mask = np.zeros((h, w), np.uint8)
+        for x0, y0, x1, y1 in ((0.06, 0.03, 0.34, 0.26), (0.64, 0.78, 0.94, 0.97)):
+            box = np.zeros((h, w), bool)
+            box[int(y0 * h):int(y1 * h), int(x0 * w):int(x1 * w)] = True
+            # jen malé kulaté skvrny velikosti puntíku (ne ostří sekery, bota apod., co do rohu zasahuje)
+            n, lab, stats, _ = cv2.connectedComponentsWithStats((box & spot).astype(np.uint8))
+            for i in range(1, n):
+                bw, bh, area = stats[i, 2], stats[i, 3], stats[i, 4]
+                if area <= 0.008 * w * h and max(bw, bh) <= 0.17 * w:
+                    mask[lab == i] = 255
+        mask = cv2.dilate(mask, np.ones((5, 5), np.uint8))
+        clean = cv2.inpaint(rgb, mask, 6, cv2.INPAINT_TELEA)
+        out.append(np.dstack([clean, rgba[..., 3]]))
+    return out
+
+
+def notches(rgba):
+    """Zářezy rabuše: mezery mezi zuby těsně pod horním krajem → středy jako podíl šířky (zleva)."""
+    a = rgba[..., 3] > 128
+    ys, _ = np.nonzero(a)
+    row = a[ys.min() + max(2, rgba.shape[0] // 20)]
+    out, start = [], None
+    for x, v in enumerate(row):
+        if not v and start is None:
+            start = x
+        if v and start is not None:
+            f = (start + x) / 2 / rgba.shape[1]
+            if x - start >= 2 and 0.03 < f < 0.97:  # ne zaoblené konce klacíku
+                out.append(round(f, 4))
+            start = None
+    return out
+
+
 def top_anchor(rgba):
     """Střed horního pásu (krk trupu, rameno, kyčel)."""
     a = rgba[..., 3] > 128
@@ -194,6 +272,8 @@ def main():
             else:
                 ax, ay = anchor(rgba)
             sprity[name][pose] = {'src': src, 'w': rgba.shape[1], 'h': rgba.shape[0], 'ax': ax, 'ay': ay, 'right': right}
+            if pose in cfg.get('notches', []):
+                sprity[name][pose]['notches'] = notches(rgba)
             previews.append((rgba, ax, ay))
         print(name, 'měřítko', round(k, 3), {p: (v['w'], v['h']) for p, v in sprity[name].items()})
     js = ('// Vygenerováno skriptem tools/sprity.py — neupravovat ručně, spustit ho znovu.\n'

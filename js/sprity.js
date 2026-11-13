@@ -135,6 +135,241 @@ K.SPRITY = {
    "right": true
   }
  },
+ "tetrivek": {
+  "sit": {
+   "src": "assets/postavy/tetrivek-sit.png",
+   "w": 234,
+   "h": 321,
+   "ax": 98,
+   "ay": 319,
+   "right": false
+  },
+  "display": {
+   "src": "assets/postavy/tetrivek-display.png",
+   "w": 361,
+   "h": 330,
+   "ax": 218,
+   "ay": 328,
+   "right": false
+  },
+  "pluck": {
+   "src": "assets/postavy/tetrivek-pluck.png",
+   "w": 234,
+   "h": 319,
+   "ax": 86,
+   "ay": 317,
+   "right": false
+  },
+  "sulk": {
+   "src": "assets/postavy/tetrivek-sulk.png",
+   "w": 260,
+   "h": 277,
+   "ax": 151,
+   "ay": 274,
+   "right": false
+  },
+  "fly": {
+   "src": "assets/postavy/tetrivek-fly.png",
+   "w": 298,
+   "h": 345,
+   "ax": 205,
+   "ay": 343,
+   "right": false
+  }
+ },
+ "kartyZvirata": {
+  "sykora": {
+   "src": "assets/postavy/kartyZvirata-sykora.png",
+   "w": 213,
+   "h": 360,
+   "ax": 106,
+   "ay": 180,
+   "right": true
+  },
+  "vyr": {
+   "src": "assets/postavy/kartyZvirata-vyr.png",
+   "w": 207,
+   "h": 360,
+   "ax": 103,
+   "ay": 180,
+   "right": true
+  },
+  "tetrev": {
+   "src": "assets/postavy/kartyZvirata-tetrev.png",
+   "w": 205,
+   "h": 360,
+   "ax": 102,
+   "ay": 180,
+   "right": true
+  },
+  "liska": {
+   "src": "assets/postavy/kartyZvirata-liska.png",
+   "w": 206,
+   "h": 360,
+   "ax": 103,
+   "ay": 180,
+   "right": true
+  },
+  "jelen": {
+   "src": "assets/postavy/kartyZvirata-jelen.png",
+   "w": 209,
+   "h": 359,
+   "ax": 104,
+   "ay": 179,
+   "right": true
+  },
+  "medved": {
+   "src": "assets/postavy/kartyZvirata-medved.png",
+   "w": 212,
+   "h": 360,
+   "ax": 106,
+   "ay": 180,
+   "right": true
+  }
+ },
+ "vrcholVeci": {
+  "rub": {
+   "src": "assets/postavy/vrcholVeci-rub.png",
+   "w": 248,
+   "h": 360,
+   "ax": 124,
+   "ay": 180,
+   "right": true
+  },
+  "rabuse": {
+   "src": "assets/postavy/vrcholVeci-rabuse.png",
+   "w": 912,
+   "h": 72,
+   "ax": 456,
+   "ay": 36,
+   "right": true,
+   "notches": [
+    0.0636,
+    0.102,
+    0.1398,
+    0.1765,
+    0.2138,
+    0.25,
+    0.2851,
+    0.3235,
+    0.3618,
+    0.3958,
+    0.4298,
+    0.4644,
+    0.4984,
+    0.5334,
+    0.5685,
+    0.6031,
+    0.6431,
+    0.6815,
+    0.7166,
+    0.7505,
+    0.7856,
+    0.8202,
+    0.8558,
+    0.8914,
+    0.937
+   ]
+  }
+ },
+ "kartyRostlinyPovolani": {
+  "boruvka": {
+   "src": "assets/postavy/kartyRostlinyPovolani-boruvka.png",
+   "w": 192,
+   "h": 360,
+   "ax": 96,
+   "ay": 180,
+   "right": true
+  },
+  "prha": {
+   "src": "assets/postavy/kartyRostlinyPovolani-prha.png",
+   "w": 192,
+   "h": 360,
+   "ax": 96,
+   "ay": 180,
+   "right": true
+  },
+  "horec": {
+   "src": "assets/postavy/kartyRostlinyPovolani-horec.png",
+   "w": 186,
+   "h": 360,
+   "ax": 93,
+   "ay": 180,
+   "right": true
+  },
+  "jerab": {
+   "src": "assets/postavy/kartyRostlinyPovolani-jerab.png",
+   "w": 188,
+   "h": 361,
+   "ax": 94,
+   "ay": 180,
+   "right": true
+  },
+  "kosodrevina": {
+   "src": "assets/postavy/kartyRostlinyPovolani-kosodrevina.png",
+   "w": 192,
+   "h": 361,
+   "ax": 96,
+   "ay": 180,
+   "right": true
+  },
+  "smrk": {
+   "src": "assets/postavy/kartyRostlinyPovolani-smrk.png",
+   "w": 189,
+   "h": 361,
+   "ax": 94,
+   "ay": 180,
+   "right": true
+  },
+  "ovcak": {
+   "src": "assets/postavy/kartyRostlinyPovolani-ovcak.png",
+   "w": 191,
+   "h": 364,
+   "ax": 95,
+   "ay": 182,
+   "right": true
+  },
+  "drevorubec": {
+   "src": "assets/postavy/kartyRostlinyPovolani-drevorubec.png",
+   "w": 192,
+   "h": 364,
+   "ax": 96,
+   "ay": 182,
+   "right": true
+  },
+  "tkadlec": {
+   "src": "assets/postavy/kartyRostlinyPovolani-tkadlec.png",
+   "w": 185,
+   "h": 364,
+   "ax": 92,
+   "ay": 182,
+   "right": true
+  },
+  "hornik": {
+   "src": "assets/postavy/kartyRostlinyPovolani-hornik.png",
+   "w": 188,
+   "h": 364,
+   "ax": 94,
+   "ay": 182,
+   "right": true
+  },
+  "sklar": {
+   "src": "assets/postavy/kartyRostlinyPovolani-sklar.png",
+   "w": 192,
+   "h": 364,
+   "ax": 96,
+   "ay": 182,
+   "right": true
+  },
+  "ucitel": {
+   "src": "assets/postavy/kartyRostlinyPovolani-ucitel.png",
+   "w": 190,
+   "h": 364,
+   "ax": 95,
+   "ay": 182,
+   "right": true
+  }
+ },
  "hrdinaKlouby": {
   "trup": {
    "src": "assets/postavy/hrdinaKlouby-trup.png",

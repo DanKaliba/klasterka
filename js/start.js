@@ -82,6 +82,11 @@ window.render_game_to_text = () => {
       vetvicky: s.twigs.filter((t) => !t.gone).length, pramen: +s.flow.toFixed(2), cista: +s.clear.toFixed(2),
       dzbanek: +s.jug.full.toFixed(2), hrdinaX: Math.round(s.hero.x) };
   }
+  if (name === 'vrchol') {
+    const s = K.scene.st, V = K.scene;
+    out.vrchol = { faze: s.phase, tetrivek: s.grouse.state, skore: [s.score.hero, s.score.grouse], hrdina: V.total(s.heroCards),
+      tetrivekKarty: V.total(s.grouseCards), vOcasu: s.deck.length, zapasyTetrivka: s.grouseMatches, krok: s.step };
+  }
   if (name === 'finale') {
     const F = K.finale;
     out.finale = { t: +F.t.toFixed(1), klic: F.i, ceka: F.waiting && !F.liftOn, vlek: +F.liftSpeed.toFixed(2), konec: !!F.ended };

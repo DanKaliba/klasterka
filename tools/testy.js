@@ -20,6 +20,8 @@ const OKNO = [['cekaVolno'], ['klik', 772, 760], ['cekaVolno'], ['klik', 1515, 5
 const KUCHYNE = [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['klik', 1010, 995], ['cekaVolno'], ['klik', 446, 920]];
 const LES_BERAN = [['cekaScena', 'les'], ['cekaVolno'], ...VETEV, KRK];
 // studánka u božích muk (js/muka.js)
+// vrchol: oko bere s tetřívkem, pak 3× na hrudku (semínka, voda, rampouch)
+const VRCHOL_HRA = [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['klik', 1430, 650], ['cekaVolno'], ['klik', 1430, 650], ['cekaVolno'], ['klik', 1430, 650]];
 const MUKA_VETVE = [['cekaVolno'], ['klik', 1030, 752], ['cekaVolno'], ['klik', 1115, 764], ['cekaVolno'], ['klik', 1205, 754], ['cekaVolno']];
 const MUKA_ZABA = [['klik', 1060, 752], ['cekaVolno']];
 const MUKA_HRNEK = [['klikNastroj', 'hrnecek'], ['klik', 1677, 815]]; // hrnek z batůžku pod konec žlábku
@@ -119,7 +121,12 @@ window.SCENARE = {
   jelinek: [['ceka', 800], ['klik', 800, 800], ['ceka', 1600], ['klik', 1150, 800], ['ceka', 1600], ['klik', 1500, 800], ['ceka', 1600]],
   klinovka: [['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 1000, 800], ['ceka', 1500]],
   // semínka, voda, rampouch na hrudku → květina vyroste a práší
-  vrchol: [['ceka', 800], ['klik', 1290, 580], ['cekaVolno'], ['klik', 1290, 580], ['cekaVolno'], ['klik', 1290, 580], ['ceka', 6500]],
+  vrchol: [['cekaVolno'], ['ceka', 300]], // tetřívek toká na hrudce
+  vrcholKarta: [['cekaVolno'], ['klik', 1400, 560], ['cekaVolno'], ['ceka', 200]], // první karta klukovi
+  vrcholDve: [['cekaVolno'], ['klik', 1400, 560], ['cekaVolno'], ['klik', 1472, 442], ['cekaVolno'], ['ceka', 200]],
+  vrcholStaci: [['cekaVolno'], ['klik', 1400, 560], ['cekaVolno'], ['klik', 1472, 442], ['cekaVolno'], ['klik', 300, 900], ['ceka', 2600]],
+  vrcholOdlet: [['cekaVolno'], ['vrcholHraj'], ['ceka', 300]], // tetřívek odletěl, kluk u hrudky
+  vrcholKvetina: [...VRCHOL_HRA, ['ceka', 6500]],
   finale: [['ceka', 1000]],
   konec: [['ceka', 3000]],
   dokonce: [['cekaVlek'], ['ceka', 200], ['klikVlek'], ['cekaKonec'], ['ceka', 3000]],
@@ -140,8 +147,7 @@ window.SCENARE.cela = [
   ['klikChalupa', 'kantorska'], ['cekaScena', 'les'], ...LES, ['cekaScena', 'kantorska'], ['ceka', 700],
   ...KUCHYNE, ['cekaScena', 'louka'], ['ceka', 1500],
   ...navstiv('kriz', MUKA_CELA),
-  ['klikVrchol'], ['cekaScena', 'vrchol'], ['ceka', 700],
-  ['klik', 1290, 580], ['cekaVolno'], ['klik', 1290, 580], ['cekaVolno'], ['klik', 1290, 580],
+  ['klikVrchol'], ['cekaScena', 'vrchol'], ['ceka', 700], ...VRCHOL_HRA,
   ['cekaScena', 'finale'], ['cekaVlek'], ['ceka', 500], ['klikVlek'], ['cekaKonec'], ['ceka', 2500],
 ];
 
@@ -171,6 +177,19 @@ window.SCENARE.cela = [
     else if (s[0] === 'cekaMimo') await waitFor(() => K.scene !== K.scenes[s[1]], 'mimo ' + s[1]);
     else if (s[0] === 'cekaVolno') await waitFor(() => K.busy === 0, 'volno');
     else if (s[0] === 'bezLesa') K.forestDone();
+    else if (s[0] === 'vrcholHraj') {
+      // oko bere za kluka (táhne do 16, pak „stačí“), dokud tetřívek neodletí; nejvýš 10 min herního času
+      const V = K.scenes.vrchol;
+      for (let t = 0; t < 600000 && !['plant', 'bloom', 'done'].includes(V.st.phase); t += 100) {
+        if (K.busy === 0) {
+          const v = V.st;
+          if (v.phase === 'idle') K.click({ x: 1400, y: 560 });
+          else if (v.phase === 'hero') K.click(V.total(v.heroCards) < 16 ? { x: 1472, y: 442 } : { x: 300, y: 900 });
+        }
+        await wait(100);
+      }
+      if (V.st.phase !== 'plant') console.log('TIMEOUT vrchol');
+    }
     else if (s[0] === 'cekaVlek') await waitFor(() => K.finale.waiting, 'vlek');
     else if (s[0] === 'cekaKonec') await waitFor(() => K.finale.ended, 'konec');
     else {

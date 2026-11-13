@@ -8,7 +8,7 @@ ticha na začátku zní nejlíp.
 **Už jsou:** `krok-1…8` (tráva), `led-1…4` (zmrzlá hlína), `ovce-1`, `ovce-2`, `jehne`, `stado`
 (smyčka), `strom-pada`, `triangl-1`, `triangl-2`.
 
-Celkem chybí **47 zvuků**: 44 v příběhu a 3 ve vedlejších scénách. Některé zazní na víc místech, proto
+Celkem chybí **50 zvuků**: 47 v příběhu a 3 ve vedlejších scénách. Některé zazní na víc místech, proto
 jsou ve více tabulkách.
 
 ## Všude
@@ -80,11 +80,17 @@ jsou ve více tabulkách.
 | `nalevani` | voda teče do hrnku (asi 1,5 s, tón stoupá) |
 | `zvonek` | klik na Krista na kříži, jemné zazvonění zvonečku |
 
-## Vrchol (zasazení sněžné květiny)
+## Vrchol (oko bere s tetřívkem, zasazení sněžné květiny)
 
 | Soubor | Kdy zní |
 |---|---|
-| `sustot` | zasazení semínek (viz kuchyně) |
+| `tetrivek-tokani` | tetřívek toká: zve ke hře, vyhrál kolo (viz louka) |
+| `karta` | tetřívek vytáhne kartu z ocasu a položí ji (lusknutí karty) |
+| `prasknuti` | rabuše praskne, když hráč přetáhne 21 (praskne suchý klacík) |
+| `kaminek` | kluk položí kamínek na mužíka za vyhrané kolo (cvaknutí kamene o kámen) |
+| `frkani` | tetřívek načepýří peří: prohrál kolo, lekl se Krakonoše (viz les) |
+| `tetrivek` | poražený tetřívek odletí (viz finále) |
+| `sustot` | tetřívek odhodí pírko; zasazení semínek (viz kuchyně) |
 | `voda` | zalití (viz studánka) |
 | `cinkani` | přiložení rampouchu (viz les) |
 | `chorose` | květina roste (asi 3 s) |

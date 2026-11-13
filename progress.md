@@ -115,9 +115,22 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   a skočí dědovi na hlavu, děda se lekne a upustí fajfku (Daniel 2026-11-13) → kocour seskočí a přede, děda se
   směje → panáček sebere fajfku a z koše semínka (batoh) s hrnkem → až má všechno, odejde dveřmi.
   Chybí zvuky: kasel, vrzani (okno), praskani, predeni, mnau, dymka, hrnek, semena, poklice, tuk (hra je tiše přeskočí).
-- Úkoly ostatních chalup jsou ZÁSTUPNÉ. Vrchol (2026-11-09): panáček klikáním na hrudku hlíny dá semínka, zaleje ji
-  a přiloží rampouch (věci přiletí z batohu) → květina (`kvetina.webp`) vyroste, rozzáří se, zvonky práší
-  pyl, začne sněžit → finále. Kulisa vrcholu je zatím papírová.
+- Úkoly ostatních chalup jsou ZÁSTUPNÉ. Vrchol (`js/vrchol.js`, scéna `vrchol`): Daniel 2026-11-13 přidal
+  tetřívka s ocasem z karet a jednodušší oko bere (návrh, balíček a prompty v pics/podklady-vrchol/PROMPT-vrchol.md,
+  mockupy mockup-hra.png a mockup-karty.png odsouhlasené). Tetřívek sedí na hrudce; klik na něj = výzva
+  a první karta, klik na ocas = další karta, klik na svoje karty nebo na kluka = „stačí“; tetřívek táhne do 17
+  (ješitně i dál, po vyhraném zápase víc). Přes 21 praskne rabuše (klacík se součtem), dvě esa = oko.
+  Výhra kola: kamínek na mužíka / pírko tetřívka; 2 kola = konec. Kluk vyhraje → karty vypadají z ocasu,
+  tetřívek odletí; tetřívek vyhraje → hraje se znovu. Balíček 18 karet (černá zvířata, červené rostliny,
+  bílá povolání; král 2, eso 11) + Krakonoš jako žolík (1 nebo 11). V testu (?test) se míchá se semínkem;
+  krok testu `['vrcholHraj']` odehraje hru za kluka. Pak jako dřív: na hrudku semínka, voda, rampouch
+  (věci přiletí z batohu) → květina (`kvetina.webp`) vyroste, rozzáří se, práší pyl, sněží → finále.
+  Tetřívek je Danielův obrázek (2026-11-13, prompt T, pics/podklady-vrchol/tetrivek-T.png, python tools/sprity.py:
+  pózy sit / display / pluck / sulk / fly). Karty jsou Danielovy obrázky (prompt KA, karty-zvirata.png a
+  karty-rostliny-povolani.png): fix_karty v tools/sprity.py z rohů vygumuje puntíky (Gemini je kreslí špatnou
+  barvou a počtem) a hra je dokreslí sama. Rub karty (pera) a rabuše z opravdového dřeva jsou Danielův obrázek
+  (prompt KR, rub-rabuse.png): rabuše má 25 zářezů (sprity.py je změří), vybarvují se podle součtu a 21. má
+  červenou rysku. Krakonoš (žolík, prompt KK) je zatím kreslený, kulisa papírová.
 - Veřejné repo https://github.com/DanKaliba/klasterka, hra na https://dankaliba.github.io/klasterka/ (Pages z main,
   od 2026-11-02). Práva k fotkám webkamery se ještě řeší; Daniel se rozhodl zveřejnit i tak.
 - Push odsud: remote musí mít uživatele v URL (`https://DanKaliba@github.com/...`) a `GIT_TERMINAL_PROMPT=0`.
@@ -138,7 +151,7 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   Beran v lese (les.js): bokem je loutka berana (drawRamSideSprite, čumák na místě kresleného),
   zezadu kreslená hlava a rohy, tělo vyplněné kotrčem z dílu; obrázky zezadu čekají na prompt OV3.
 - `js/louka.js` hlavní scéna nad fotkou, cesta, ovce, přiblížení do chalupy
-- `js/chalupy.js` detaily chalup + vrchol (malé stavové automaty)
+- `js/chalupy.js` detaily chalup (malé stavové automaty); `js/vrchol.js` vrchol (oko bere s tetřívkem, květina)
 - `js/kuchyne.js` kuchyně na Kantorské (semínka), `js/muka.js` studánka u božích muk (voda), `js/les.js` les s lávkou (rampouch)
 - `js/finale.js` časová osa finále (klíče: snímek, noc, sníh, okna, hvězdy, vlek, události)
 - `js/editor.js` editor rozložení (E), export do `js/rozlozeni.js` (C)
