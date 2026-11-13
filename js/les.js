@@ -1171,7 +1171,7 @@ function drawRamSideSprite(ctx, jig) {
   const o = { ram: true, headUp: true, walking: st.ram.walk, phase: K.time * 12, facing: -1 };
   const head = K.sprite('ovceDily', 'hlavaBeran');
   if (!head || !K.sprite('ovceDily', 'telo')) return false;
-  const s = RAM_SIDE_S * 1.15, n = K.sheepNeck(s, o);
+  const s = RAM_SIDE_S * K.SHEEP.ramK, n = K.sheepNeck(s, o);
   const snout = -(n.x + (head.sp.w - head.sp.ax) * n.k); // hlavou doleva
   K.drawSheep(ctx, jig + RAM_SNOUT - snout, 0, RAM_SIDE_S, o);
   return true;

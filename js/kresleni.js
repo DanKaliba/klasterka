@@ -47,6 +47,7 @@ const HJ = {
   mouth: [13, -33], // pusa vůči spodku krku hlavy
 };
 // úhly (rad, 0 = visí dolů, kladně = konec jde dozadu) podle toho, co panáček dělá
+// o.reachA = jak daleko od svislice míří natažená ruka (výchozí 0.4; kuchyně ho dolaďuje k oknu)
 function heroAngles(o) {
   const ph = o.phase || 0, walk = o.walking ? 1 : 0;
   const legs = (side) => {
@@ -54,76 +55,83 @@ function heroAngles(o) {
     return { thigh: -0.38 * walk * Math.sin(p), knee: walk * 0.55 * Math.max(0, Math.cos(p)) };
   };
   const arm = { f: { up: 0.3 * walk * Math.sin(ph), fore: -0.25 }, b: { up: -0.3 * walk * Math.sin(ph), fore: -0.25 } };
-  if (o.arm === 'hold') arm.f = { up: -0.35, fore: -1.25 }; // drží něco před sebou (hrnek)
+  if (o.arm === 'hold') arm.f = { up: -0.1, fore: -0.55 }; // drží něco před sebou v pase (hrnek)
   if (o.arm === 'mouth') arm.f = { up: -0.55, fore: -2.35 }; // ruka u pusy (fajfka)
-  if (o.reach) arm.f = { up: -(Math.PI - 0.4), fore: -0.15 }; // natahuje se nahoru
+  if (o.reach) arm.f = { up: -(Math.PI - (o.reachA ?? 0.4)), fore: -0.15 }; // natahuje se nahoru
   if (o.wave) arm.f = { up: -(Math.PI - 0.7), fore: -0.6 + Math.sin(K.time * 10) * 0.45 };
   return { legF: legs('f'), legB: legs('b'), armF: arm.f, armB: arm.b };
 }
 const rotV = (a, len) => [-Math.sin(a) * len, Math.cos(a) * len]; // vektor délky len pod úhlem a
+const addV = (p, a, len) => { const v = rotV(a, len); return [p[0] + v[0], p[1] + v[1]]; };
 // polohy kloubů v px dílů vůči chodidlům (trup se posadí tak, aby níž položené chodidlo bylo na zemi)
 function heroJoints(o, P) {
   const a = heroAngles(o);
-  const shin = P.lytko.sp.h;
-  const foot = (hip, l) => {
-    const knee = [hip[0] + rotV(l.thigh, HJ.thigh)[0], hip[1] + rotV(l.thigh, HJ.thigh)[1]];
-    const end = rotV(l.thigh + l.knee, shin);
-    return { knee, toe: [knee[0] + end[0], knee[1] + end[1]] };
-  };
-  // nejdřív s trupem v 0, pak posun dolů, aby nejnižší chodidlo bylo na y = 0
-  const legAt = (side) => [HJ.hip[side][0], HJ.hip[side][1]];
-  const ff = foot(legAt('f'), a.legF), fb = foot(legAt('b'), a.legB);
-  const lift = Math.max(ff.toe[1], fb.toe[1]);
-  const T = [-HJ.hip.f[0], -lift]; // levý horní roh trupu
-  const at = (p) => [T[0] + p[0], T[1] + p[1]];
-  const arm = (side, an) => {
-    const sh = at(HJ.shoulder[side]);
-    const elbow = [sh[0] + rotV(an.up, HJ.upper)[0], sh[1] + rotV(an.up, HJ.upper)[1]];
-    const fore = P[side === 'f' ? 'predlokti' : 'predlokti2'].sp.h * 0.92;
-    const hand = [elbow[0] + rotV(an.up + an.fore, fore)[0], elbow[1] + rotV(an.up + an.fore, fore)[1]];
-    return { sh, elbow, hand, an };
-  };
+  // noha s trupem v počátku: kyčel → koleno → chodidlo
   const leg = (side, l) => {
-    const hip = at(HJ.hip[side]);
-    const knee = [hip[0] + rotV(l.thigh, HJ.thigh)[0], hip[1] + rotV(l.thigh, HJ.thigh)[1]];
-    return { hip, knee, l };
+    const hip = HJ.hip[side], knee = addV(hip, l.thigh, HJ.thigh);
+    return { hip, knee, toe: addV(knee, l.thigh + l.knee, P.lytko.sp.h), l };
+  };
+  const lf = leg('f', a.legF), lb = leg('b', a.legB);
+  const T = [-HJ.hip.f[0], -Math.max(lf.toe[1], lb.toe[1])]; // levý horní roh trupu (nejnižší chodidlo na y = 0)
+  const at = (p) => [T[0] + p[0], T[1] + p[1]];
+  const moved = (g) => ({ hip: at(g.hip), knee: at(g.knee), l: g.l });
+  const arm = (side, an) => {
+    const sh = at(HJ.shoulder[side]), elbow = addV(sh, an.up, HJ.upper);
+    const fore = P[side === 'f' ? 'predlokti' : 'predlokti2'].sp.h * 0.92;
+    return { sh, elbow, hand: addV(elbow, an.up + an.fore, fore), an };
   };
   const neck = at(HJ.neck);
-  return { T, neck, armF: arm('f', a.armF), armB: arm('b', a.armB), legF: leg('f', a.legF), legB: leg('b', a.legB),
-    top: neck[1] - (P.hlava ? P.hlava.sp.ay : 121) };
+  return { T, neck, armF: arm('f', a.armF), armB: arm('b', a.armB), legF: moved(lf), legB: moved(lb), top: neck[1] - P.hlava.sp.ay };
 }
-function heroParts(o) {
+function heroParts(face) {
   const g = (n) => K.sprite('hrdinaKlouby', n);
   const h = (n) => K.sprite('hrdinaDily', n);
   const P = { trup: g('trup'), paze: g('paze'), predlokti: g('predlokti'), paze2: g('paze2'), predlokti2: g('predlokti2'),
     stehno: g('stehno'), lytko: g('lytko'), stehno2: g('stehno2'), lytko2: g('lytko2'),
-    hlava: h(o.face === 'wet' ? 'hlavaMzouri' : o.face === 'startle' ? 'hlavaLek' : 'hlava') };
+    hlava: h(face === 'wet' ? 'hlavaMzouri' : face === 'startle' ? 'hlavaLek' : 'hlava') };
   return Object.values(P).every(Boolean) ? P : null;
 }
-// měřítko: celá loutka (chodidla → vršek čepice ve stoji) = 150 * s jako dřív panáček z čar
+// měřítko: celá loutka (chodidla → vršek čepice ve stoji s klidnou hlavou) = 150 * s jako dřív panáček z čar
 let heroRef = 0;
-function heroK(s, P) {
-  if (!heroRef) heroRef = -heroJoints({}, P).top;
-  return (150 * s) / heroRef;
+// díly a klouby pro dané volby; v jednom snímku se pro stejné volby počítají jen jednou
+// (scéna kreslí panáčka a pak se ptá na jeho ruku a pusu)
+const heroCache = { t: -1, map: new Map() };
+function heroSolve(o) {
+  if (heroCache.t !== K.time) { heroCache.t = K.time; heroCache.map.clear(); }
+  const key = [o.face, o.arm, o.reach ? 1 : 0, o.reachA, o.wave ? 1 : 0, o.walking ? 1 : 0, o.walking ? o.phase : 0].join('|');
+  let r = heroCache.map.get(key);
+  if (r === undefined) {
+    const P = heroParts(o.face);
+    if (P && !heroRef) {
+      const neutral = heroParts(null);
+      if (neutral) heroRef = -heroJoints({}, neutral).top;
+    }
+    r = P && heroRef ? { P, j: heroJoints(o, P) } : null;
+    heroCache.map.set(key, r);
+  }
+  return r;
 }
-// přední ruka a pusa ve světě (pro pohrabáč, hrnek, fajfku); null, dokud se loutka nenačte
+// přední ruka a pusa ve světě (pro pohrabáč, hrnek, fajfku); null, dokud se loutka nenačte.
+// Předat stejné volby jako drawHero (walking, phase, arm, reach…), ať ruka sedí i v chůzi.
 K.heroHand = (x, y, s, o = {}) => {
-  const P = heroParts(o);
-  if (!P) return null;
-  const j = heroJoints(o, P), k = heroK(s, P), f = o.facing || 1;
-  return { x: x + f * k * j.armF.hand[0], y: y + k * j.armF.hand[1] };
+  const r = heroSolve(o);
+  if (!r) return null;
+  const k = (150 * s) / heroRef, f = o.facing || 1;
+  return { x: x + f * k * r.j.armF.hand[0], y: y + k * r.j.armF.hand[1] };
 };
 K.heroMouth = (x, y, s, o = {}) => {
-  const P = heroParts(o);
-  if (!P) return null;
-  const j = heroJoints(o, P), k = heroK(s, P), f = o.facing || 1;
-  return { x: x + f * k * (j.neck[0] + HJ.mouth[0]), y: y + k * (j.neck[1] + HJ.mouth[1]) };
+  const r = heroSolve(o);
+  if (!r) return null;
+  const k = (150 * s) / heroRef, f = o.facing || 1;
+  return { x: x + f * k * (r.j.neck[0] + HJ.mouth[0]), y: y + k * (r.j.neck[1] + HJ.mouth[1]) };
 };
-// o.face: 'wet' (mžourá: mokrý, kašle) | 'startle' (vyděšený); o.arm: 'hold' | 'mouth'; o.reach, o.wave
-function drawHeroPuppet(ctx, x, y, s, o) {
-  const P = heroParts(o);
-  if (!P) return false;
-  const j = heroJoints(o, P), k = heroK(s, P), f = o.facing || 1;
+// o.face: 'wet' (mžourá: mokrý, kašle) | 'startle' (vyděšený); o.arm: 'hold' | 'mouth'; o.reach (+ o.reachA), o.wave;
+// o.halo (výchozí ano): světlý obrys, ať je malý panáček vidět na fotce louky
+function drawHeroPuppet(ctxIn, x, y, s, o) {
+  const r = heroSolve(o);
+  if (!r) return false;
+  const { P, j } = r, k = (150 * s) / heroRef, f = o.facing || 1;
+  let ctx = ctxIn; // plátno, do kterého se právě kreslí díly (hra, nebo pomocné plátno pro obrys)
   const part = (p, at, rot) => {
     ctx.save();
     ctx.translate(at[0], at[1]);
@@ -133,17 +141,40 @@ function drawHeroPuppet(ctx, x, y, s, o) {
   };
   const arm = (a, up, fore) => { part(fore, a.elbow, a.an.up + a.an.fore); part(up, a.sh, a.an.up); };
   const leg = (l, th, sh) => { part(sh, l.knee, l.l.thigh + l.l.knee); part(th, l.hip, l.l.thigh); };
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(f * k, k);
-  arm(j.armB, P.paze2, P.predlokti2); // vzdálená ruka a noha za trupem
-  leg(j.legB, P.stehno2, P.lytko2);
-  leg(j.legF, P.stehno, P.lytko);
-  ctx.drawImage(P.trup.img, j.T[0], j.T[1]);
-  part(P.hlava, j.neck, o.reach ? -0.12 : 0);
-  arm(j.armF, P.paze, P.predlokti); // bližší ruka před trupem
-  ctx.restore();
+  const puppet = (c, px, py) => {
+    ctx = c;
+    c.save();
+    c.translate(px, py);
+    c.scale(f * k, k);
+    arm(j.armB, P.paze2, P.predlokti2); // vzdálená ruka a noha za trupem
+    leg(j.legB, P.stehno2, P.lytko2);
+    leg(j.legF, P.stehno, P.lytko);
+    c.drawImage(P.trup.img, j.T[0], j.T[1]);
+    part(P.hlava, j.neck, o.reach ? -0.12 : 0);
+    arm(j.armF, P.paze, P.predlokti); // bližší ruka před trupem
+    c.restore();
+  };
+  if (o.halo === false) { puppet(ctxIn, x, y); return true; }
+  // světlý obrys kolem celé postavy: nejdřív bokem do plátna, pak jednou se stínem (jinak by záře
+  // každého dílu zamlžila díly pod ním)
+  const out = ctxIn, R = Math.ceil(heroRef * k * 0.75) + 12; // loutka se vejde do čtverce 2R kolem pasu
+  const hc = heroHaloCanvas(2 * R);
+  const g = hc.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, hc.width, hc.height);
+  puppet(g, R, 1.5 * R);
+  out.save();
+  out.shadowColor = 'rgba(255, 252, 240, 0.9)';
+  out.shadowBlur = Math.max(2, 5 * s);
+  out.drawImage(hc, 0, 0, 2 * R, 2 * R, x - R, y - 1.5 * R, 2 * R, 2 * R);
+  out.restore();
   return true;
+}
+let heroHalo = null;
+function heroHaloCanvas(size) {
+  if (!heroHalo) heroHalo = document.createElement('canvas');
+  if (heroHalo.width < size || heroHalo.height < size) heroHalo.width = heroHalo.height = Math.max(size, heroHalo.width);
+  return heroHalo;
 }
 
 K.drawHero = (ctx, x, y, s, o = {}) => {
@@ -285,13 +316,14 @@ K.sprite = (set, pose) => {
 // python tools/sprity.py → K.SPRITY.ovceDily). Nohy kreslí hra tuší, ať se při chůzi střídají
 // a dají se na ně nasadit lyže. Hlava se při pasení skloní (otáčí se kolem krku), při bečení zvedne.
 // Rozměry při s = 1 (stejná velikost jako dřív kreslená ovce):
-K.SHEEP = { bodyW: 60, legs: 15, neckX: 0.36, neckY: -0.12 };
-// beran a jehně: s už obsahuje jejich velikost (o.ram ×1.15, jehně LAMB_SIZE v louka.js);
+K.SHEEP = { bodyW: 60, legs: 15, neckX: 0.36, neckY: -0.12, ramK: 1.15 }; // ramK: beran je větší
+// beran a jehně: s už obsahuje jejich velikost (o.ram × ramK, jehně LAMB_SIZE v louka.js);
 // tělo jehněte je na obrázku menší, proto vlastní šířka
 const LAMB_BODY_W = 50;
 K.sheepParts = (o) => ({
   body: K.sprite('ovceDily', o.lamb ? 'teloJehne' : 'telo'),
-  head: K.sprite('ovceDily', o.ram ? 'hlavaBeran' : o.lamb ? 'hlavaJehne' : o.bleat ? 'beci' : 'hlava'),
+  // bečí: ovce otevře pusu, jehně má druhou hlavu (hlavaJehne2) se zvednutou bradou
+  head: K.sprite('ovceDily', o.ram ? 'hlavaBeran' : o.lamb ? (o.bleat ? 'hlavaJehne2' : 'hlavaJehne') : o.bleat ? 'beci' : 'hlava'),
 });
 // kde je krk a jak velký je obrázek (pro beranův čumák v lese, šálu)
 K.sheepNeck = (s, o) => {
@@ -354,7 +386,7 @@ function drawSheepSprite(ctx, x, y, s, o) {
 K.drawSheep = (ctx, x, y, s, o = {}) => {
   if ((o.alpha ?? 1) < 1) return K.withAlpha(ctx, o.alpha, (c) => K.drawSheep(c, x, y, s, { ...o, alpha: 1 }));
   const f = o.facing || 1;
-  if (o.ram) s *= 1.15;
+  if (o.ram) s *= K.SHEEP.ramK;
   if (drawSheepSprite(ctx, x, y, s, o)) return;
   const step = o.walking ? Math.sin(o.phase || 0) * 6 * s : 0;
   ctx.save();

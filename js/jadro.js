@@ -262,8 +262,12 @@ K.FLOCK_VOLUME = +(K.params.get('stado') ?? 0.15);
 K.BLEAT_VOLUME = +(K.params.get('ovce') ?? 0.4);
 const BLEATS = ['ovce-1', 'ovce-2'];
 for (const n of [...BLEATS, 'jehne']) getSound(n);
-K.bleat = (sh) => K.sound(sh && sh.lamb ? 'jehne' : BLEATS[Math.floor(Math.random() * BLEATS.length)],
-  { volume: K.BLEAT_VOLUME * K.rand(0.85, 1), rate: K.rand(0.94, 1.06) });
+// bečení: zvuk a ovce na chvíli otevře pusu (sh.bleatT čte K.drawSheepFlock)
+K.bleat = (sh) => {
+  if (sh) sh.bleatT = K.time;
+  K.sound(sh && sh.lamb ? 'jehne' : BLEATS[Math.floor(Math.random() * BLEATS.length)],
+    { volume: K.BLEAT_VOLUME * K.rand(0.85, 1), rate: K.rand(0.94, 1.06) });
+};
 // kroky po zmrzlé trávě jsou jen v pozadí pod hudbou; ladí se ?kroky=0.4
 K.STEP_VOLUME = +(K.params.get('kroky') ?? 0.25);
 // tráva assets/zvuky/krok-1…8.mp3, zmrzlá hlína s ledem led-1…4.mp3

@@ -47,12 +47,27 @@ const GRANDPA_AT = { x: 1400, y: 1008 }; // pravá noha stoličky
 const POSE_FADE = 0.18;
 const FY = 1045; // chodidla na podlaze
 const HERO_S = 1.9; // Daniel 2026-11-13: hrdina větší (dřív 1.3)
-// výskok s pohrabáčem k oknu: ruka s háčkem má být 247 px nad podlahou (jako dřív při HERO_S 1.3 a výskoku 88);
-// loutka sahá výš než panáček z čar, proto se výskok počítá z polohy její ruky
-const winHop = () => {
-  const hp = K.heroHand(0, 0, HERO_S, { reach: true });
-  return Math.max(10, 88 + 122 * 1.3 - (hp ? -hp.y : 122 * HERO_S));
-};
+// s pohrabáčem k oknu: ruka s háčkem má být WIN_HAND px nad podlahou (jako dřív při HERO_S 1.3 a výskoku 88).
+// Loutka by nataženou rukou sáhla výš, proto se úhel ruky (reachA) skloní tak, aby ruka byla přesně tam;
+// když ani svislá ruka nestačí, dorovná se to výskokem.
+const WIN_HAND = 88 + 122 * 1.3;
+function windowReach() {
+  const height = (a) => { const hp = K.heroHand(0, 0, HERO_S, { reach: true, reachA: a }); return hp ? -hp.y : null; };
+  if (height(0.4) === null) return { reachA: undefined, hop: Math.max(10, WIN_HAND - 122 * HERO_S) }; // panáček z čar
+  let lo = 0.4, hi = 1.6; // čím větší úhel, tím níž ruka
+  if (height(lo) <= WIN_HAND) return { reachA: lo, hop: WIN_HAND - height(lo) };
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2;
+    if (height(mid) > WIN_HAND) lo = mid; else hi = mid;
+  }
+  return { reachA: hi, hop: 0 };
+}
+// volby kreslení panáčka; stejné dostane i dotaz na ruku (pohrabáč) a pusu (kašel), ať sedí i v chůzi
+function heroOpts() {
+  const h = st.hero, ck = coughK(st.cough.hero);
+  return { facing: h.facing, walking: h.walking, phase: h.phase, halo: false, reach: h.reach, reachA: h.reachA,
+    face: ck ? 'wet' : null }; // v kouři mžourá
+}
 const DOOR_X = 1990; // dveře vpravo za obrazem
 const START_X = 1580;
 const EXIT = { x: 90, y: 990 };
@@ -183,7 +198,8 @@ async function intro() {
 function cough(who) {
   st.cough[who] = K.time;
   K.sound('kasel', { volume: 0.5, rate: who === 'granny' ? 1.15 : who === 'hero' ? 1.4 : 0.85 });
-  const m = who === 'granny' ? GRANNY_MOUTH : who === 'grandpa' ? GRANDPA_COUGH : { x: st.hero.x + 18 * st.hero.facing, y: FY - 175 };
+  const heroMouth = () => K.heroMouth(st.hero.x, FY - st.hero.hopY, HERO_S, heroOpts()) || { x: st.hero.x + 18 * st.hero.facing, y: FY - 175 };
+  const m = who === 'granny' ? GRANNY_MOUTH : who === 'grandpa' ? GRANDPA_COUGH : heroMouth();
   const dir = who === 'grandpa' ? -1 : who === 'granny' ? 1 : st.hero.facing;
   for (let i = 0; i < 4; i++) puffAt(m.x, m.y, dir * K.rand(40, 90), -K.rand(10, 40), 0.8);
 }
@@ -203,7 +219,8 @@ async function windowTry() {
     return;
   }
   st.phase = 'air';
-  const WIN_HOP = winHop();
+  const R = windowReach(), WIN_HOP = R.hop;
+  h.reachA = R.reachA;
   await K.tween(0.3, (t) => { h.hopY = Math.sin((t * Math.PI) / 2) * WIN_HOP; }); // háček zachytí rám
   K.sound('vrzani', { volume: 0.5 });
   const x0 = h.x;
@@ -214,6 +231,7 @@ async function windowTry() {
     st.win = e;
   });
   h.reach = false;
+  h.reachA = undefined;
   const drained = K.tween(4.5, (t) => { st.smoke = 1 - K.ease(t); }); // kouř vytáhne oknem
   await K.after(0.5);
   await heroGo(POKER_X + 26); // pohrabáč zpátky na tyč
@@ -791,7 +809,7 @@ function drawPoker(ctx, onRail) {
   }
   if (st.poker !== 'hero') return;
   const h = st.hero, f = h.facing, s = HERO_S, y = h.y - h.hopY;
-  const hp = K.heroHand(h.x, y, s, { facing: f, reach: h.reach });
+  const hp = K.heroHand(h.x, y, s, heroOpts());
   const hand = hp ? [hp.x, hp.y] : h.reach ? [h.x + f * 8 * s, y - 122 * s] : [h.x + f * 21 * s, y - 60 * s];
   ctx.save();
   ctx.translate(hand[0], hand[1]);
@@ -1082,8 +1100,7 @@ const scene = {
     drawPuffs(ctx);
     if (st.twigs) drawImgAt(ctx, IMG.naruc, st.twigs.x, st.twigs.y, st.twigs.s, st.twigs.rot, st.twigs.a);
     const h = st.hero, ck = coughK(st.cough.hero);
-    K.drawHero(ctx, h.x + ck * 3, h.y - h.hopY, HERO_S, { facing: h.facing, walking: h.walking, phase: h.phase, halo: false, reach: h.reach,
-      face: ck ? 'wet' : null }); // v kouři mžourá
+    K.drawHero(ctx, h.x + ck * 3, h.y - h.hopY, HERO_S, heroOpts());
     drawPoker(ctx, false);
     // náruč roští nad hlavou
     if (st.carry) drawImgAt(ctx, IMG.naruc, h.x + h.facing * 6, h.y - 202 * HERO_S - h.hopY + Math.abs(Math.sin(h.phase)) * 3, 1, Math.PI / 2 - 0.08 * h.facing);
