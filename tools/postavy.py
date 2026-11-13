@@ -1,6 +1,7 @@
 # Babka a děda do kuchyně (Daniel 2026-11-12): kresba + lišejník, prompty v
 # pics/podklady-kuchyne/PROMPT-postavy-lisejnik.md (B2, C2).
 #   pics/podklady-kuchyne/babka-B2.png  5 póz babky na modrém pozadí (všechny hledí doprava)
+#   pics/podklady-kuchyne/fajfka-F2.jpg dědova fajfka (prompt F2) → assets/predmety/fajfka.png
 #   pics/podklady-kuchyne/deda-C2.png   4 pózy dědy na modrém pozadí (3. hledí doprava → zrcadlí se;
 #                                       4. se nezrcadlí, aby stolička zůstala vpravo jako u ostatních)
 # Pózy vyřízne podle modré barvy, zmenší na velikost do hry a uloží jako
@@ -24,6 +25,9 @@ SHEETS = {
     'babka': ('babka-B2.png', 500, []),
     'deda': ('deda-C2.png', 590, [3]),
 }
+
+
+PIPE_H = 240  # výška fajfky ve hře (stojí svisle, náustek nahoře) → assets/predmety/fajfka.png
 
 
 def load(path):
@@ -91,6 +95,13 @@ def main():
             result[name].append([ax, ay])
             previews.append(rgba)
         print(name, 'pózy', len(poses), 'měřítko', round(scale, 3))
+    # dědova porcelánová fajfka (prompt F2): spadne mu, když mu kocour skočí na hlavu, a panáček ji sebere
+    pipe = cut_sheet(load(PICS / 'fajfka-F2.jpg'))
+    pipe = max(pipe, key=lambda p: p.shape[0] * p.shape[1])
+    k = PIPE_H / pipe.shape[0]
+    pipe = cv2.resize(pipe, (round(pipe.shape[1] * k), PIPE_H), interpolation=cv2.INTER_AREA)
+    save(ROOT / 'assets/predmety/fajfka.png', pipe)
+    print('fajfka', pipe.shape[1], 'x', pipe.shape[0])
     print('POSE_ANCHOR =', json.dumps(result))
     if '--nahled' in sys.argv:
         # všechny pózy vedle sebe na šedé, s křížkem v kotvě

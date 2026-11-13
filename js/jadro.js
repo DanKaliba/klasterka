@@ -335,7 +335,8 @@ K.withAlpha = (ctx, alpha, fn) => {
 // ---------- stav hry ----------
 // K.ITEMS (předměty = klíče k mraku) je v louka.js podle K.CHALETS
 // bag: batoh dá strom v lese; do té doby HUD jen zakrývá razítko kamery
-K.state = { asked: false, solved: {}, items: [], bag: false };
+// tools: věci, které se hodí jinde (Daniel 2026-11-13: hrnek a dědova fajfka z kuchyně → studánka u božích muk)
+K.state = { asked: false, solved: {}, items: [], bag: false, tools: [] };
 K.frameNow = '2025-12-28_1300'; // právě zobrazený snímek (pro testy)
 K.fade = { a: 0, color: '#efe6d2' };
 K.busy = 0; // >0 = právě běží scénka, kliky se ignorují
@@ -366,10 +367,57 @@ K.solve = async (id, item, from) => {
   K.state.items.push(item);
 };
 
+// nástroje (hrnek, fajfka) mají v HUD svá místa za klíči, bez kroužků; přiletí stejně jako klíče
+K.TOOLS = ['hrnecek', 'fajfka'];
+K.toolPos = (i) => K.slotPos(K.ITEMS.length + 0.5 + i);
+K.hasTool = (t) => K.state.tools.includes(t);
+K.giveTool = async (tool, from) => {
+  if (K.hasTool(tool)) return;
+  const to = K.toolPos(K.TOOLS.indexOf(tool));
+  const fly = { item: tool, x: from.x, y: from.y, s: 70 };
+  K.flyingItems.push(fly);
+  await K.tween(0.9, (t) => {
+    const e = K.ease(t);
+    fly.x = K.lerp(from.x, to.x, e);
+    fly.y = K.lerp(from.y, to.y, e) - Math.sin(t * Math.PI) * 140;
+    fly.s = K.lerp(70, 30, e);
+  });
+  K.flyingItems.splice(K.flyingItems.indexOf(fly), 1);
+  K.bagBump = K.time;
+  K.state.tools.push(tool);
+};
+K.dropTool = (tool) => {
+  K.state.tools = K.state.tools.filter((t) => t !== tool);
+  if (K.held === tool) K.held = null;
+};
+
+// nástroj v ruce (point & click, Daniel 2026-11-13): klik na nástroj v HUD ho vytáhne z batůžku,
+// ikona pak jede s kurzorem a další klik do scény ho použije. Scéna si K.held přečte hned na začátku
+// svého click(); po kliku do scény se nástroj vrátí do batůžku. Pravé tlačítko ho vrátí také.
+K.held = null;
+K.heldT = -9;
+K.toolAt = (p) => {
+  if (!K.state.bag) return null;
+  return K.TOOLS.find((t, i) => K.hasTool(t) && K.dist(p, K.toolPos(i)) < 24) || null;
+};
+K.click = (p) => {
+  if (K.busy > 0 || !K.scene || !K.scene.click) return;
+  const tool = K.toolAt(p);
+  if (tool) {
+    K.held = K.held === tool ? null : tool;
+    K.heldT = K.time;
+    K.bagBump = K.time;
+    return;
+  }
+  K.scene.click(p);
+  K.held = null;
+};
+
 // ---------- scény ----------
 K.scenes = {};
 K.scene = null;
 K.go = (name, arg) => {
+  K.held = null;
   K.scene = K.scenes[name];
   if (K.scene.enter) K.scene.enter(arg);
 };
@@ -411,8 +459,22 @@ function drawHud(ctx) {
     ctx.stroke();
     if (K.state.items.includes(it)) K.drawIcon(ctx, it, p.x, p.y, 32, '#f3e6c8');
   });
+  K.TOOLS.forEach((t, i) => {
+    if (!K.hasTool(t)) return;
+    const p = K.toolPos(i);
+    // vytažený nástroj nechá v HUD jen bledý obrys
+    ctx.globalAlpha = K.held === t ? 0.25 : 1;
+    K.drawIcon(ctx, t, p.x, p.y, 32, '#f3e6c8');
+    ctx.globalAlpha = 1;
+  });
   ctx.restore();
   for (const f of K.flyingItems) K.drawIcon(ctx, f.item, f.x, f.y, f.s, '#2b2118');
+  // nástroj v ruce jede s kurzorem (po vytažení krátce povyroste)
+  if (K.held && K.mouse) {
+    const t = K.time - K.heldT;
+    const s = (K.mouseHot ? 60 : 50) * (t < 0.25 ? 0.6 + 0.4 * K.ease(t / 0.25) : 1);
+    K.drawIcon(ctx, K.held, K.mouse.x + 18, K.mouse.y + 22, s, '#2b2118');
+  }
 }
 
 // ---------- vstup ----------
@@ -420,15 +482,18 @@ K.hover = null;
 K.canvas.addEventListener('pointerdown', (e) => {
   const p = K.toWorld(e);
   if (K.editor && K.editor.active) return K.editor.down(p, e);
-  if (K.busy > 0 || !K.scene || !K.scene.click) return;
-  K.scene.click(p);
+  K.mouse = p;
+  if (e.button === 2) { K.held = null; return; } // pravé tlačítko: nástroj zpátky do batůžku
+  K.click(p);
 });
+K.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 K.canvas.addEventListener('pointermove', (e) => {
   const p = K.toWorld(e);
   K.mouse = p;
   if (K.editor && K.editor.active) return K.editor.move(p, e);
   const hot = K.busy === 0 && K.scene && K.scene.hot && K.scene.hot(p);
-  K.canvas.style.cursor = hot ? 'pointer' : 'default';
+  K.mouseHot = !!hot;
+  K.canvas.style.cursor = hot || (K.busy === 0 && K.toolAt(p)) ? 'pointer' : 'default';
 });
 K.canvas.addEventListener('pointerup', (e) => {
   if (K.editor && K.editor.active) K.editor.up(K.toWorld(e), e);

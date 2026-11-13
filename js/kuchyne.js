@@ -11,8 +11,10 @@
 //   bramborami se rozvaří, křížaly na tyči se v teple rozhoupou.
 // - Vůně brambor dojde až na kamna, kde na dece spí kocour. Probudí se, protáhne a jde za vůní:
 //   seskočí na římsu kamen a na polici, po polici dojde k hrnku a shodí ho. Hrnek spadne do koše
-//   a semínka se vysypou. Kocour seskočí dolů a přede u sporáku.
-// - Panáček vybere semínka z koše (→ batoh) a odejde dveřmi.
+//   a semínka se vysypou. Kocour se vrátí po polici a skočí dědovi na hlavu, děda se lekne a upustí
+//   fajfku (Daniel 2026-11-13). Kocour seskočí dolů a přede, děda se zasměje.
+// - Panáček vybere z koše semínka (→ batoh) i hrnek a sebere fajfku (nástroje pro studánku u božích
+//   muk: do hrnku nabere vodu, fajfka se hodí na žábu). Až má všechno, odejde dveřmi.
 // Pozadí je prázdná kuchyně (prompt A), věci z promptu E jsou samostatně. Babka a děda jsou kresby
 // s lišejníkem (Daniel 2026-11-12, prompty B2 a C2 v pics/podklady-kuchyne/PROMPT-postavy-lisejnik.md),
 // každý v několika pózách, mezi nimiž se krátce prolne. Koš je DOČASNĚ vyříznutý ze staré verze
@@ -25,7 +27,7 @@ const IMG = {
   babka: [1, 2, 3, 4, 5].map((i) => S + `kuchyne-babka-${i}.png`), kos: S + 'kuchyne-kos.png',
   deda: [1, 2, 3, 4].map((i) => S + `kuchyne-deda-${i}.png`),
   hrnek: S + 'kuchyne-hrnek.png', rosti: S + 'kuchyne-rosti.png', naruc: S + 'kuchyne-naruc.png',
-  pohrabac: S + 'kuchyne-pohrabac.png', ven: S + 'kuchyne-okno-ven.png',
+  pohrabac: S + 'kuchyne-pohrabac.png', ven: S + 'kuchyne-okno-ven.png', fajfka: 'assets/predmety/fajfka.png',
   krizaly: [1, 2, 3].map((i) => S + `kuchyne-krizaly-${i}.png`),
 };
 for (const f of [BG, ...Object.values(IMG).flat()]) K.img(f);
@@ -78,7 +80,12 @@ const CAT_LEDGE = { x: 1036, y: 357 };
 const CAT_SHELF = 975;
 const CAT_SNIFF = 662; // hlavou nad hrncem
 const CAT_BUMP = 610; // hlavou u hrnku
-const CAT_FLOOR = { x: 700, y: 1040 };
+const CAT_HEAD = { x: 1285, y: 452 }; // na dědově pleši (póza 3)
+const CAT_FLOOR = { x: 720, y: 1040 }; // pak sedí na zemi u sporáku (ne na fajfce)
+// dědova fajfka: vypadne mu z ruky, když se lekne kocoura, a panáček ji sebere (→ studánka u božích muk)
+const PIPE_HAND = { x: 1095, y: 650 };
+const PIPE_FLOOR = { x: 1010, y: 1000, rot: -Math.PI / 2 + 0.12 }; // leží na boku, náustek vlevo
+const PIPE_HIT = { x: 1010, y: 995, r: 85 };
 
 const poly = (pts) => pts.map(([x, y]) => ({ x, y }));
 const GRANNY = poly([[80, 985], [90, 700], [150, 520], [260, 468], [340, 520], [395, 700], [380, 985]]);
@@ -90,6 +97,7 @@ const WIN_HIT = { x: 1430, y: 385, w: 180, h: 260 };
 const POKER_HIT = { x: 745, y: 655, w: 55, h: 215 };
 const BASKET_HIT = { x: BASKET.x, y: 930, rx: 110, ry: 90 };
 const inRect = (p, r) => p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h;
+const inPipe = (p) => st.pipe.state === 'floor' && K.dist(p, PIPE_HIT) < PIPE_HIT.r;
 const inBasket = (p) => ((p.x - BASKET_HIT.x) / BASKET_HIT.rx) ** 2 + ((p.y - BASKET_HIT.y) / BASKET_HIT.ry) ** 2 < 1;
 
 let st = null;
@@ -99,7 +107,8 @@ const init = () => ({
   heroIcon: null, grannyIcon: null,
   smoke: 1, win: 0, poker: 'rail', // rail | hero
   cough: { granny: -9, grandpa: -9, hero: -9 }, nextCough: 1.2, coughWho: 0,
-  lean: 0, reach: false, laughT: -9, carry: false, pile: true, twigs: null,
+  lean: 0, reach: false, laughT: -9, startleT: -9, carry: false, pile: true, twigs: null,
+  pipe: { state: 'hand', x: PIPE_HAND.x, y: PIPE_HAND.y, rot: 0.3 }, // hand | fall | floor | taken
   pose: { babka: { k: 1, prev: 1, t: -9 }, deda: { k: 1, prev: 1, t: -9 } },
   fire: 0, boil: 0, smell: 0, lidT: -9,
   strings: STRINGS.map(() => ({ bumpT: -9 })),
@@ -325,14 +334,42 @@ async function catWake() {
   await catGo([[CAT_BUMP, SHELF_Y]], 110);
   c.pose = 'sniff';
   await mugFall();
-  await K.after(0.5);
-  await catLeap(CAT_FLOOR.x, CAT_FLOOR.y, 0.7, 70);
+  await K.after(0.6);
+  // kocour se vrátí po polici a skočí dědovi na hlavu; děda se lekne a upustí fajfku (Daniel 2026-11-13)
+  c.pose = 'walk';
+  await catGo([[CAT_SHELF, SHELF_Y]], 160);
+  await catLeap(CAT_HEAD.x, CAT_HEAD.y, 0.65, 60);
+  c.pose = 'sit';
+  c.facing = -1;
+  await grandpaStartle();
+  await K.after(0.7);
+  await catLeap(CAT_FLOOR.x, CAT_FLOOR.y, 0.85, 60);
   K.sound('tuk', { volume: 0.4 });
   c.pose = 'sit';
   c.facing = -1; // kouká k ohni a hrnci
   c.purrT = K.time;
   K.sound('predeni', { volume: 0.7 });
+  st.laughT = K.time; // děda se tomu nakonec zasměje
   st.phase = 'seeds';
+}
+
+// děda vyskočí leknutím (póza 3, kouká nahoru na kocoura), fajfka mu vypadne z ruky a skutálí se na zem
+async function grandpaStartle() {
+  st.startleT = K.time;
+  K.sound('lek', { volume: 0.6 });
+  K.sound('mnau', { volume: 0.5, rate: 1.3 });
+  const c = st.cat, p = st.pipe;
+  K.tween(0.45, (t) => { c.y = CAT_HEAD.y - Math.sin(t * Math.PI) * 40; }); // kocour s ním nadskočí
+  p.state = 'fall';
+  await K.tween(0.75, (t) => {
+    p.x = K.lerp(PIPE_HAND.x, PIPE_FLOOR.x, t);
+    p.y = K.lerp(PIPE_HAND.y, PIPE_FLOOR.y, t * t) - Math.sin(t * Math.PI) * 70;
+    p.rot = K.lerp(0.3, PIPE_FLOOR.rot - Math.PI * 2, t); // jednou se protočí
+  });
+  p.rot = PIPE_FLOOR.rot;
+  K.sound('tuk', { volume: 0.5, rate: 0.8 });
+  await K.tween(0.25, (t) => { p.y = PIPE_FLOOR.y - Math.sin(t * Math.PI) * 10; }); // poskočí
+  p.state = 'floor';
 }
 
 async function mugFall() {
@@ -350,7 +387,6 @@ async function mugFall() {
     m.s = K.lerp(1, 1.12, t); // padá dopředu k nám
   });
   m.state = 'basket';
-  st.laughT = K.time; // děda se kocourovu kousku zasměje
   K.sound('buch', { volume: 0.4 });
   K.sound('semena', { volume: 0.6 });
   // semínka se vysypou do koše
@@ -360,6 +396,7 @@ async function mugFall() {
   }
 }
 
+// z koše vezme semínka (→ batoh) i hrnek (→ nástroj, nabere do něj vodu u studánky)
 async function takeSeeds() {
   K.busy++;
   await heroGo(BASKET.x + 120);
@@ -367,10 +404,31 @@ async function takeSeeds() {
   await hop(18, 0.28);
   st.taken = true;
   st.seeds = [];
-  st.phase = 'done';
-  await K.solve('kantorska', 'semena', { x: BASKET.x, y: BASKET.y });
-  await K.after(0.6);
+  st.mug.state = 'taken';
+  await Promise.all([
+    K.solve('kantorska', 'semena', { x: BASKET.x, y: BASKET.y }),
+    K.after(0.25).then(() => K.giveTool('hrnecek', { x: BASKET.x + 12, y: BASKET.y - 8 })),
+  ]);
   K.busy--;
+  await leaveWhenDone();
+}
+
+async function takePipe() {
+  K.busy++;
+  await heroGo(PIPE_FLOOR.x + (st.hero.x < PIPE_FLOOR.x ? -110 : 110));
+  st.hero.facing = Math.sign(PIPE_FLOOR.x - st.hero.x);
+  await hop(18, 0.28);
+  st.pipe.state = 'taken';
+  await K.giveTool('fajfka', { x: PIPE_FLOOR.x, y: PIPE_FLOOR.y });
+  K.busy--;
+  await leaveWhenDone();
+}
+
+// odejde, až má semínka, hrnek i fajfku (bez nich by u studánky nepochodil)
+async function leaveWhenDone() {
+  if (!st.taken || st.pipe.state !== 'taken') return;
+  st.phase = 'done';
+  await K.after(0.6);
   await leave(true);
 }
 
@@ -504,6 +562,7 @@ function grannyPose() {
   return st.fire > 0 ? 5 : 1;
 }
 function grandpaPose() {
+  if (K.time - st.startleT < 1.6) return 3; // leknutí: kouká nahoru na kocoura
   if (K.time - st.cough.grandpa < COUGH_POSE) return 2;
   if (st.cloud && K.time - st.cloud.t0 < CLOUD_LEN) return 3;
   if (K.time - st.laughT < 3.2) return 4;
@@ -537,8 +596,13 @@ function drawGranny(ctx) {
   drawFigure(ctx, 'babka', GRANNY_AT, 12 * st.lean, Math.abs(k) * 3, Math.sin(K.time * 1.7) * 0.006);
 }
 function drawGrandpa(ctx) {
-  const k = coughK(st.cough.grandpa);
-  drawFigure(ctx, 'deda', GRANDPA_AT, 0, Math.abs(k) * 3, Math.sin(K.time * 1.3 + 1) * 0.006);
+  const k = coughK(st.cough.grandpa), sT = K.time - st.startleT;
+  const jump = sT < 0.45 ? -Math.sin((sT / 0.45) * Math.PI) * 40 : 0; // leknutím nadskočí
+  drawFigure(ctx, 'deda', GRANDPA_AT, 0, Math.abs(k) * 3 + jump, Math.sin(K.time * 1.3 + 1) * 0.006);
+}
+function drawPipe(ctx) {
+  const p = st.pipe;
+  if (p.state === 'fall' || p.state === 'floor') drawImgAt(ctx, IMG.fajfka, p.x, p.y, 1, p.rot);
 }
 
 function drawSteam(ctx) {
@@ -724,7 +788,7 @@ function drawPoker(ctx, onRail) {
 
 function drawMug(ctx) {
   const m = st.mug;
-  drawImgAt(ctx, IMG.hrnek, m.x, m.y, m.s, m.rot);
+  if (m.state !== 'taken') drawImgAt(ctx, IMG.hrnek, m.x, m.y, m.s, m.rot);
   drawSeeds(ctx);
 }
 
@@ -975,6 +1039,7 @@ const scene = {
       ctx.drawImage(basketFront.c, basketFront.x, basketFront.y);
     }
     drawGrandpa(ctx);
+    drawPipe(ctx);
     drawGlow(ctx);
     drawSteam(ctx);
     drawSmell(ctx);
@@ -1009,7 +1074,7 @@ const scene = {
     if (st.phase === 'smoke') {
       return inRect(p, WIN_HIT) || (st.poker === 'rail' && inRect(p, POKER_HIT)) || K.inPolygon(p, GRANNY) || K.inPolygon(p, GRANDPA);
     }
-    if (st.phase === 'seeds' && inBasket(p)) return true;
+    if (st.phase === 'seeds' && ((!st.taken && inBasket(p)) || inPipe(p))) return true;
     return K.inPolygon(p, GRANDPA) || ((st.cat.pose === 'sleep' || st.cat.pose === 'sit') && inCat(p))
       || (st.fire === 0 && ((st.pile && inRect(p, BUNDLE_HIT)) || K.inPolygon(p, GRANNY)))
       || (st.mug.state === 'shelf' && inRect(p, SHELF_HIT));
@@ -1023,7 +1088,8 @@ const scene = {
       if (K.inPolygon(p, GRANNY)) return cough('granny');
       if (K.inPolygon(p, GRANDPA)) return cough('grandpa');
     } else {
-      if (st.phase === 'seeds' && inBasket(p)) return takeSeeds();
+      if (st.phase === 'seeds' && inPipe(p)) return takePipe();
+      if (st.phase === 'seeds' && !st.taken && inBasket(p)) return takeSeeds();
       if (K.inPolygon(p, GRANDPA)) return grandpaHint();
       if ((st.cat.pose === 'sleep' || st.cat.pose === 'sit') && inCat(p)) return catPet();
       if (st.fire === 0 && st.pile && inRect(p, BUNDLE_HIT)) return fetchTwigs();

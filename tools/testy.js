@@ -16,8 +16,17 @@ const PRES = [['cekaVolno'], ['klik', 900, 690], ['cekaVolno'], ['klik', 1500, 6
 const LES = [['ceka', 300], ['cekaVolno'], ...VETEV, KRK, ...PRES, ['cekaMimo', 'les']];
 // kuchyně: kouř → pohrabáč z tyče sporáku → okno; pak roští od dveří babce → … → semínka z koše
 const OKNO = [['cekaVolno'], ['klik', 772, 760], ['cekaVolno'], ['klik', 1515, 520], ['cekaVolno']];
-const KUCHYNE = [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['klik', 446, 920]];
+// … kocour skočí dědovi na hlavu, fajfka spadne → panáček sebere fajfku a pak semínka s hrnkem z koše
+const KUCHYNE = [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['klik', 1010, 995], ['cekaVolno'], ['klik', 446, 920]];
 const LES_BERAN = [['cekaScena', 'les'], ['cekaVolno'], ...VETEV, KRK];
+// studánka u božích muk (js/muka.js)
+const MUKA_VETVE = [['cekaVolno'], ['klik', 1030, 752], ['cekaVolno'], ['klik', 1115, 764], ['cekaVolno'], ['klik', 1205, 754], ['cekaVolno']];
+const MUKA_ZABA = [['klik', 1060, 752], ['cekaVolno']];
+const MUKA_HRNEK = [['klikNastroj', 'hrnecek'], ['klik', 1677, 815]]; // hrnek z batůžku pod konec žlábku
+const MUKA_DYM = [['klikNastroj', 'fajfka'], ['klik', 1060, 752]]; // fajfka z batůžku na žábu
+// žába: 1. se nafoukne, 2. cvrkne, 3. panáček na ni foukne dým z dědovy fajfky
+const MUKA_FAJFKA = [...MUKA_VETVE, ...MUKA_ZABA, ...MUKA_ZABA, ...MUKA_DYM, ['cekaVolno']];
+const MUKA_CELA = [...MUKA_FAJFKA, ...MUKA_HRNEK];
 window.SCENARE = {
   uvod: [['ceka', 3000]],
   ovce: [['ceka', 2500], ['klikOvce', 0], ['ceka', 600]],
@@ -81,14 +90,31 @@ window.SCENARE = {
   kuchKocour: [...OKNO, ['klik', 1735, 900], ['ceka', 15000]],
   kuchPolicka: [...OKNO, ['klik', 1735, 900], ['ceka', 19500]],
   kuchHrnek: [...OKNO, ['klik', 1735, 900], ['ceka', 23200]],
+  kuchHlava: [...OKNO, ['klik', 1735, 900], ['ceka', 29300]],
   kuchKos: [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['ceka', 500]],
+  kuchFajfka: [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['klik', 1010, 995], ['cekaVolno'], ['ceka', 300]],
   kuchHotovo: [...KUCHYNE, ['cekaScena', 'louka'], ['ceka', 300]],
   // zpět: rovnou prolnutí na louku, žádná chůze přes celou kuchyni
   kuchZpet: [['cekaScena', 'kantorska'], ['cekaVolno'], ['klik', 90, 990], ['ceka', 900]],
-  kriz: [['ceka', 800], ['klik', 760, 300], ['ceka', 300], ['klik', 1060, 820], ['ceka', 400], ['klik', 1236, 870], ['ceka', 900],
-    ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800]],
-  kriz2: [['ceka', 800], ['klik', 1236, 870], ['ceka', 900], ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800],
-    ['klik', 1060, 820], ['ceka', 1200]],
+  // studánka u božích muk: větvičky → žába; kořen panáčka vyleká; žába se postaví, pak cvrkne;
+  // had z kořene ji vyžene → pramen se vyčistí → hrnek z kuchyně pod žlábek
+  kriz: [['cekaVolno'], ['ceka', 300]],
+  krizOci: [...MUKA_VETVE.slice(0, 3), ['ceka', 300]],
+  krizZaba: [...MUKA_VETVE, ['ceka', 300]],
+  krizVelka: [...MUKA_VETVE, ['klik', 1060, 752], ['ceka', 800]],
+  krizCvrk: [...MUKA_VETVE, ...MUKA_ZABA, ['klik', 1060, 752], ['ceka', 700]],
+  krizVytazena: [...MUKA_VETVE, ['klikNastroj', 'fajfka'], ['ceka', 300]], // fajfka v ruce u kurzoru
+  krizDym: [...MUKA_VETVE, ...MUKA_DYM, ['ceka', 2600]],
+  krizSmrad: [...MUKA_VETVE, ...MUKA_DYM, ['ceka', 3100]],
+  krizUtek: [...MUKA_VETVE, ...MUKA_DYM, ['ceka', 5000]],
+  // holou rukou: žába pořád jen cvrká, od 2. cvrknutí bublina s fajfkou
+  krizRukou: [...MUKA_VETVE, ...MUKA_ZABA, ...MUKA_ZABA, ['klik', 1060, 752], ['ceka', 3300]],
+  krizCista: [...MUKA_FAJFKA, ['ceka', 300]],
+  krizSucho: [['cekaVolno'], ...MUKA_HRNEK, ['ceka', 1300]],
+  // klik na žlábek bez hrnku v ruce: dlaně pod tekoucím žlábkem, voda proteče mezi prsty
+  krizDlane: [...MUKA_VETVE, ...MUKA_DYM, ['cekaVolno'], ['klik', 1677, 815], ['ceka', 2600]],
+  krizNalevani: [...MUKA_FAJFKA, ...MUKA_HRNEK, ['ceka', 2600]],
+  krizHotovo: [...MUKA_CELA, ['cekaScena', 'louka'], ['ceka', 300]],
   jelinek: [['ceka', 800], ['klik', 800, 800], ['ceka', 1600], ['klik', 1150, 800], ['ceka', 1600], ['klik', 1500, 800], ['ceka', 1600]],
   klinovka: [['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 1000, 800], ['ceka', 1500]],
   // semínka, voda, rampouch na hrudku → květina vyroste a práší
@@ -112,7 +138,7 @@ window.SCENARE.cela = [
   ['ceka', 2500], ['klikOvce', 0], ['ceka', 300],
   ['klikChalupa', 'kantorska'], ['cekaScena', 'les'], ...LES, ['cekaScena', 'kantorska'], ['ceka', 700],
   ...KUCHYNE, ['cekaScena', 'louka'], ['ceka', 1500],
-  ...navstiv('kriz', [['klik', 1236, 870], ['ceka', 900], ['klik', 1320, 902], ['ceka', 900], ['klik', 1405, 892], ['ceka', 2800], ['klik', 1060, 820]]),
+  ...navstiv('kriz', MUKA_CELA),
   ['klikVrchol'], ['cekaScena', 'vrchol'], ['ceka', 700],
   ['klik', 1290, 580], ['cekaVolno'], ['klik', 1290, 580], ['cekaVolno'], ['klik', 1290, 580],
   ['cekaScena', 'finale'], ['cekaVlek'], ['ceka', 500], ['klikVlek'], ['cekaKonec'], ['ceka', 2500],
@@ -153,9 +179,10 @@ window.SCENARE.cela = [
       if (s[0] === 'klikChalupa') p = K.L.chalupy.find((c) => c.id === s[1]);
       if (s[0] === 'klikKolo') p = K.scene.st.wheel;
       if (s[0] === 'klikVrchol') p = K.L.vrchol;
+      if (s[0] === 'klikNastroj') p = K.toolPos(K.TOOLS.indexOf(s[1])); // vytáhne nástroj z batůžku
       if (s[0] === 'klikVlek') { const V = K.L.vlek; p = { x: V.sloup.x, y: (V.sloup.y + V.pata.y) / 2 }; }
       K.mouse = p;
-      if (K.busy === 0 && K.scene.click) K.scene.click(p);
+      K.click(p);
       await wait(50);
     }
   }

@@ -6,6 +6,7 @@
 //   ?rychle=4   — čtyřnásobná rychlost
 //   ?editor     — rovnou otevřít editor rozložení
 //   ?debug      — vykreslit cestu a klikací místa
+//   ?bezHrnku   — u studánky (scena=kriz) bez hrnku a fajfky z kuchyně
 //   ?test       — čas stojí, posouvá ho window.advanceTime(ms)
 (async () => {
   const ctx = K.ctx;
@@ -34,6 +35,8 @@
     for (const it of K.ITEMS) if (!K.state.items.includes(it)) K.state.items.push(it);
   }
   if (scena === 'vrchol') for (const it of K.ITEMS) if (!K.state.items.includes(it)) K.state.items.push(it);
+  // u studánky jako by panáček přišel z kuchyně (hrnek a fajfka); ?bezHrnku = bez nich
+  if (scena === 'kriz' && !K.params.has('bezHrnku')) K.state.tools.push('hrnecek', 'fajfka');
   K.go(K.scenes[scena] ? scena : 'louka');
   if (K.paused) window.advanceTime(16);
   if (K.params.has('skript')) {
@@ -56,6 +59,8 @@ window.render_game_to_text = () => {
     batoh: K.state.bag,
     hotove: Object.keys(K.state.solved),
     predmety: K.state.items,
+    nastroje: K.state.tools,
+    vRuce: K.held,
     zvuky: K.soundStats,
     hrdina: { x: Math.round(hp.x), y: Math.round(hp.y), bodCesty: +K.hero.p.toFixed(2), jde: K.hero.target !== null, volne: !!K.hero.off, videt: K.hero.visible },
     ovce: K.sheep.map((s) => ({ x: Math.round(s.x), y: Math.round(s.y), rezim: s.mode })),
@@ -69,7 +74,13 @@ window.render_game_to_text = () => {
     const s = K.scene.st;
     out.kuchyne = { faze: s.phase, kour: +s.smoke.toFixed(2), okno: +s.win.toFixed(2), pohrabac: s.poker, ohen: +s.fire.toFixed(2),
       kocour: s.cat.pose, kocourX: Math.round(s.cat.x), hrnek: s.mug.state, rosti: s.pile, hrdinaX: Math.round(s.hero.x),
-      babka: s.pose.babka.k, deda: s.pose.deda.k, rosti2: s.twigs ? Math.round(s.twigs.x) + ',' + Math.round(s.twigs.y) : null };
+      babka: s.pose.babka.k, deda: s.pose.deda.k, fajfka: s.pipe.state };
+  }
+  if (name === 'kriz') {
+    const s = K.scene.st;
+    out.studanka = { faze: s.phase, zaba: s.frog.state, pokusy: s.frog.tries, fajfka: s.hero.pipe,
+      vetvicky: s.twigs.filter((t) => !t.gone).length, pramen: +s.flow.toFixed(2), cista: +s.clear.toFixed(2),
+      dzbanek: +s.jug.full.toFixed(2), hrdinaX: Math.round(s.hero.x) };
   }
   if (name === 'finale') {
     const F = K.finale;

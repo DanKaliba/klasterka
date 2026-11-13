@@ -415,16 +415,21 @@ K.drawBubble = (ctx, x, y, s, icon) => {
 
 // ---------- ikony ----------
 // batoh je fotka (Daniel 2026-11-10, python tools/batoh.py); dokud se nenačte, kreslí se čárou
-const BAG_IMG = 'assets/predmety/batoh.png';
-K.img(BAG_IMG);
+// ikony z obrázků (batoh, nástroje); dokud se nenačtou, kreslí se čarou
+const ICON_IMG = {
+  batoh: { src: 'assets/predmety/batoh.png', h: 0.9 },
+  fajfka: { src: 'assets/predmety/fajfka.png', h: 1.5 },
+  hrnecek: { src: 'assets/sceny/kuchyne-hrnek.png', h: 0.7 },
+};
+for (const v of Object.values(ICON_IMG)) K.img(v.src);
 K.drawIcon = (ctx, name, x, y, size, color = INK) => {
   const u = size / 24;
   ctx.save();
   ctx.translate(x, y);
-  const bagImg = name === 'batoh' && K.img(BAG_IMG);
-  if (bagImg && K.ready(bagImg)) {
-    const h = size * 0.9, w = (h * bagImg.width) / bagImg.height;
-    ctx.drawImage(bagImg, -w / 2, -h / 2, w, h);
+  const ii = ICON_IMG[name], iconImg = ii && K.img(ii.src);
+  if (iconImg && K.ready(iconImg)) {
+    const h = size * ii.h, w = (h * iconImg.width) / iconImg.height;
+    ctx.drawImage(iconImg, -w / 2, -h / 2, w, h);
     ctx.restore();
     return;
   }
@@ -555,6 +560,18 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
       [[-3, -6, 0.5], [2, -8, -0.4], [4, -4, 0.2]].forEach(([sx, sy, r]) => {
         ctx.beginPath(); ctx.ellipse(sx * u, sy * u, 1.6 * u, 2.5 * u, r, 0, Math.PI * 2); ctx.fill();
       });
+      break;
+    case 'hrnecek':
+      // prázdný hrnek (nástroj: nabere se do něj voda)
+      L([[-7, -5], [-6, 8], [5, 8], [6, -5], [-7, -5]]);
+      ctx.beginPath(); ctx.arc(7 * u, 1 * u, 3.4 * u, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+      break;
+    case 'fajfka':
+      // dlouhá fajfka: náustek nahoře, troubel a porcelánová hlavička s víčkem dole
+      L([[-3, -11], [-1, -12], [1, -9], [1, 3]]);
+      ctx.beginPath(); ctx.ellipse(3 * u, 7 * u, 4.5 * u, 4.5 * u, 0, 0, Math.PI * 2); ctx.stroke();
+      L([[1, 3], [4, 3]]);
+      L([[-2, -9], [-4, -2]]); L([[-1, -9], [-2, -2]]);
       break;
     case 'pohrabac':
       // pohrabáč: očko nahoře, tyč a háček dole

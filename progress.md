@@ -59,9 +59,29 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
 - Hrací místo i u božích muk nad Kantorskou (2026-11-04, Daniel): id `kriz` mezi chalupami s `druh: 'kriz'`
   (nekouří se, nesvítí). Poloha podle Daniela mapy.com/s/kufomadecu (50.7099203N, 15.6511865E), na snímku
   u osamělého smrčku vedle cesty (640, 302); cesta ve hře tudy vede po skutečné cestě. Fotky muk:
-  pics/muka (gitignore). Pod křížem studánka, ze které teče voda do Kantorské. Zástupný úkol: odklidit
-  3 smrkové větve ze studánky → voda teče trubkou ke Kantorské (rozsvítí se, Kantorka zamává) → natočit
-  vodu do džbánku → předmět `voda`. Klik na kříž = Kristus se zaleskne.
+  pics/muka (gitignore). Pod křížem studánka, ze které teče voda do Kantorské.
+  Studánka a žába (Daniel 2026-11-12), `js/muka.js` (scéna `kriz`): studánka je zanesená (3 hromádky
+  smrkových větviček, listí a bahno), žlábkem neteče nic. Větvičky jde vytáhnout, po první vykouknou oči,
+  po třetí je vidět žába, která sedí na vývěru a ucpává ho. Klik na žábu holou rukou: 1. se postaví na zadní
+  a dělá se větší, 2. a další se otočí a cvrkne panáčkovi do obličeje; od 2. cvrknutí má panáček bublinu
+  s fajfkou (můj nápad). Žábu zažene dědova fajfka z kuchyně (Daniel 2026-11-13: „hrdina začne kouřit fajfku
+  a foukat dým na žábu, žábě kouř smrdí a odskáče pryč“; nahradilo hada z kořene, kořen ze scény zmizel).
+  Point & click (Daniel 2026-11-13): hráč fajfku vytáhne z batůžku (klik na ni v HUD) a klikne s ní na žábu.
+  Panáček si ji dá do pusy, dvakrát bafne, foukne dým na žábu, nad žábou se vlní smrad a třemi skoky uteče
+  doleva. Pramen probublá, bahno a listí odplavou žlábkem, kal se rozplyne →
+  hrnek z kuchyně (Daniel 2026-11-13: místo džbánku, scény na sebe navazují) se taky vytáhne z batůžku
+  a klikne se s ním na konec žlábku; dokud neteče, hrnkem jen zatřese → předmět `voda` (hrnek z nástrojů
+  zmizí) → odchod doprava. Klik na žlábek bez hrnku v ruce: panáček nastaví dlaně a voda mu proteče mezi
+  prsty (můj nápad). Rozdělaná studánka si stav pamatuje i po odchodu.
+  Žába: Danielův obrázek (kresba tuší + záda z fotky mokrého listu, prompt Z v pics/podklady-muka/PROMPT-zaba.md),
+  `python tools/zaba.py` → assets/sceny/zaba-1..5.png a kotvy (FROG_ANCHOR). Póza 3 (cvrknutí) je z úpravy
+  `zaba-Z2.jpeg` (2026-11-13); z ní se bere jen póza 3, protože Gemini při úpravě překreslil i pózu 4.
+  Pozadí (2026-11-13, ChatGPT, prompt P v pics/podklady-muka/PROMPT-pozadi.md, varianta 2 `muka-P2.png`):
+  `python tools/muka.py` → assets/sceny/muka.jpg + vrstvy muka-voda.png (přes čistou vodu z fotky hra kreslí
+  kal, který se rozplyne, a znovu ji kreslí přes nohy žáby), muka-obruba.png (přední kameny), muka-stovik.png
+  (šťovík v rohu, panáček jde za ním); levé horní rohy vrstev jsou v `LAYERS` v muka.js. Větvičky, listí na
+  hladině, dým a panáček jsou kreslené.
+  Klik na Krista = zaleskne se. Červený tulipán za ramenem kříže je podle Danielovy fotky (můj nápad v promptu).
 - Vlek ve finále je „dokreslený fixou“ (Daniel 2026-11-09): lano i kotvy se chvějí v taktu K.boil, čárky na
   laně běží s ním, na vršku sloupu se točí dvě kladky (`drawLift`, `drawPulley` ve finale.js).
 - Kantorská = kuchyně (2026-11-09, `js/kuchyne.js`): pozadí od Daniela podle fotky z Paseků 1916 (Album ze
@@ -74,15 +94,22 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   z opravdového lišejníku, babka šátek z opravdové látky (prompty B2, C2 v
   `pics/podklady-kuchyne/PROMPT-postavy-lisejnik.md`). Pózy vyřezává `python tools/postavy.py` z modrého
   pozadí; hra mezi nimi krátce prolíná. Babka: 1 kouká do ohně, 2 kašle, 3 prosí o roští, 4 přikládá,
-  5 spokojená (když hoří). Děda: 1 dýmka, 2 kašle, 3 vyfukuje nápovědu a kouká na ni, 4 se směje, když
-  kocour shodí hrnek (můj nápad). Děda má zatím kreslenou dýmku; porcelánová fajfka (`fajfka-F2.jpg`,
-  prompt F2) je připravená pro úpravu dědy a jako možný předmět později.
+  5 spokojená (když hoří). Děda: 1 dýmka, 2 kašle, 3 vyfukuje nápovědu a kouká na ni / lekne se kocoura,
+  4 se směje (můj nápad). Děda má zatím v pózách kreslenou dýmku i potom, co mu spadne porcelánová fajfka
+  (`assets/predmety/fajfka.png` z `fajfka-F2.jpg`, prompt F2); čeká na pózy bez dýmky.
+  Nástroje (2026-11-13, `K.TOOLS`, `K.giveTool` v jadro.js): hrnek a fajfka mají v HUD místa za klíči, bez
+  kroužků, ikony jsou obrázky (kresleni.js `ICON_IMG`). Point & click (Daniel 2026-11-13): klik na nástroj
+  v HUD ho vytáhne (`K.held`, ikona jede s kurzorem, v HUD zůstane bledý obrys), další klik do scény ho
+  použije a vrátí do batůžku; znovu klik na nástroj nebo pravé tlačítko ho vrátí také. Všechny kliky jdou
+  přes `K.click` (i v testech, krok `['klikNastroj', 'fajfka']`); scéna si `K.held` přečte hned na začátku
+  svého click().
   Úvod (Daniel 2026-11-10): v kuchyni je kouř (čadí z otevřených dvířek), babka s dědou kašlou → okno.
   Panáček na okno nedosáhne (jen vyskočí; bez nápovědy a kroužků, Daniel 2026-11-10) → vezme pohrabáč z tyče sporáku (můj nápad), háčkem
   zachytí spodek křídla, přitáhne okno dovnitř, kouř vytáhne ven, pohrabáč vrátí. Pak jako dřív:
   děda vyfoukne kouř s nápovědou (květina → hrnek), panáček donese babce roští od dveří → oheň, hrnec se
-  rozvaří, vůně vzbudí kocoura na kamnech → po polici dojde k hrnku a shodí ho do koše → semínka z koše
-  do batohu → odchod dveřmi.
+  rozvaří, vůně vzbudí kocoura na kamnech → po polici dojde k hrnku a shodí ho do koše → vrátí se po polici
+  a skočí dědovi na hlavu, děda se lekne a upustí fajfku (Daniel 2026-11-13) → kocour seskočí a přede, děda se
+  směje → panáček sebere fajfku a z koše semínka (batoh) s hrnkem → až má všechno, odejde dveřmi.
   Chybí zvuky: kasel, vrzani (okno), praskani, predeni, mnau, dymka, hrnek, semena, poklice, tuk (hra je tiše přeskočí).
 - Úkoly ostatních chalup jsou ZÁSTUPNÉ. Vrchol (2026-11-09): panáček klikáním na hrudku hlíny dá semínka, zaleje ji
   a přiloží rampouch (věci přiletí z batohu) → květina (`kvetina.webp`) vyroste, rozzáří se, zvonky práší
@@ -96,7 +123,7 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
 - `js/kresleni.js` zástupné kresby (panáček, ovce, chalupníci, zvířata, ikony, papír)
 - `js/louka.js` hlavní scéna nad fotkou, cesta, ovce, přiblížení do chalupy
 - `js/chalupy.js` detaily chalup + vrchol (malé stavové automaty)
-- `js/kuchyne.js` kuchyně na Kantorské (semínka), `js/les.js` les s lávkou (rampouch)
+- `js/kuchyne.js` kuchyně na Kantorské (semínka), `js/muka.js` studánka u božích muk (voda), `js/les.js` les s lávkou (rampouch)
 - `js/finale.js` časová osa finále (klíče: snímek, noc, sníh, okna, hvězdy, vlek, události)
 - `js/editor.js` editor rozložení (E), export do `js/rozlozeni.js` (C)
 - `js/rozlozeni.js` souřadnice chalup, cesty, vleku, louky, obzoru, posun zimních snímků
@@ -117,7 +144,7 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
   lesBeran/lesBokem/lesTrk/lesVrze/lesPad/lesLavka/lesOdchod/lesKonec (`&scena=les`),
   skocka, kantorska/kuchKasel/kuchOknoBez/kuchPohrabac/kuchHak/kuchVzduch/kuchDeda/kuchBabka/kuchPolice/kuchNesu/
   kuchPrilozi/kuchOhen/kuchKocour/kuchPolicka/kuchHrnek/kuchKos/kuchHotovo/kuchZpet
-  (`&scena=kantorska`), kriz/kriz2 (`&scena=kriz`), jelinek, klinovka, vrchol,
+  (`&scena=kantorska`), kriz/krizOci/krizZaba/krizVelka/krizCvrk/krizDym/krizSmrad/krizUtek/krizCista/krizSucho/krizNalevani/krizHotovo (`&scena=kriz`), krizBezFajfky/krizDlane (`&scena=kriz&bezHrnku`), jelinek, klinovka, vrchol,
   finale (+ `&finale=<s>`), vlek, stopy (`&vse`), ptacek/odlet (`&scena=finale&finale=20`), daleko/daleko2 (panáček na horní louce), **cela** (celá hra až po titulek, ~100 s reálně).
 
 ## Stav
@@ -143,7 +170,9 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
       probouzí), coje, triangl-1/2 (padající kapka, od Daniela), chrapot (beran spí), beran (probouzí se), otrepani,
       brr (ledová voda), vravorani (konec převisu), cinkani (rampouchy ve stínu / utržené), vetev, splouchnuti,
       slunce, frkani, trknuti, praskani, strom-pada (souška vrže a padne, od Daniela);
-      louka: tetrivek-tokani (klik na tetřívka na sloupu).
+      louka: tetrivek-tokani (klik na tetřívka na sloupu);
+      studánka: kvak, cvrk, dymka (bafnutí z fajfky), foukani (fouknutí dýmu), plesk (skok žáby), bublani,
+      nalevani, splouchnuti, brr, sustot, voda, zvonek.
       Chybějící soubor se tiše přeskočí. Hudba na pozadí zatím není.
 - [x] Ovce (2026-11-08): `python tools/zvuky.py` převede Danielovy `sounds/sheep_1.wav`, `sheep_2.wav`
       na `ovce-1/2.mp3` (bečení po kliku na ovci na louce i ve finále, náhodně jedno z nich s mírně jinou
