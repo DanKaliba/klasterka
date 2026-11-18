@@ -228,22 +228,60 @@ function drawLift(ctx, alpha) {
 function trackPoint(sh) {
   if (!sh.trail) { sh.trail = []; F.trails.push(sh.trail); }
   const last = sh.trail[sh.trail.length - 1];
-  if (!last || K.time - last.t > 0.035) sh.trail.push({ x: sh.x, y: sh.y, t: K.time });
+  // j = stálé chvění ruky (každý bod jednou, ať se stopa nehýbe), n = přítlak pera
+  if (!last || K.time - last.t > 0.035) sh.trail.push({ x: sh.x, y: sh.y, t: K.time, j: K.rand(-1, 1), n: K.rand(0.85, 1.15) });
+}
+
+// stopa jako tah perem (Daniel 2026-11-18): v zatáčce silná, na rovině tenká, začátek se zúží
+const TRACK_THIN = 0.9, TRACK_THICK = 5.2; // šířka (px při měřítku 1) na rovině a v nejostřejší zatáčce
+const TRACK_CURVE = 220; // jak rychle zatáčka přidá tloušťku (křivost 1/220 px = plná síla)
+const TRACK_TAPER = 6; // kolik bodů na začátku stopy se zužuje
+
+function trackWidths(tr) {
+  const n = tr.length, dir = [], k = new Array(n).fill(0), w = [];
+  for (let i = 1; i < n; i++) dir[i] = Math.atan2(tr[i].y - tr[i - 1].y, tr[i].x - tr[i - 1].x);
+  for (let i = 1; i < n - 1; i++) {
+    let d = dir[i + 1] - dir[i];
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    const len = Math.max(1, Math.hypot(tr[i + 1].x - tr[i - 1].x, tr[i + 1].y - tr[i - 1].y) / 2);
+    k[i] = Math.abs(d) / len; // křivost = změna směru na pixel
+  }
+  for (let i = 0; i < n; i++) {
+    // vyhladit přes pár sousedů, ať tloušťka plyne jako u pera, ne skokem
+    let s = 0, c = 0;
+    for (let q = Math.max(0, i - 3); q <= Math.min(n - 1, i + 3); q++) { s += k[q]; c++; }
+    const bend = K.clamp((s / c) * TRACK_CURVE);
+    const taper = Math.min(1, (i + 1) / TRACK_TAPER);
+    w[i] = (TRACK_THIN + (TRACK_THICK - TRACK_THIN) * bend * bend * (3 - 2 * bend)) * tr[i].n * taper * scaleW(tr[i].x, tr[i].y);
+  }
+  return w;
 }
 
 function drawTracks(ctx) {
   ctx.save();
-  ctx.lineCap = 'round';
   for (const tr of F.trails) {
-    for (let i = 1; i < tr.length; i++) {
-      const a = K.clamp(1 - (K.time - tr[i].t) / TRACK_LIFE) * 0.75;
+    if (tr.length < 2) continue;
+    const w = trackWidths(tr), L = [], R = [];
+    for (let i = 0; i < tr.length; i++) {
+      const a = tr[Math.max(0, i - 1)], b = tr[Math.min(tr.length - 1, i + 1)];
+      const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+      const cx = tr[i].x + nx * tr[i].j * 0.7, cy = tr[i].y + ny * tr[i].j * 0.7; // chvění ruky
+      L.push([cx + (nx * w[i]) / 2, cy + (ny * w[i]) / 2]);
+      R.push([cx - (nx * w[i]) / 2, cy - (ny * w[i]) / 2]);
+    }
+    // stuha po kouscích, každý se svou průhledností (stopa bledne od nejstarší části)
+    const STEP = 6;
+    for (let s = 0; s < tr.length - 1; s += STEP) {
+      const e = Math.min(tr.length - 1, s + STEP), mid = tr[(s + e) >> 1];
+      const a = K.clamp(1 - (K.time - mid.t) / TRACK_LIFE) * 0.8;
       if (a <= 0) continue;
-      ctx.strokeStyle = `rgba(28, 28, 38, ${a})`;
-      ctx.lineWidth = 2.4 * scaleW(tr[i].x, tr[i].y);
+      ctx.fillStyle = `rgba(30, 27, 34, ${a})`;
       ctx.beginPath();
-      ctx.moveTo(tr[i - 1].x, tr[i - 1].y);
-      ctx.lineTo(tr[i].x, tr[i].y);
-      ctx.stroke();
+      ctx.moveTo(L[s][0], L[s][1]);
+      for (let i = s + 1; i <= e; i++) ctx.lineTo(L[i][0], L[i][1]);
+      for (let i = e; i >= s; i--) ctx.lineTo(R[i][0], R[i][1]);
+      ctx.closePath();
+      ctx.fill();
     }
   }
   ctx.restore();

@@ -21,7 +21,7 @@ const KUCHYNE = [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['klik', 1010, 995
 const LES_BERAN = [['cekaScena', 'les'], ['cekaVolno'], ...VETEV, KRK];
 // studánka u božích muk (js/muka.js)
 // vrchol: oko bere s tetřívkem, pak 3× na hrudku (semínka, voda, rampouch)
-const VRCHOL_HRA = [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['klik', 1430, 650], ['cekaVolno'], ['klik', 1430, 650], ['cekaVolno'], ['klik', 1430, 650]];
+const VRCHOL_HRA = [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['klik', 1480, 600], ['cekaVolno'], ['klik', 1480, 600], ['cekaVolno'], ['klik', 1480, 600]];
 const MUKA_VETVE = [['cekaVolno'], ['klik', 1030, 752], ['cekaVolno'], ['klik', 1115, 764], ['cekaVolno'], ['klik', 1205, 754], ['cekaVolno']];
 const MUKA_ZABA = [['klik', 1060, 752], ['cekaVolno']];
 const MUKA_HRNEK = [['klikNastroj', 'hrnecek'], ['klik', 1677, 815]]; // hrnek z batůžku pod konec žlábku
@@ -122,9 +122,9 @@ window.SCENARE = {
   klinovka: [['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 1000, 800], ['ceka', 1500]],
   // semínka, voda, rampouch na hrudku → květina vyroste a práší
   vrchol: [['cekaVolno'], ['ceka', 300]], // tetřívek toká na hrudce
-  vrcholKarta: [['cekaVolno'], ['klik', 1400, 560], ['cekaVolno'], ['ceka', 200]], // první karta klukovi
-  vrcholDve: [['cekaVolno'], ['klik', 1400, 560], ['cekaVolno'], ['klik', 1472, 442], ['cekaVolno'], ['ceka', 200]],
-  vrcholStaci: [['cekaVolno'], ['klik', 1400, 560], ['cekaVolno'], ['klik', 1472, 442], ['cekaVolno'], ['klik', 300, 900], ['ceka', 2600]],
+  vrcholKarta: [['cekaVolno'], ['klik', 1460, 480], ['cekaVolno'], ['ceka', 200]], // první karta klukovi
+  vrcholDve: [['cekaVolno'], ['klik', 1460, 480], ['cekaVolno'], ['klik', 1520, 360], ['cekaVolno'], ['ceka', 200]],
+  vrcholStaci: [['cekaVolno'], ['klik', 1460, 480], ['cekaVolno'], ['klik', 1520, 360], ['cekaVolno'], ['klik', 520, 830], ['ceka', 2600]],
   vrcholOdlet: [['cekaVolno'], ['vrcholHraj'], ['ceka', 300]], // tetřívek odletěl, kluk u hrudky
   vrcholKvetina: [...VRCHOL_HRA, ['ceka', 6500]],
   finale: [['ceka', 1000]],
@@ -183,8 +183,8 @@ window.SCENARE.cela = [
       for (let t = 0; t < 600000 && !['plant', 'bloom', 'done'].includes(V.st.phase); t += 100) {
         if (K.busy === 0) {
           const v = V.st;
-          if (v.phase === 'idle') K.click({ x: 1400, y: 560 });
-          else if (v.phase === 'hero') K.click(V.total(v.heroCards) < 16 ? { x: 1472, y: 442 } : { x: 300, y: 900 });
+          if (v.phase === 'idle') K.click({ x: 1460, y: 480 }); // tetřívek
+          else if (v.phase === 'hero') K.click(V.total(v.heroCards) < 16 ? { x: 1520, y: 360 } : { x: 520, y: 830 }); // ocas / tlačítko stačí
         }
         await wait(100);
       }

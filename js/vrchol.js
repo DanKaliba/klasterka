@@ -17,29 +17,35 @@
 // Tetřívek je Danielův obrázek (prompt T); karty a kulisa jsou zatím papírové (prompty KA, KR v PROMPT-vrchol.md).
 const VRCHOL = (() => {
 const FLOWER = 'assets/sceny/kvetina.webp';
-// pozadí: dočasně obloha, hřebeny a kopec jako PNG (Daniel 2026-11-13 odsouhlasil); stačí vyměnit soubor
-const BG = 'assets/sceny/vrchol.png';
+// pozadí: Danielův obrázek (2026-11-18, prompt V, python tools/vrchol.py). Mužík, plochý kámen i hrudka
+// jsou v něm; hra na ně kreslí jen kamínky, karty a mokrou hrudku (vrstva z pozadí).
+const BG = 'assets/sceny/vrchol.jpg';
+const WET = { src: 'assets/sceny/vrchol-hrudka.png', x: 1330, y: 545 }; // ztmavená hrudka, přikryje se po zalití
 K.img(FLOWER);
 K.img(BG);
+K.img(WET.src);
+const bgReady = () => K.ready(K.img(BG));
 const EXIT = { x: 90, y: 990 };
 const FADE = '#efe6d2';
 
 const HERO_Y = 1040, HERO_S = 2.4, HERO_X = 300;
-const CAIRN = { x: 470, y: 640 };
-const MOUND = { x: 1430, y: 676 }; // hrudka hlíny, na ní sedí tetřívek
-const GROUSE = { x: 1430, y: 660 }; // tetřívek (chodidla), kouká doleva
+const CAIRN = { x: 451, y: 590, top: 400 }; // mužík: pata, top = kamínek na plochém vršku
+const MOUND = { x: 1480, y: 585 }; // hrudka rašeliny (vršek 567, pata 630), na ní sedí tetřívek
+const GROUSE = { x: 1478, y: 578 }; // tetřívek (chodidla), kouká doleva
 const PLANT_X = MOUND.x - 190; // kam kluk dojde zasadit
 const PLANT_H = 400;
-const TABLE = { x: 1100, y: 885, rx: 540, ry: 125 }; // plochý kámen = stůl
+const TABLE = { x: 1115, y: 785, rx: 510, ry: 90 }; // plochý kámen = stůl (v pozadí; kreslí se jen bez něj)
 const CARD_W = 112, CARD_H = 200; // poměr jako Danielovy karty
 // obrázky karet: sada v K.SPRITY podle barvy, jméno bez diakritiky (sýkora → sykora)
 const CARD_SET = { zvirata: 'kartyZvirata', rostliny: 'kartyRostlinyPovolani', povolani: 'kartyRostlinyPovolani' };
 const ascii = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const HAND = { hero: { x0: 720, x1: 1010, y: 860 }, grouse: { x0: 1250, x1: 1500, y: 850 } };
-const STICK = { hero: { x: 580, y: 990 }, grouse: { x: 1120, y: 990 }, len: 520 };
+const HAND = { hero: { x0: 720, x1: 1010, y: 785 }, grouse: { x0: 1250, x1: 1500, y: 775 } };
+const STICK = { hero: { x: 580, y: 945 }, grouse: { x: 1120, y: 945 }, len: 520 };
 const TAIL = { x: GROUSE.x + 42, y: GROUSE.y - 218, r: 130 }; // vějíř ocasu (klik = karta)
 const BEAK = { x: 19, y: -247 }; // karta v zobáku (póza pluck), vůči chodidlům
 const WIN = 2; // vyhraná kola na výhru
+// na tahu je kluk: dvě tlačítka mezi ním a kamenem (Daniel 2026-11-18: hráč se musí moct rozhodnout)
+const BTN = { draw: { x: 520, y: 700 }, stand: { x: 520, y: 830 }, r: 44 };
 
 // balíček: barvy jako tetřívek (černá, červená, bílá), hodnoty jako v oku bere (král 2, eso 11)
 const SUITS = {
@@ -299,7 +305,7 @@ async function grouseDefeat() {
   K.busy--;
 }
 
-const pebbleAt = (i) => ({ x: CAIRN.x + (i % 2 ? 6 : -4), y: CAIRN.y - 160 - i * 22 });
+const pebbleAt = (i) => ({ x: CAIRN.x + (i % 2 ? 6 : -4), y: CAIRN.top - i * 20 });
 
 // ---------- zasazení květiny (jako dřív) ----------
 async function plantStep() {
@@ -349,7 +355,7 @@ const flakes = Array.from({ length: 160 }, () => ({ x: Math.random() * K.W, y: M
 function drawScenery(ctx) {
   const bg = K.img(BG);
   if (K.ready(bg)) { ctx.drawImage(bg, 0, 0, K.W, K.H); return; }
-  // obloha, hřebeny v dálce, vrchol s trávou (stejné jako vrchol.png, dokud se nenačte)
+  // obloha, hřebeny v dálce, vrchol s trávou (náhrada, dokud se vrchol.jpg nenačte)
   const sky = ctx.createLinearGradient(0, 0, 0, 600);
   sky.addColorStop(0, '#d6dee2');
   sky.addColorStop(1, '#ece6d6');
@@ -380,25 +386,46 @@ function drawCairn(ctx) {
   ctx.strokeStyle = K.INK;
   ctx.lineWidth = 3;
   ctx.fillStyle = '#96928a';
-  for (const [dx, dy, r] of [[0, 0, 62], [2, -60, 46], [-2, -104, 34], [0, -136, 24]]) {
-    ctx.beginPath(); ctx.ellipse(CAIRN.x + dx, CAIRN.y + dy, r, r * 0.7, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  if (!bgReady()) {
+    for (const [dx, dy, r] of [[0, -20, 62], [2, -80, 46], [-2, -124, 34], [0, -166, 24]]) {
+      ctx.beginPath(); ctx.ellipse(CAIRN.x + dx, CAIRN.y + dy, r, r * 0.7, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
   }
   // kamínky za vyhraná kola
-  ctx.fillStyle = '#ded6c4';
-  for (let i = 0; i < st.score.hero; i++) {
-    const p = pebbleAt(i);
-    ctx.beginPath(); ctx.ellipse(p.x, p.y, 17, 11, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  }
-  if (st.pebbleFly) { ctx.beginPath(); ctx.ellipse(st.pebbleFly.x, st.pebbleFly.y, 17, 11, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+  for (let i = 0; i < st.score.hero; i++) pebble(ctx, pebbleAt(i), i);
+  if (st.pebbleFly) pebble(ctx, st.pebbleFly, st.score.hero);
+}
+
+// kamínek jako žula mužíka: šedý, světlejší nahoře, s lišejníkovou skvrnkou a měkkým stínem
+function pebble(ctx, p, i) {
+  const rx = 22 - (i % 2) * 3, ry = 12;
+  ctx.save();
+  ctx.fillStyle = 'rgba(30, 30, 25, 0.35)';
+  ctx.beginPath(); ctx.ellipse(p.x + 2, p.y + ry - 2, rx * 0.9, 4, 0, 0, Math.PI * 2); ctx.fill();
+  const g = ctx.createLinearGradient(0, p.y - ry, 0, p.y + ry);
+  g.addColorStop(0, '#b9b6ac');
+  g.addColorStop(1, '#6d6b64');
+  ctx.fillStyle = g;
+  ctx.strokeStyle = 'rgba(40, 40, 36, 0.7)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(p.x, p.y, rx, ry, (i % 2 ? 0.08 : -0.06), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(176, 186, 70, 0.75)';
+  ctx.beginPath(); ctx.ellipse(p.x - 6 + i * 4, p.y - 4, 5, 2.5, 0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
 }
 
 function drawMound(ctx) {
   const wet = st.wet;
-  ctx.fillStyle = `rgb(${Math.round(K.lerp(122, 78, wet))}, ${Math.round(K.lerp(96, 62, wet))}, ${Math.round(K.lerp(70, 46, wet))})`;
   ctx.strokeStyle = K.INK;
-  ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.ellipse(MOUND.x, MOUND.y, 110, 30, 0, Math.PI, 0); ctx.lineTo(MOUND.x + 110, MOUND.y + 8);
-  ctx.lineTo(MOUND.x - 110, MOUND.y + 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+  if (bgReady()) {
+    // hrudka je v pozadí; po zalití se přes ni prolne její ztmavená kopie
+    const img = K.img(WET.src);
+    if (wet > 0 && K.ready(img)) { ctx.globalAlpha = wet; ctx.drawImage(img, WET.x, WET.y); ctx.globalAlpha = 1; }
+  } else {
+    ctx.fillStyle = `rgb(${Math.round(K.lerp(122, 78, wet))}, ${Math.round(K.lerp(96, 62, wet))}, ${Math.round(K.lerp(70, 46, wet))})`;
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.ellipse(MOUND.x, MOUND.y + 45, 130, 60, 0, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
   if (st.seeds > 0 && st.grow < 0.2) {
     ctx.fillStyle = '#f2ece0';
     ctx.globalAlpha = st.seeds;
@@ -498,11 +525,7 @@ function drawCard(ctx, card, x, y, rot = 0, face = 1, s = 1) {
 }
 
 function drawHands(ctx) {
-  const hover = K.mouse && st.phase === 'hero' && K.busy === 0 && inHand(K.mouse);
-  st.heroCards.forEach((c, i, a) => {
-    const p = slot('hero', i, a.length);
-    drawCard(ctx, c, p.x, p.y - (hover ? 10 : 0), p.rot);
-  });
+  st.heroCards.forEach((c, i, a) => { const p = slot('hero', i, a.length); drawCard(ctx, c, p.x, p.y, p.rot); });
   st.grouseCards.forEach((c, i, a) => { const p = slot('grouse', i, a.length); drawCard(ctx, c, p.x, p.y, p.rot); });
   if (st.gather) for (const f of st.gather) drawCard(ctx, f.c, f.x, f.y, f.rot, 1, f.s);
   if (st.flying) { const f = st.flying; drawCard(ctx, f.card, f.x, f.y, f.rot, f.face, 0.85 + 0.15 * f.face); }
@@ -713,13 +736,8 @@ function drawFlower(ctx) {
 }
 
 // ---------- klikání ----------
-const inHand = (p) => {
-  const n = st.heroCards.length;
-  if (!n) return false;
-  const a = slot('hero', 0, n), b = slot('hero', n - 1, n);
-  return p.x > a.x - CARD_W / 2 && p.x < b.x + CARD_W / 2 && Math.abs(p.y - HAND.hero.y) < CARD_H / 2 + 10;
-};
-const inHero = (p) => Math.abs(p.x - st.hero.x) < 80 && p.y < HERO_Y && p.y > HERO_Y - 150 * HERO_S;
+const choosing = () => st.phase === 'hero' && K.busy === 0;
+const onBtn = (p, b) => K.dist(p, b) < BTN.r;
 const inTail = (p) => K.dist(p, TAIL) < TAIL.r;
 const inGrouse = (p) => inTail(p) || K.dist(p, { x: GROUSE.x - 20, y: GROUSE.y - 150 }) < 130;
 const canExit = () => ['idle', 'plant'].includes(st.phase) && st.step === 0;
@@ -767,13 +785,15 @@ const scene = {
     drawFalling(ctx);
     drawFeathers(ctx);
     if (st.grouse.state !== 'gone' || st.heroCards.length) {
-      // kamenný stůl a rabuše jen během hry
-      ctx.fillStyle = '#9e9a92';
-      ctx.strokeStyle = K.INK;
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.ellipse(TABLE.x, TABLE.y, TABLE.rx, TABLE.ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#aaa69e';
-      ctx.beginPath(); ctx.ellipse(TABLE.x, TABLE.y - 10, TABLE.rx - 40, TABLE.ry - 30, 0, 0, Math.PI * 2); ctx.fill();
+      // rabuše jen během hry (kamenný stůl je v pozadí, nakreslí se jen, když se pozadí nenačte)
+      if (!bgReady()) {
+        ctx.fillStyle = '#9e9a92';
+        ctx.strokeStyle = K.INK;
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.ellipse(TABLE.x, TABLE.y, TABLE.rx, TABLE.ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#aaa69e';
+        ctx.beginPath(); ctx.ellipse(TABLE.x, TABLE.y - 10, TABLE.rx - 40, TABLE.ry - 30, 0, 0, Math.PI * 2); ctx.fill();
+      }
       drawStick(ctx, 'hero');
       drawStick(ctx, 'grouse');
     }
@@ -791,11 +811,17 @@ const scene = {
       ctx.globalAlpha = 1;
     }
     if (canExit()) K.drawRoundButton(ctx, EXIT.x, EXIT.y, 'zpet');
+    if (choosing()) {
+      // ještě kartu / stačí
+      const m = K.mouse;
+      K.drawRoundButton(ctx, BTN.draw.x, BTN.draw.y, 'kartaDalsi', !(m && onBtn(m, BTN.stand)));
+      K.drawRoundButton(ctx, BTN.stand.x, BTN.stand.y, 'dlan', !!(m && onBtn(m, BTN.stand)));
+    }
   },
   hot(p) {
     if (canExit() && K.dist(p, EXIT) < 45) return true;
     if (st.phase === 'idle') return inGrouse(p);
-    if (st.phase === 'hero') return inTail(p) || inHand(p) || inHero(p);
+    if (st.phase === 'hero') return inTail(p) || onBtn(p, BTN.draw) || onBtn(p, BTN.stand);
     if (st.phase === 'plant') return st.step < 3 && K.dist(p, MOUND) < 120;
     return false;
   },
@@ -808,8 +834,8 @@ const scene = {
     }
     if (st.phase === 'idle' && inGrouse(p)) return startRound();
     if (st.phase === 'hero') {
-      if (inTail(p)) return heroDraw();
-      if (inHand(p) || inHero(p)) return heroStand();
+      if (inTail(p) || onBtn(p, BTN.draw)) return heroDraw();
+      if (onBtn(p, BTN.stand)) return heroStand();
     }
     if (st.phase === 'plant' && st.step < 3 && K.dist(p, MOUND) < 120) return plantStep();
   },

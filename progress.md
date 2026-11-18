@@ -118,7 +118,8 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
 - Úkoly ostatních chalup jsou ZÁSTUPNÉ. Vrchol (`js/vrchol.js`, scéna `vrchol`): Daniel 2026-11-13 přidal
   tetřívka s ocasem z karet a jednodušší oko bere (návrh, balíček a prompty v pics/podklady-vrchol/PROMPT-vrchol.md,
   mockupy mockup-hra.png a mockup-karty.png odsouhlasené). Tetřívek sedí na hrudce; klik na něj = výzva
-  a první karta, klik na ocas = další karta, klik na svoje karty nebo na kluka = „stačí“; tetřívek táhne do 17
+  a první karta. Na tahu je kluk: dvě kulatá tlačítka mezi ním a kamenem, karta s plusem = další karta (nebo klik
+  na ocas), dlaň = „stačí“ (Daniel 2026-11-18: dřív to šlo jen neviditelným klikem na kluka). Tetřívek táhne do 17
   (ješitně i dál, po vyhraném zápase víc). Přes 21 praskne rabuše (klacík se součtem), dvě esa = oko.
   Výhra kola: kamínek na mužíka / pírko tetřívka; 2 kola = konec. Kluk vyhraje → karty vypadají z ocasu,
   tetřívek odletí; tetřívek vyhraje → hraje se znovu. Balíček 18 karet (černá zvířata, červené rostliny,
@@ -130,7 +131,10 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   karty-rostliny-povolani.png): fix_karty v tools/sprity.py z rohů vygumuje puntíky (Gemini je kreslí špatnou
   barvou a počtem) a hra je dokreslí sama. Rub karty (pera) a rabuše z opravdového dřeva jsou Danielův obrázek
   (prompt KR, rub-rabuse.png): rabuše má 25 zářezů (sprity.py je změří), vybarvují se podle součtu a 21. má
-  červenou rysku. Krakonoš (žolík, prompt KK) je zatím kreslený, kulisa papírová.
+  červenou rysku. Krakonoš (žolík, prompt KK) je zatím kreslený.
+  Pozadí je Danielův obrázek (2026-11-18, prompt V, pics/podklady-vrchol/vrchol-V.png): `python tools/vrchol.py`
+  → assets/sceny/vrchol.jpg a vrstva vrchol-hrudka.png (ztmavená hrudka, prolne se po zalití). Mužík, plochý
+  kámen a hrudka jsou v pozadí; hra na ně kreslí jen kamínky, karty, rabuše a květinu.
 - Veřejné repo https://github.com/DanKaliba/klasterka, hra na https://dankaliba.github.io/klasterka/ (Pages z main,
   od 2026-11-02). Práva k fotkám webkamery se ještě řeší; Daniel se rozhodl zveřejnit i tak.
 - Push odsud: remote musí mít uživatele v URL (`https://DanKaliba@github.com/...`) a `GIT_TERMINAL_PROMPT=0`.
