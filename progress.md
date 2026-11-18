@@ -116,22 +116,29 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   směje → panáček sebere fajfku a z koše semínka (batoh) s hrnkem → až má všechno, odejde dveřmi.
   Chybí zvuky: kasel, vrzani (okno), praskani, predeni, mnau, dymka, hrnek, semena, poklice, tuk (hra je tiše přeskočí).
 - Úkoly ostatních chalup jsou ZÁSTUPNÉ. Vrchol (`js/vrchol.js`, scéna `vrchol`): Daniel 2026-11-13 přidal
-  tetřívka s ocasem z karet a jednodušší oko bere (návrh, balíček a prompty v pics/podklady-vrchol/PROMPT-vrchol.md,
-  mockupy mockup-hra.png a mockup-karty.png odsouhlasené). Tetřívek sedí na hrudce; klik na něj = výzva
-  a první karta. Na tahu je kluk: dvě kulatá tlačítka mezi ním a kamenem, karta s plusem = další karta (nebo klik
-  na ocas), dlaň = „stačí“ (Daniel 2026-11-18: dřív to šlo jen neviditelným klikem na kluka). Tetřívek táhne do 17
-  (ješitně i dál, po vyhraném zápase víc). Přes 21 praskne rabuše (klacík se součtem), dvě esa = oko.
-  Výhra kola: kamínek na mužíka / pírko tetřívka; 2 kola = konec. Kluk vyhraje → karty vypadají z ocasu,
-  tetřívek odletí; tetřívek vyhraje → hraje se znovu. Balíček 18 karet (černá zvířata, červené rostliny,
+  tetřívka s ocasem z karet a jednodušší oko bere (návrh, balíček a prompty v pics/podklady-vrchol/PROMPT-vrchol.md).
+  Po planině se chodí klikem na zem (pod WALK_Y). Dokud tetřívek sedí na hrudce, pustí kluka jen ke GUARD_X; když
+  chce kluk dál, tetřívek vyskočí proti němu, nafoukne se a kluk vyděšeně couvne (test `vrcholStrach`).
+  Příběh (Daniel 2026-11-18): klik na tetřívka (kluk nejdřív dojde na své místo vlevo od kamene) → kluk ho poprosí o hrudku (bublina s květinou z herbáře, jakou ukazuje
+  strom), tetřívek odmítne (přeškrtnutá květina, zavrtí se) a nabídne hru (bublina s vějířem karet). Hraje se o místo:
+  kluk vyhraje jedno kolo → tetřívek zlomí svou rabuši, karty mu vypadají z ocasu a odletí. Tetřívek vyhraje → zatoká,
+  kluk ho může vyzvat znovu (už jen nabídka karet); remíza = hned další kolo. Na tahu je kluk: tlačítka karta s plusem
+  (nebo klik na ocas) a dlaň = „stačí“. Tetřívek táhne do 17 (ješitně i dál, po každé své výhře víc). Mužík zatím
+  nemá funkci (kamínky za kola zrušené, Daniel vymyslí jinou). Krakonoš u kluka: tetřívek se lekne (vyskočí, třese
+  se, uletí mu pírka). Balíček 18 karet (černá zvířata, červené rostliny,
   bílá povolání; král 2, eso 11) + Krakonoš jako žolík (1 nebo 11). V testu (?test) se míchá se semínkem;
   krok testu `['vrcholHraj']` odehraje hru za kluka. Pak jako dřív: na hrudku semínka, voda, rampouch
   (věci přiletí z batohu) → květina (`kvetina.webp`) vyroste, rozzáří se, práší pyl, sněží → finále.
   Tetřívek je Danielův obrázek (2026-11-13, prompt T, pics/podklady-vrchol/tetrivek-T.png, python tools/sprity.py:
   pózy sit / display / pluck / sulk / fly). Karty jsou Danielovy obrázky (prompt KA, karty-zvirata.png a
   karty-rostliny-povolani.png): fix_karty v tools/sprity.py z rohů vygumuje puntíky (Gemini je kreslí špatnou
-  barvou a počtem) a hra je dokreslí sama. Rub karty (pera) a rabuše z opravdového dřeva jsou Danielův obrázek
-  (prompt KR, rub-rabuse.png): rabuše má 25 zářezů (sprity.py je změří), vybarvují se podle součtu a 21. má
-  červenou rysku. Krakonoš (žolík, prompt KK) je zatím kreslený.
+  barvou a počtem) a hra je dokreslí sama. Rub karty (pera) je Danielův obrázek
+  (prompt KR, rub-rabuse.png). Rabuše jsou grónské dřevěné mapy (Daniel 2026-11-18, prompt KR2, rabuse-KR2b.png;
+  sprity.py: rabuse2 = celá s 22 zuby změřenými v knobs, zlomené kusy, kamínek): s každou kartou tetřívek hodí
+  zobákem kamínek na zub podle součtu; přes 21 se kamínek skutálí do trávy. Když tetřívek prohraje kolo, klovne
+  do své rabuše a zlomí ji (ukážou se zlomené kusy). Test `vrcholPrask` ukáže spadlý kamínek a zlomenou rabuši.
+  Krakonoš (žolík) je Danielův obrázek (2026-11-18, prompt KK, karta-krakonos-KK.png): Rübezahl podle
+  Helwigovy mapy (1561), paroží z větviček kleče; v rozích hra kreslí hnědý puntík v kroužku (1 nebo 11).
   Pozadí je Danielův obrázek (2026-11-18, prompt V, pics/podklady-vrchol/vrchol-V.png): `python tools/vrchol.py`
   → assets/sceny/vrchol.jpg a vrstva vrchol-hrudka.png (ztmavená hrudka, prolne se po zalití). Mužík, plochý
   kámen a hrudka jsou v pozadí; hra na ně kreslí jen kamínky, karty, rabuše a květinu.

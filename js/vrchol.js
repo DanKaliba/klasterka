@@ -3,22 +3,21 @@
 // v jednodušší verzi hry oko bere (karty upravené na historii Krkonoš: zvířata, povolání, rostliny).
 // Když ho porazí, odletí.“ Návrh a balíček: pics/podklady-vrchol/PROMPT-vrchol.md (mockup odsouhlasený).
 //
-// Hra (beze slov):
-// - Tetřívek sedí na hrudce, kam se má zasadit květina, a toká s ocasem roztaženým jako vějíř karet.
-// - Klik na tetřívka: vyzve ke hře a zobákem podá klukovi první kartu.
-// - Klik na ocas = další karta. Klik na svoje karty (nebo na kluka) = „stačí“, kluk zvedne dlaň.
-// - Pak táhne tetřívek, aspoň do 17; je ješitný a na 17–18 občas táhne dál (po vyhraném zápase víc).
-// - Cíl: co nejblíž 21. Přes 21 rabuše (vroubkovaný klacík se součtem) praskne a kolo je prohrané.
-//   Dvě esa hned na začátku = oko, okamžitá výhra. Remíza = nové kolo.
-// - Vyhrané kolo kluka = kamínek na kamenného mužíka, tetřívka = vytržené pírko v trávě.
-// - Kdo první vyhraje 2 kola: kluk → tetřívkovi vypadají karty z ocasu a odletí; tetřívek →
-//   zatoká, kamínky i pírka zmizí a hraje se znovu (nikdy slepá ulička).
-// - Pak jako dřív: na hrudku semínka, voda, rampouch → květina vyroste, rozkvete, práší → finále.
-// Tetřívek je Danielův obrázek (prompt T); karty a kulisa jsou zatím papírové (prompty KA, KR v PROMPT-vrchol.md).
+// Hra (beze slov), Daniel 2026-11-18:
+// - Po planině se chodí klikem na zem. Tetřívek pustí kluka jen ke GUARD_X; dál ho zastraší a kluk couvne.
+// - Klik na tetřívka: kluk ho poprosí o hrudku (bublina s květinou z herbáře), tetřívek odmítne a nabídne karty.
+// - Hraje se o místo. Kluk táhne (karta s plusem nebo klik na ocas) a skončí dlaní („stačí“), pak táhne
+//   tetřívek aspoň do 17; je ješitný a na 17–18 občas táhne dál (po každé své výhře víc).
+// - S každou kartou tetřívek hodí zobákem kamínek na zub rabuše (grónská dřevěná mapa) podle součtu.
+//   Přes 21 se kamínek skutálí do trávy a kolo je prohrané. Dvě esa hned na začátku = oko. Remíza = nové kolo.
+// - Kluk vyhraje kolo → tetřívek zlomí svou rabuši, karty mu vypadají z ocasu a odletí. Tetřívek vyhraje →
+//   zatoká a kluk ho může vyzvat znovu (nikdy slepá ulička). Krakonoš u kluka = tetřívek se lekne.
+// - Pak na hrudku semínka, voda, rampouch → květina vyroste, rozkvete, práší → finále.
+// Obrázky: tetřívek (prompt T), karty (KA, KK), rub (KR), rabuše (KR2), pozadí (V) v pics/podklady-vrchol/.
 const VRCHOL = (() => {
 const FLOWER = 'assets/sceny/kvetina.webp';
 // pozadí: Danielův obrázek (2026-11-18, prompt V, python tools/vrchol.py). Mužík, plochý kámen i hrudka
-// jsou v něm; hra na ně kreslí jen kamínky, karty a mokrou hrudku (vrstva z pozadí).
+// jsou v něm; hra na ně kreslí karty, rabuše a mokrou hrudku (vrstva z pozadí).
 const BG = 'assets/sceny/vrchol.jpg';
 const WET = { src: 'assets/sceny/vrchol-hrudka.png', x: 1330, y: 545 }; // ztmavená hrudka, přikryje se po zalití
 K.img(FLOWER);
@@ -29,21 +28,22 @@ const EXIT = { x: 90, y: 990 };
 const FADE = '#efe6d2';
 
 const HERO_Y = 1040, HERO_S = 2.4, HERO_X = 300;
-const CAIRN = { x: 451, y: 590, top: 400 }; // mužík: pata, top = kamínek na plochém vršku
+const CAIRN = { x: 451, y: 590 }; // mužík (pata); jeho funkci Daniel ještě vymyslí
 const MOUND = { x: 1480, y: 585 }; // hrudka rašeliny (vršek 567, pata 630), na ní sedí tetřívek
 const GROUSE = { x: 1478, y: 578 }; // tetřívek (chodidla), kouká doleva
 const PLANT_X = MOUND.x - 190; // kam kluk dojde zasadit
+const GUARD_X = MOUND.x - 430; // dál kluka tetřívek nepustí (zastraší ho)
+const WALK_Y = 640; // klik pod touhle čarou = kluk tam dojde
 const PLANT_H = 400;
 const TABLE = { x: 1115, y: 785, rx: 510, ry: 90 }; // plochý kámen = stůl (v pozadí; kreslí se jen bez něj)
 const CARD_W = 112, CARD_H = 200; // poměr jako Danielovy karty
 // obrázky karet: sada v K.SPRITY podle barvy, jméno bez diakritiky (sýkora → sykora)
-const CARD_SET = { zvirata: 'kartyZvirata', rostliny: 'kartyRostlinyPovolani', povolani: 'kartyRostlinyPovolani' };
+const CARD_SET = { zvirata: 'kartyZvirata', rostliny: 'kartyRostlinyPovolani', povolani: 'kartyRostlinyPovolani', krakonos: 'kartaKrakonos' };
 const ascii = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const HAND = { hero: { x0: 720, x1: 1010, y: 785 }, grouse: { x0: 1250, x1: 1500, y: 775 } };
-const STICK = { hero: { x: 580, y: 945 }, grouse: { x: 1120, y: 945 }, len: 520 };
+const STICK = { hero: { x: 600, y: 935 }, grouse: { x: 1130, y: 935 }, len: 480 };
 const TAIL = { x: GROUSE.x + 42, y: GROUSE.y - 218, r: 130 }; // vějíř ocasu (klik = karta)
 const BEAK = { x: 19, y: -247 }; // karta v zobáku (póza pluck), vůči chodidlům
-const WIN = 2; // vyhraná kola na výhru
 // na tahu je kluk: dvě tlačítka mezi ním a kamenem (Daniel 2026-11-18: hráč se musí moct rozhodnout)
 const BTN = { draw: { x: 520, y: 700 }, stand: { x: 520, y: 830 }, r: 44 };
 
@@ -78,10 +78,10 @@ let st = null;
 const init = () => ({
   phase: 'intro', // intro → idle → hero → grouse → (idle | plant) → bloom → done
   hero: { x: -80, facing: 1, walking: false, phase: 0, waveT: -9, arm: null, face: null },
-  grouse: { state: 'display', x: GROUSE.x, y: GROUSE.y, rot: 0, pluckT: -9, tokT: -9, flap: 0 },
+  grouse: { state: 'display', x: GROUSE.x, y: GROUSE.y, rot: 0, pluckT: -9, tokT: -9, scareT: -9, refuseT: -9, threatT: -9, hopY: 0, flap: 0 },
   deck: shuffle(fullDeck()), heroCards: [], grouseCards: [], flying: null,
-  stick: { hero: 0, grouse: 0, heroBreakT: -9, grouseBreakT: -9 },
-  score: { hero: 0, grouse: 0 }, pebbleFly: null, feathers: [], grouseMatches: 0, fallingCards: [],
+  stick: { hero: 0, grouse: 0, heroBreakT: -9, grouseBreakT: -9, heroFall: null, grouseFall: null }, tallyFly: null,
+  asked: false, talk: null, fluff: [], grouseMatches: 0, fallingCards: [],
   step: 0, seeds: 0, wet: 0, frost: 0, grow: 0, bloom: 0, pollen: [], snow: 0, fly: null,
 });
 
@@ -99,6 +99,41 @@ async function heroGo(x, speed = 320) {
     K.walkStep(before, h.phase);
   });
   h.walking = false;
+}
+
+// volná chůze po planině (Daniel 2026-11-18: jako jinde, klik na zem). Dokud tetřívek sedí na hrudce,
+// pustí kluka jen ke GUARD_X; když chce dál, tetřívek ho zastraší a kluk couvne.
+async function walkTo(x) {
+  K.busy++;
+  const guarded = st.grouse.state !== 'gone', lim = guarded ? GUARD_X : 1800;
+  await heroGo(K.clamp(x, 140, lim), 320);
+  if (guarded && x > lim + 20) await intimidate();
+  K.busy--;
+}
+async function intimidate() {
+  const g = st.grouse, h = st.hero, x0 = g.x;
+  g.state = 'display';
+  g.tokT = K.time;
+  g.threatT = K.time;
+  K.sound('tetrivek-tokani', { volume: 1, rate: 0.85 });
+  K.sound('frkani', { volume: 0.8 });
+  // výpad z hrudky ke klukovi
+  await K.tween(0.35, (t) => { g.x = K.lerp(x0, x0 - 160, K.ease(t)); g.hopY = -Math.sin(t * Math.PI) * 60; });
+  h.face = 'startle';
+  // kluk couvne pozpátku, pořád čelem k tetřívkovi
+  const hx0 = h.x, hx1 = Math.max(140, h.x - 240), ph0 = h.phase;
+  h.walking = true;
+  const back = K.tween(0.45, (t) => {
+    const before = h.phase;
+    h.x = K.lerp(hx0, hx1, K.ease(t));
+    h.phase = ph0 + (hx0 - h.x) / 20;
+    K.walkStep(before, h.phase);
+  }).then(() => { h.walking = false; });
+  await K.tween(0.6, (t) => { g.x = K.lerp(x0 - 160, x0, K.ease(t)); g.hopY = -Math.sin(t * Math.PI) * 35; });
+  g.hopY = 0;
+  await back;
+  await K.after(0.3);
+  h.face = null;
 }
 
 // ---------- karty ----------
@@ -133,10 +168,103 @@ async function deal(who) {
   });
   st.flying = null;
   hand.push(card);
-  // rabuše se dovroubkuje k novému součtu
-  const key = who === 'hero' ? 'hero' : 'grouse', from0 = st.stick[key], to0 = Math.min(25, total(hand));
-  await K.tween(0.35, (t) => { st.stick[key] = K.lerp(from0, to0, t); });
-  if (card.joker && who === 'hero') { st.grouse.tokT = K.time; K.sound('frkani', { volume: 0.6 }); } // Krakonoše se lekne
+  // tetřívek hodí zobákem kamínek na zub rabuše podle nového součtu (Daniel 2026-11-18)
+  const key = who === 'hero' ? 'hero' : 'grouse', to0 = Math.min(25, total(hand)), at = knobAt(key, to0);
+  if (at) {
+    g.state = 'pluck';
+    g.pluckT = K.time;
+    await K.after(0.2);
+    const from = { x: g.x + BEAK.x, y: g.y + BEAK.y };
+    st.tallyFly = { who: key, x: from.x, y: from.y, rot: 0 };
+    g.state = 'display';
+    await K.tween(0.5, (t) => {
+      const e = K.ease(t);
+      st.tallyFly.x = K.lerp(from.x, at.x, e);
+      st.tallyFly.y = K.lerp(from.y, at.y, e) - Math.sin(t * Math.PI) * 160;
+      st.tallyFly.rot = t * 5;
+    });
+    st.tallyFly = null;
+    st.stick[key] = to0;
+    K.sound('kaminek', { volume: 0.5, rate: K.rand(1.1, 1.3) });
+  } else {
+    const from0 = st.stick[key];
+    await K.tween(0.35, (t) => { st.stick[key] = K.lerp(from0, to0, t); });
+  }
+  if (card.joker && who === 'hero') await grouseScare();
+}
+
+// Krakonoš u kluka: tetřívek se lekne (Daniel 2026-11-18: dřív jen zatokal, nebylo to poznat).
+// Vyskočí, načepýří se, třese se, uletí mu pár pírek, chvíli se krčí a pak se zase naparuje.
+async function grouseScare() {
+  const g = st.grouse;
+  g.scareT = K.time;
+  K.sound('tetrivek', { volume: 0.7, rate: 1.3 });
+  K.sound('frkani', { volume: 0.8 });
+  for (let i = 0; i < 7; i++) {
+    st.fluff.push({ x: g.x + K.rand(-60, 80), y: g.y - K.rand(120, 260), vx: K.rand(-120, 120), vy: K.rand(-160, -60),
+      rot: K.rand(0, 6), vr: K.rand(-4, 4), t0: K.time });
+  }
+  await K.after(1.6);
+}
+
+// ---------- rozhovor beze slov (Daniel 2026-11-18) ----------
+// Kluk poprosí o hrudku (bublina s květinou), tetřívek odmítne (přeškrtnutá květina, vrtí se) a nabídne
+// hru (vějíř karet). Hraje se o místo: jedno vyhrané kolo stačí. Při další hře už jen nabídne karty.
+async function say(who, icon, dur) {
+  st.talk = { who, icon };
+  await K.after(dur);
+  st.talk = null;
+  await K.after(0.15);
+}
+async function challenge() {
+  K.busy++;
+  const g = st.grouse, h = st.hero;
+  if (Math.abs(h.x - HERO_X) > 5) await heroGo(HERO_X, 320); // hraje se z místa vlevo od kamene
+  h.facing = 1;
+  if (!st.asked) {
+    st.asked = true;
+    h.waveT = K.time; // ukáže na hrudku
+    K.sound('sustot', { volume: 0.3 });
+    await say('hero', 'kvetina', 1.4);
+    g.refuseT = K.time;
+    K.sound('frkani', { volume: 0.6 });
+    await say('grouse', 'kvetinaNe', 1.4);
+  }
+  g.tokT = K.time;
+  K.sound('karta', { volume: 0.6 });
+  await say('grouse', 'karty', 1.3);
+  K.busy--;
+  await startRound();
+}
+
+// bublina s květinou z herbáře, jakou ukazuje strom v lese (K.HERBAR, K.herbarCut, K.herbarPaper z js/les.js);
+// no = přeškrtnutá („tady ne“)
+let flowerArt = null;
+function drawFlowerBubble(ctx, x, y, no) {
+  const r = 78, by = y - r - 30, H = K.HERBAR;
+  if (!flowerArt && H && K.ready(K.img(H.src)) && K.ready(K.img(H.faded))) {
+    flowerArt = { canvas: K.herbarCut(K.img(H.src), H.flower, 40), paper: K.herbarPaper(K.img(H.faded)) };
+  }
+  ctx.save();
+  ctx.fillStyle = flowerArt ? flowerArt.paper : 'rgba(244, 236, 216, 0.97)';
+  ctx.strokeStyle = K.INK;
+  ctx.lineWidth = 3.5;
+  ctx.beginPath(); ctx.arc(x, by, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 12, by + r - 4); ctx.lineTo(x - 5, y); ctx.lineTo(x + 12, by + r - 4); ctx.fill(); ctx.stroke();
+  if (flowerArt) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, by, r - 3, 0, Math.PI * 2); ctx.clip();
+    const c = flowerArt.canvas, h = r * 1.9, w = (h * c.width) / c.height;
+    ctx.drawImage(c, x - w / 2, by - h / 2, w, h);
+    ctx.restore();
+  } else K.drawIcon(ctx, 'kvetina', x, by, r * 1.2, K.INK);
+  if (no) {
+    ctx.strokeStyle = '#b8261c';
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x - r * 0.6, by + r * 0.6); ctx.lineTo(x + r * 0.6, by - r * 0.6); ctx.stroke();
+  }
+  ctx.restore();
 }
 
 // ---------- kolo ----------
@@ -162,8 +290,9 @@ async function heroDraw() {
   const t = total(st.heroCards);
   if (isOko(st.heroCards)) { K.busy--; return roundEnd('hero'); }
   if (t > 21) {
-    st.stick.heroBreakT = K.time;
-    K.sound('prasknuti');
+    // přes 21: kamínek se z posledního zubu skutálí do trávy
+    dropPebble('hero');
+    K.sound('kaminek', { volume: 0.5, rate: 0.8 });
     st.hero.face = 'startle';
     await K.after(1.0);
     st.hero.face = null;
@@ -189,8 +318,8 @@ async function heroStand() {
     await deal('grouse');
     await K.after(0.35);
     if (total(st.grouseCards) > 21) {
-      st.stick.grouseBreakT = K.time;
-      K.sound('prasknuti');
+      dropPebble('grouse');
+      K.sound('kaminek', { volume: 0.5, rate: 0.8 });
       g.state = 'sulk';
       await K.after(1.0);
       break;
@@ -208,49 +337,35 @@ async function roundEnd(winner) {
   st.phase = 'end';
   const g = st.grouse, h = st.hero;
   if (winner === 'hero') {
-    // kamínek na kamenného mužíka
-    h.waveT = K.time;
+    // tetřívek prohrál: ze vzteku klovne do své rabuše a zlomí ji (Daniel 2026-11-18)
+    g.state = 'pluck';
+    g.pluckT = K.time;
+    await K.after(0.3);
+    st.stick.grouseBreakT = K.time;
+    dropPebble('grouse'); // spadl-li už (přetáhl), zůstane ležet
+    K.sound('prasknuti');
     g.state = 'sulk';
     K.sound('frkani', { volume: 0.5 });
-    const top = pebbleAt(st.score.hero);
-    const from = { x: h.x + 30, y: HERO_Y - 160 };
-    st.pebbleFly = { x: from.x, y: from.y };
-    await K.tween(0.7, (t) => {
-      st.pebbleFly.x = K.lerp(from.x, top.x, K.ease(t));
-      st.pebbleFly.y = K.lerp(from.y, top.y, K.ease(t)) - Math.sin(t * Math.PI) * 120;
-    });
-    st.pebbleFly = null;
-    st.score.hero++;
-    K.sound('kaminek');
+    h.waveT = K.time;
   } else if (winner === 'grouse') {
-    // tetřívek si vytrhne pírko a pyšně ho odhodí do trávy
+    // tetřívek vyhrál: pyšně zatoká; kluk ho může vyzvat znovu
     g.state = 'display';
     g.tokT = K.time;
     K.sound('tetrivek-tokani', { volume: 0.8 });
-    await K.after(0.4);
-    st.feathers.push({ x: GROUSE.x + 150 + st.score.grouse * 46, y: GROUSE.y + 40, t0: K.time });
-    K.sound('sustot', { volume: 0.4 });
-    st.score.grouse++;
   }
   await K.after(1.2);
   // karty zpátky do ocasu, rabuše znovu celé
   await gatherCards();
   g.state = 'display';
-  if (st.score.hero >= WIN) { K.busy--; return grouseDefeat(); }
-  if (st.score.grouse >= WIN) {
-    // tetřívek vyhrál zápas: zatoká, kamínky a pírka zmizí, hraje se znovu
-    g.tokT = K.time;
-    K.sound('tetrivek-tokani');
-    await K.after(1.0);
-    st.score = { hero: 0, grouse: 0 };
-    st.feathers = [];
-    st.grouseMatches++;
+  if (winner === 'hero') { K.busy--; return grouseDefeat(); } // hrál o místo a prohrál: odletí
+  if (winner === 'grouse') {
+    st.grouseMatches++; // příště je ješitnější (táhne odvážněji)
     st.phase = 'idle';
     K.busy--;
     return;
   }
   K.busy--;
-  await startRound();
+  await startRound(); // remíza: hned další kolo
 }
 
 async function gatherCards() {
@@ -273,7 +388,7 @@ async function gatherCards() {
     st.stick.grouse = s0.grouse * (1 - e);
   });
   st.gather = null;
-  st.stick = { hero: 0, grouse: 0, heroBreakT: -9, grouseBreakT: -9 };
+  st.stick = { hero: 0, grouse: 0, heroBreakT: -9, grouseBreakT: -9, heroFall: null, grouseFall: null };
   st.deck = shuffle([...st.deck, ...all]); // zastrčí je zpátky do ocasu a zamíchá
 }
 
@@ -305,11 +420,11 @@ async function grouseDefeat() {
   K.busy--;
 }
 
-const pebbleAt = (i) => ({ x: CAIRN.x + (i % 2 ? 6 : -4), y: CAIRN.top - i * 20 });
 
 // ---------- zasazení květiny (jako dřív) ----------
 async function plantStep() {
   K.busy++;
+  if (Math.abs(st.hero.x - PLANT_X) > 5) { await heroGo(PLANT_X, 320); st.hero.facing = 1; }
   const item = K.ITEMS[st.step], from = K.slotPos(K.ITEMS.indexOf(item));
   st.fly = { item, x: from.x, y: from.y };
   await K.tween(0.9, (t) => {
@@ -391,27 +506,6 @@ function drawCairn(ctx) {
       ctx.beginPath(); ctx.ellipse(CAIRN.x + dx, CAIRN.y + dy, r, r * 0.7, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
   }
-  // kamínky za vyhraná kola
-  for (let i = 0; i < st.score.hero; i++) pebble(ctx, pebbleAt(i), i);
-  if (st.pebbleFly) pebble(ctx, st.pebbleFly, st.score.hero);
-}
-
-// kamínek jako žula mužíka: šedý, světlejší nahoře, s lišejníkovou skvrnkou a měkkým stínem
-function pebble(ctx, p, i) {
-  const rx = 22 - (i % 2) * 3, ry = 12;
-  ctx.save();
-  ctx.fillStyle = 'rgba(30, 30, 25, 0.35)';
-  ctx.beginPath(); ctx.ellipse(p.x + 2, p.y + ry - 2, rx * 0.9, 4, 0, 0, Math.PI * 2); ctx.fill();
-  const g = ctx.createLinearGradient(0, p.y - ry, 0, p.y + ry);
-  g.addColorStop(0, '#b9b6ac');
-  g.addColorStop(1, '#6d6b64');
-  ctx.fillStyle = g;
-  ctx.strokeStyle = 'rgba(40, 40, 36, 0.7)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.ellipse(p.x, p.y, rx, ry, (i % 2 ? 0.08 : -0.06), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = 'rgba(176, 186, 70, 0.75)';
-  ctx.beginPath(); ctx.ellipse(p.x - 6 + i * 4, p.y - 4, 5, 2.5, 0.3, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
 }
 
 function drawMound(ctx) {
@@ -487,12 +581,26 @@ function drawCard(ctx, card, x, y, rot = 0, face = 1, s = 1) {
       if (light) { ctx.strokeStyle = K.INK; ctx.lineWidth = 1; ctx.stroke(); }
     }
   };
+  // žolík (Krakonoš, platí 1 nebo 11): jeden puntík v kroužku, hnědý jako hlína
+  const jokerMark = (cx, cy) => {
+    ctx.fillStyle = '#7a4e26';
+    ctx.strokeStyle = '#7a4e26';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, 6.5, 0, Math.PI * 2); ctx.stroke();
+  };
   // obrázek karty (Daniel 2026-11-13, prompt KA, python tools/sprity.py; puntíky z obrázku jsou vygumované)
   const spr = K.sprite(CARD_SET[card.suit], ascii(card.name));
   if (spr) {
     ctx.drawImage(spr.img, -w / 2, -h / 2, w, h);
-    pips(-w / 2 + 21, -h / 2 + 27, card.value);
-    pips(w / 2 - 21, h / 2 - 27, card.value);
+    if (card.joker) {
+      // Krakonoš má v rozích paroží a kopyto, značka jde těsně do rohu
+      jokerMark(-w / 2 + 15, -h / 2 + 16);
+      jokerMark(w / 2 - 15, h / 2 - 16);
+    } else {
+      pips(-w / 2 + 21, -h / 2 + 27, card.value);
+      pips(w / 2 - 21, h / 2 - 27, card.value);
+    }
     ctx.restore();
     return;
   }
@@ -531,13 +639,16 @@ function drawHands(ctx) {
   if (st.flying) { const f = st.flying; drawCard(ctx, f.card, f.x, f.y, f.rot, f.face, 0.85 + 0.15 * f.face); }
 }
 
-// rabuše: vroubkovaný klacík, vybarvené vruby = součet karet; přes 21 praskne
+// rabuše: obrázek grónské mapy s kamínkem (drawStickMap); bez obrázku vroubkovaný klacík, vybarvené vruby = součet
 function drawStick(ctx, who) {
-  const S = STICK[who], n = st.stick[who], br = K.time - st.stick[who === 'hero' ? 'heroBreakT' : 'grouseBreakT'];
+  const S = STICK[who], n = st.stick[who], bt = st.stick[who + 'BreakT'], br = K.time - bt;
   const len = STICK.len, step = (len - 30) / 21;
-  const broken = br >= 0 && br < 99 && n > 21;
-  const spr = K.sprite('vrcholVeci', 'rabuse');
-  if (spr) return drawStickSprite(ctx, who, spr, n, broken, br);
+  const broken = bt !== -9 && br >= 0; // -9 = celá
+  const spr = K.sprite('rabuse2', 'rabuse');
+  if (spr) return drawStickMap(ctx, who, spr, n, broken, br);
+  // bez obrázku: zlomí se i při přetažení (kamínek tu není), ať je přetažení vidět
+  const fall = st.stick[who + 'Fall'], fbBroken = broken || n > 21;
+  const fbr = broken ? br : fall ? K.time - fall.t : 1;
   const half = (x0, x1, rot) => {
     ctx.save();
     ctx.translate(S.x + (x0 + x1) / 2, S.y + 13);
@@ -559,42 +670,67 @@ function drawStick(ctx, who) {
     }
     ctx.restore();
   };
-  if (!broken) return half(0, len, 0);
-  const a = Math.min(1, br * 4) * 0.25;
+  if (!fbBroken) return half(0, len, 0);
+  const a = Math.min(1, fbr * 4) * 0.25;
   half(0, len / 2, -a);
   half(len / 2, len, a);
 }
 
-// rabuše z Danielova obrázku (prompt KR): opravdový klacík s 25 zářezy (změřené v tools/sprity.py).
-// Zářezy se podle součtu vybarví; 21. zářez má červenou rysku (hranice), přes 21 klacík praskne vejpůl.
-function drawStickSprite(ctx, who, { sp, img }, n, broken, br) {
-  const S = STICK[who], len = STICK.len, h = (len * sp.h) / sp.w;
-  const fill = who === 'hero' ? 'rgba(196, 70, 30, 0.9)' : 'rgba(34, 34, 44, 0.9)';
-  const nw = len * 0.012, nh = h * 0.32;
-  const half = (f0, f1, rot) => {
-    const cx = S.x + (len * (f0 + f1)) / 2, cy = S.y + h / 2;
-    ctx.save();
-    ctx.translate(cx, cy); ctx.rotate(rot); ctx.translate(-cx, -cy);
-    ctx.beginPath(); ctx.rect(S.x + len * f0, S.y - 10, len * (f1 - f0), h + 20); ctx.clip();
-    ctx.drawImage(img, S.x, S.y, len, h);
-    sp.notches.forEach((f, i) => {
-      const x = S.x + f * len;
-      if (i < Math.floor(n + 0.001)) {
-        ctx.fillStyle = fill;
-        ctx.beginPath(); ctx.roundRect(x - nw / 2, S.y + 2, nw, nh, 2); ctx.fill();
-      }
-      if (i === 20) {
-        ctx.strokeStyle = '#c42020';
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(x, S.y + nh + 4); ctx.lineTo(x, S.y + h - 5); ctx.stroke();
-      }
-    });
-    ctx.restore();
-  };
-  if (!broken) return half(0, 1, 0);
-  const a = Math.min(1, br * 4) * 0.25;
-  half(0, 0.5, -a);
-  half(0.5, 1, a);
+// rabuše jako grónská dřevěná mapa (Daniel 2026-11-18, prompt KR2, python tools/sprity.py): 22 vyřezaných
+// zubů (změřené v sp.knobs). Kamínek leží na zubu podle součtu karet (21 = poslední „dobrý“ zub, 22 = přes);
+// přes 21 se skutálí do trávy. Když tetřívek prohraje kolo, svou rabuši zlomí: ukážou se zlomené kusy.
+const TALLY_W = 34; // šířka kamínku na rabuši
+function knobAt(who, n) {
+  const spr = K.sprite('rabuse2', 'rabuse');
+  if (!spr || n < 1) return null;
+  const kn = spr.sp.knobs, S = STICK[who], len = STICK.len, h = (spr.sp.h * len) / spr.sp.w;
+  const [fx, fy] = kn[Math.min(n, kn.length) - 1];
+  return { x: S.x + fx * len, y: S.y + fy * h + 7 }; // kamínek sedí v hlavičce zubu
+}
+// kamínek začne padat: poloha zamrzne na zubu, kde ležel (pozdější volání nic nezmění)
+function dropPebble(who) {
+  if (st.stick[who + 'Fall']) return;
+  const at = knobAt(who, Math.round(st.stick[who]));
+  if (at) st.stick[who + 'Fall'] = { t: K.time, x: at.x, y: at.y };
+}
+function drawTallyPebble(ctx, x, y, rot = 0, a = 1) {
+  const peb = K.sprite('rabuse2', 'kaminek');
+  if (!peb || a <= 0) return;
+  const ph = (TALLY_W * peb.sp.h) / peb.sp.w;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.translate(x, y - ph / 2);
+  ctx.rotate(rot);
+  ctx.drawImage(peb.img, -TALLY_W / 2, -ph / 2, TALLY_W, ph);
+  ctx.restore();
+}
+function drawStickMap(ctx, who, { sp, img }, n, broken, br) {
+  const S = STICK[who], len = STICK.len, k = len / sp.w, h = sp.h * k;
+  if (!broken) ctx.drawImage(img, S.x, S.y, len, h);
+  else {
+    // zlomené kusy (ze stejného obrázku) odskočí od sebe
+    const e = K.ease(Math.min(1, br * 4));
+    for (const [pose, side] of [['zlomenaL', -1], ['zlomenaP', 1]]) {
+      const p = K.sprite('rabuse2', pose);
+      if (!p) continue;
+      const w = p.sp.w * k, ph = p.sp.h * k, x = side < 0 ? S.x - 8 * e : S.x + len - w + 8 * e, y = S.y + h - ph;
+      const px = side < 0 ? x + w : x; // otáčí se kolem lomu
+      ctx.save();
+      ctx.translate(px, S.y + h); ctx.rotate(side * 0.06 * e); ctx.translate(-px, -(S.y + h));
+      ctx.drawImage(p.img, x, y, w, ph);
+      ctx.restore();
+    }
+  }
+  // kamínek na zubu podle součtu; spadne (z místa, kde ležel), když hráč přetáhne nebo se rabuše zlomí
+  if (st.tallyFly && st.tallyFly.who === who) return;
+  const fall = st.stick[who + 'Fall'];
+  if (fall) {
+    const ft = K.time - fall.t, ground = S.y + h + 14, y = Math.min(ground, fall.y + 260 * ft * ft);
+    return drawTallyPebble(ctx, fall.x + 70 * Math.min(ft, 0.8), y, ft * 7, 1 - K.clamp((ft - 1.2) / 0.5));
+  }
+  if (n < 1) return;
+  const at = knobAt(who, Math.round(n));
+  drawTallyPebble(ctx, at.x, at.y);
 }
 
 // tetřívek z Danielova obrázku (2026-11-13, prompt T, python tools/sprity.py): pózy sit / display / pluck /
@@ -604,13 +740,20 @@ function drawGrouseSprite(ctx) {
   const tok = Math.max(0, 1 - (K.time - g.tokT) / 1.2);
   let pose = g.state === 'pluck' && K.time - g.pluckT < 0.5 ? 'pluck' : g.state === 'sulk' ? 'sulk' : g.state === 'fly' ? 'fly' : 'display';
   if (pose === 'display' && st.phase === 'idle' && tok <= 0) pose = 'sit';
+  const sc = K.time - g.scareT, scared = sc >= 0 && sc < 1.6; // leknutí z Krakonoše
+  if (scared && g.state !== 'fly') pose = 'display'; // fly a sulk nemají celý karetní ocas
   const spr = K.sprite('tetrivek', pose);
   if (!spr) return false;
   const { sp, img } = spr;
   ctx.save();
-  ctx.translate(g.x, g.y + (pose === 'fly' ? Math.sin(K.time * 14) * 8 : 0));
+  // leknutí: vyskočí, dopadne a přikrčí se, třese se víc než poražený
+  const hop = scared && sc < 0.45 ? -Math.sin((sc / 0.45) * Math.PI) * 90 : 0;
+  ctx.translate(g.x, g.y + hop + g.hopY + (pose === 'fly' && !scared ? Math.sin(K.time * 14) * 8 : 0));
   // tokání: nafoukne se a zachvěje; poražený se třese
-  const puff = 1 + 0.05 * tok, shake = pose === 'sulk' ? Math.sin(K.time * 40) * 1.5 : 0;
+  const cower = scared && sc >= 0.45 ? 0.93 + 0.07 * K.clamp((sc - 1.1) / 0.5) : 1;
+  const rf = K.time - g.refuseT, refusing = rf >= 0 && rf < 0.9; // odmítne: zavrtí se (jako vrtění hlavou)
+  const th = K.time - g.threatT, threat = th >= 0 && th < 1.1 ? Math.sin(Math.min(1, th / 0.25) * Math.PI / 2) * (1 - K.clamp((th - 0.8) / 0.3)) : 0; // zastrašení: nafoukne se
+  const puff = (1 + 0.05 * tok) * cower * (1 + 0.14 * threat), shake = scared ? Math.sin(K.time * 45) * 5 : refusing ? Math.sin(rf * 22) * 9 * (1 - rf / 0.9) : pose === 'sulk' ? Math.sin(K.time * 40) * 1.5 : 0;
   ctx.translate(shake, 0);
   ctx.scale(puff * (sp.right ? -1 : 1), puff);
   ctx.drawImage(img, -sp.ax, -sp.ay);
@@ -685,17 +828,19 @@ function drawGrouse(ctx) {
   ctx.restore();
 }
 
-function drawFeathers(ctx) {
-  for (const f of st.feathers) {
+// pírka, která tetřívkovi uletí leknutím: plachtí dolů a zmizí
+function drawFluff(ctx) {
+  st.fluff = st.fluff.filter((f) => K.time - f.t0 < 2.4);
+  for (const f of st.fluff) {
+    const t = K.time - f.t0;
     ctx.save();
-    ctx.translate(f.x, f.y - Math.max(0, 1 - (K.time - f.t0)) * 60);
-    ctx.rotate(-0.3);
+    ctx.globalAlpha = 1 - K.clamp((t - 1.6) / 0.8);
+    ctx.translate(f.x + f.vx * t + Math.sin(t * 5 + f.rot) * 14, f.y + f.vy * t + 110 * t * t * 0.5);
+    ctx.rotate(f.rot + f.vr * t);
     ctx.fillStyle = '#1d1f27';
-    ctx.strokeStyle = K.INK;
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(0, 0, 26, 9, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-20, 3); ctx.lineTo(20, -2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, 0, 17, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(240, 240, 240, 0.9)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-13, 1.5); ctx.lineTo(13, -1.5); ctx.stroke();
     ctx.restore();
   }
 }
@@ -745,6 +890,7 @@ const canExit = () => ['idle', 'plant'].includes(st.phase) && st.step === 0;
 const scene = {
   get st() { return st; }, // pro testy
   total, // pro testy (hráčova strategie)
+  dropPebble, // pro testy (spadlý kamínek)
   enter() {
     // rozehraná hra zůstane (kluk si může dojít na louku a vrátit se), po finále začne znovu
     if (!st || st.phase === 'done') st = init();
@@ -783,7 +929,7 @@ const scene = {
     drawFlower(ctx);
     drawGrouse(ctx);
     drawFalling(ctx);
-    drawFeathers(ctx);
+    drawFluff(ctx);
     if (st.grouse.state !== 'gone' || st.heroCards.length) {
       // rabuše jen během hry (kamenný stůl je v pozadí, nakreslí se jen, když se pozadí nenačte)
       if (!bgReady()) {
@@ -798,6 +944,12 @@ const scene = {
       drawStick(ctx, 'grouse');
     }
     drawHands(ctx);
+    if (st.tallyFly) drawTallyPebble(ctx, st.tallyFly.x, st.tallyFly.y, st.tallyFly.rot);
+    if (st.talk) {
+      const t = st.talk, x = t.who === 'hero' ? st.hero.x + 60 : st.grouse.x - 170, y = t.who === 'hero' ? HERO_Y - 370 : st.grouse.y - 250;
+      if (t.icon === 'kvetina' || t.icon === 'kvetinaNe') drawFlowerBubble(ctx, x, y, t.icon === 'kvetinaNe');
+      else K.drawBubble(ctx, x, y, 1.3, t.icon);
+    }
     const h = st.hero;
     K.drawHero(ctx, h.x, HERO_Y, HERO_S, { facing: h.facing, walking: h.walking, phase: h.phase, halo: false,
       wave: K.time - h.waveT < 0.9 || h.waveT > K.time, arm: h.arm, face: h.face });
@@ -832,12 +984,13 @@ const scene = {
       K.busy--;
       return K.go('louka', { from: 'vrchol' });
     }
-    if (st.phase === 'idle' && inGrouse(p)) return startRound();
+    if (st.phase === 'idle' && inGrouse(p)) return challenge();
     if (st.phase === 'hero') {
       if (inTail(p) || onBtn(p, BTN.draw)) return heroDraw();
       if (onBtn(p, BTN.stand)) return heroStand();
     }
     if (st.phase === 'plant' && st.step < 3 && K.dist(p, MOUND) < 120) return plantStep();
+    if ((st.phase === 'idle' || st.phase === 'plant') && p.y > WALK_Y) return walkTo(p.x);
   },
 };
 return scene;

@@ -227,6 +227,16 @@ K.SPRITY = {
    "right": true
   }
  },
+ "kartaKrakonos": {
+  "krakonos": {
+   "src": "assets/postavy/kartaKrakonos-krakonos.png",
+   "w": 224,
+   "h": 360,
+   "ax": 112,
+   "ay": 180,
+   "right": true
+  }
+ },
  "vrcholVeci": {
   "rub": {
    "src": "assets/postavy/vrcholVeci-rub.png",
@@ -235,41 +245,130 @@ K.SPRITY = {
    "ax": 124,
    "ay": 180,
    "right": true
-  },
+  }
+ },
+ "rabuse2": {
   "rabuse": {
-   "src": "assets/postavy/vrcholVeci-rabuse.png",
-   "w": 912,
-   "h": 72,
-   "ax": 456,
-   "ay": 36,
+   "src": "assets/postavy/rabuse2-rabuse.png",
+   "w": 800,
+   "h": 117,
+   "ax": 400,
+   "ay": 58,
    "right": true,
-   "notches": [
-    0.0636,
-    0.102,
-    0.1398,
-    0.1765,
-    0.2138,
-    0.25,
-    0.2851,
-    0.3235,
-    0.3618,
-    0.3958,
-    0.4298,
-    0.4644,
-    0.4984,
-    0.5334,
-    0.5685,
-    0.6031,
-    0.6431,
-    0.6815,
-    0.7166,
-    0.7505,
-    0.7856,
-    0.8202,
-    0.8558,
-    0.8914,
-    0.937
+   "knobs": [
+    [
+     0.0537,
+     0.1282
+    ],
+    [
+     0.1,
+     0.1026
+    ],
+    [
+     0.1388,
+     0.0855
+    ],
+    [
+     0.18,
+     0.0769
+    ],
+    [
+     0.225,
+     0.0342
+    ],
+    [
+     0.27,
+     0.0017
+    ],
+    [
+     0.3137,
+     0.0171
+    ],
+    [
+     0.3513,
+     0.0427
+    ],
+    [
+     0.395,
+     0.0632
+    ],
+    [
+     0.4462,
+     0.0256
+    ],
+    [
+     0.49,
+     0.0188
+    ],
+    [
+     0.53,
+     0.0342
+    ],
+    [
+     0.5713,
+     0.041
+    ],
+    [
+     0.615,
+     0.0342
+    ],
+    [
+     0.655,
+     0.041
+    ],
+    [
+     0.6963,
+     0.0513
+    ],
+    [
+     0.7362,
+     0.0598
+    ],
+    [
+     0.7788,
+     0.0684
+    ],
+    [
+     0.8225,
+     0.1111
+    ],
+    [
+     0.8662,
+     0.1453
+    ],
+    [
+     0.9062,
+     0.1538
+    ],
+    [
+     0.9475,
+     0.1624
+    ]
    ]
+  },
+  "zlomenaL": {
+   "src": "assets/postavy/rabuse2-zlomenaL.png",
+   "w": 407,
+   "h": 137,
+   "ax": 203,
+   "ay": 68,
+   "right": true
+  },
+  "zlomenaP": {
+   "src": "assets/postavy/rabuse2-zlomenaP.png",
+   "w": 408,
+   "h": 122,
+   "ax": 204,
+   "ay": 61,
+   "right": true
+  },
+  "kaminek": {
+   "src": "assets/postavy/rabuse2-kaminek.png",
+   "w": 91,
+   "h": 36,
+   "ax": 45,
+   "ay": 18,
+   "right": true
   }
  },
  "kartyRostlinyPovolani": {

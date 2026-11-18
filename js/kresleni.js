@@ -816,6 +816,17 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
       ctx.quadraticCurveTo(-8 * u, 0, 0, -10 * u);
       ctx.fill();
       break;
+    case 'karty':
+      // vějíř tří karet: „zahraj si“
+      [-0.45, 0, 0.45].forEach((a) => {
+        ctx.save();
+        ctx.translate(0, 9 * u); ctx.rotate(a); ctx.translate(0, -9 * u);
+        ctx.fillStyle = 'rgba(255, 252, 244, 1)';
+        ctx.beginPath(); ctx.roundRect(-5 * u, -9 * u, 10 * u, 15 * u, 2 * u); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      });
+      C(0, -3, 1.6, true);
+      break;
     case 'kartaDalsi':
       // karta s plusem: „ještě jednu“
       ctx.beginPath(); ctx.roundRect(-7 * u, -10 * u, 14 * u, 20 * u, 2.5 * u); ctx.stroke();

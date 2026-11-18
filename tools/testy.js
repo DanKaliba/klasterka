@@ -122,9 +122,17 @@ window.SCENARE = {
   klinovka: [['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 690, 810], ['ceka', 800], ['klik', 1000, 800], ['ceka', 1500]],
   // semínka, voda, rampouch na hrudku → květina vyroste a práší
   vrchol: [['cekaVolno'], ['ceka', 300]], // tetřívek toká na hrudce
+  vrcholProsba: [['cekaVolno'], ['klik', 1460, 480], ['ceka', 900]], // kluk prosí o hrudku
+  vrcholOdmita: [['cekaVolno'], ['klik', 1460, 480], ['ceka', 2300]], // tetřívek odmítne
+  vrcholNabidka: [['cekaVolno'], ['klik', 1460, 480], ['ceka', 3700]], // nabídne karty
+  vrcholStrach: [['cekaVolno'], ['klik', 1500, 950], ['ceka', 2650]], // kluk jde k hrudce, tetřívek ho zastraší
+  vrcholStrachPo: [['cekaVolno'], ['klik', 1500, 950], ['cekaVolno'], ['klik', 1460, 480], ['cekaVolno'], ['ceka', 200]], // po zastrašení hra jde
   vrcholKarta: [['cekaVolno'], ['klik', 1460, 480], ['cekaVolno'], ['ceka', 200]], // první karta klukovi
   vrcholDve: [['cekaVolno'], ['klik', 1460, 480], ['cekaVolno'], ['klik', 1520, 360], ['cekaVolno'], ['ceka', 200]],
   vrcholStaci: [['cekaVolno'], ['klik', 1460, 480], ['cekaVolno'], ['klik', 1520, 360], ['cekaVolno'], ['klik', 520, 830], ['ceka', 2600]],
+  vrcholZolik: [['cekaVolno'], ['vrcholZolik'], ['klik', 1460, 480], ['cekaVolno'], ['ceka', 200]], // kluk dostane Krakonoše
+  vrcholLek: [['cekaVolno'], ['vrcholZolik'], ['klik', 1460, 480], ['cekaLek'], ['ceka', 250]], // tetřívek se lekne Krakonoše
+  vrcholPrask: [['cekaVolno'], ['vrcholPraskni'], ['ceka', 900]], // zlomená rabuše s třískami
   vrcholOdlet: [['cekaVolno'], ['vrcholHraj'], ['ceka', 300]], // tetřívek odletěl, kluk u hrudky
   vrcholKvetina: [...VRCHOL_HRA, ['ceka', 6500]],
   finale: [['ceka', 1000]],
@@ -189,6 +197,19 @@ window.SCENARE.cela = [
         await wait(100);
       }
       if (V.st.phase !== 'plant') console.log('TIMEOUT vrchol');
+    }
+    else if (s[0] === 'cekaLek') await waitFor(() => K.time - K.scenes.vrchol.st.grouse.scareT < 2, 'lek');
+    else if (s[0] === 'vrcholZolik') {
+      // Krakonoš navrch balíčku (příští karta)
+      const d = K.scenes.vrchol.st.deck, i = d.findIndex((c) => c.joker);
+      if (i >= 0) d.push(d.splice(i, 1)[0]);
+    }
+    else if (s[0] === 'vrcholPraskni') {
+      // kluk 23 (kamínek padá), tetřívkova rabuše zlomená
+      const V = K.scenes.vrchol, v = V.st;
+      Object.assign(v.stick, { hero: 23, grouse: 17, grouseBreakT: K.time });
+      V.dropPebble('hero');
+      V.dropPebble('grouse');
     }
     else if (s[0] === 'cekaVlek') await waitFor(() => K.finale.waiting, 'vlek');
     else if (s[0] === 'cekaKonec') await waitFor(() => K.finale.ended, 'konec');

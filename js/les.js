@@ -877,34 +877,36 @@ const PLAN_LOOP = PLAN_STEPS.reduce((sum, st0) => sum + st0.d, 0);
 const PLAN_FADE = 0.35; // prolnutí mezi kroky
 const PLAN_BUBBLE = { x: 800, y: 228, r: 214 };
 
-// výřezy kroků s rozmazanými okraji (ať nejsou vidět obdélníky) a barva pergamenu na výplň bubliny
-let planArt = null;
-function buildPlanArt(full, faded) {
-  const F = 44; // šířka rozmazaného okraje (px obrázku)
-  const cut = (img, [x0, y0, x1, y1]) => {
-    const w = x1 - x0, h = y1 - y0, c = canvasOf(w, h), g = c.getContext('2d');
-    g.drawImage(img, x0, y0, w, h, 0, 0, w, h);
-    g.globalCompositeOperation = 'destination-in';
-    for (const [ax, ay, bx, by, len] of [[0, 0, w, 0, w], [0, 0, 0, h, h]]) {
-      const lg = g.createLinearGradient(ax, ay, bx, by), e = Math.min(0.45, F / len);
-      lg.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      lg.addColorStop(e, 'rgba(0, 0, 0, 1)');
-      lg.addColorStop(1 - e, 'rgba(0, 0, 0, 1)');
-      lg.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      g.fillStyle = lg;
-      g.fillRect(0, 0, w, h);
-    }
-    return c;
-  };
-  // průměrná barva vybledlého listu = pergamen
+// výřez herbáře s rozmazanými okraji (ať nejsou vidět obdélníky); sdílí ho i vrchol (bublina s květinou)
+K.herbarCut = (img, [x0, y0, x1, y1], F = 44) => {
+  const w = x1 - x0, h = y1 - y0, c = canvasOf(w, h), g = c.getContext('2d');
+  g.drawImage(img, x0, y0, w, h, 0, 0, w, h);
+  g.globalCompositeOperation = 'destination-in';
+  for (const [ax, ay, bx, by, len] of [[0, 0, w, 0, w], [0, 0, 0, h, h]]) {
+    const lg = g.createLinearGradient(ax, ay, bx, by), e = Math.min(0.45, F / len);
+    lg.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    lg.addColorStop(e, 'rgba(0, 0, 0, 1)');
+    lg.addColorStop(1 - e, 'rgba(0, 0, 0, 1)');
+    lg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    g.fillStyle = lg;
+    g.fillRect(0, 0, w, h);
+  }
+  return c;
+};
+// průměrná barva vybledlého listu herbáře = pergamen bubliny
+K.herbarPaper = (faded) => {
   const probe = canvasOf(16, 16), pg = probe.getContext('2d');
   pg.drawImage(faded, 0, 0, 16, 16);
   const d = pg.getImageData(0, 0, 16, 16).data, sum = [0, 0, 0];
   for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) sum[k] += d[i + k];
-  planArt = {
-    paper: `rgb(${sum.map((v) => Math.round(v / 256)).join(', ')})`,
-    steps: PLAN_STEPS.map((st0) => cut(full, st0.r)),
-  };
+  return `rgb(${sum.map((v) => Math.round(v / 256)).join(', ')})`;
+};
+// herbář pro ostatní scény: obrázky a výřez rostoucí květiny (krok 5)
+K.HERBAR = { src: HERBAR, faded: HERBAR_FADED, flower: PLAN_STEPS[4].r };
+
+let planArt = null;
+function buildPlanArt(full, faded) {
+  planArt = { paper: K.herbarPaper(faded), steps: PLAN_STEPS.map((st0) => K.herbarCut(full, st0.r)) };
 }
 
 // jeden krok vycentrovaný v kruhu o poloměru 320 (k = viditelnost, u = 0–1 čas v kroku)

@@ -66,14 +66,33 @@ SETS = {
         'center': ['sykora', 'vyr', 'tetrev', 'liska', 'jelen', 'medved'],
         'ref': ('sykora', 'h', 360),
     },
-    # rub karty (pera) a rabuše z opravdového dřeva (prompt KR); u rabuše se změří zářezy (notches)
+    # Krakonoš jako Rübezahl z Helwigovy mapy (Daniel 2026-11-18, prompt KK), žolík; rohy jsou prázdné
+    'kartaKrakonos': {
+        'src': '../podklady-vrchol/karta-krakonos-KK.png', 'grid': 0,
+        'poses': ['krakonos'],
+        'right': [True],
+        'center': ['krakonos'],
+        'ref': ('krakonos', 'h', 360),
+    },
+    # rub karty (pera) z obrázku KR; lísková rabuše z téhož obrázku se nepoužívá (nahradila ji rabuse2)
     'vrcholVeci': {
         'src': '../podklady-vrchol/rub-rabuse.png', 'grid': 0,
         'poses': ['rub', 'rabuse'],
         'right': [True, True],
         'center': ['rub', 'rabuse'],
-        'notches': ['rabuse'],
+        'drop': ['rabuse'],  # stará lísková rabuše, nahradila ji rabuse2
         'ref': ('rub', 'h', 360),
+    },
+    # rabuše jako grónská dřevěná mapa (Daniel 2026-11-18, prompt KR2, pokus 2): nahoře celá rabuše
+    # s vyřezanými zuby (změřené v knobs), dole tatáž zlomená na dva kusy a kamínek. Hra hodí kamínek
+    # na zub podle součtu karet; zlomené kusy ukáže, když ji tetřívek zlomí.
+    'rabuse2': {
+        'src': '../podklady-vrchol/rabuse-KR2b.png', 'grid': 2, 'fix': 'fix_rabuse2',
+        'poses': ['rabuse', 'zlomenaL', 'zlomenaP', 'kaminek'],
+        'right': [True] * 4,
+        'center': ['rabuse', 'zlomenaL', 'zlomenaP', 'kaminek'],
+        'knobs': ['rabuse'], 'knobCount': 22,
+        'ref': ('rabuse', 'w', 800),
     },
     'kartyRostlinyPovolani': {
         'src': '../podklady-vrchol/karty-rostliny-povolani.png', 'grid': 2, 'fix': 'fix_karty',
@@ -208,21 +227,39 @@ def fix_karty(poses):
     return out
 
 
-def notches(rgba):
-    """Zářezy rabuše: mezery mezi zuby těsně pod horním krajem → středy jako podíl šířky (zleva)."""
-    a = rgba[..., 3] > 128
-    ys, _ = np.nonzero(a)
-    row = a[ys.min() + max(2, rgba.shape[0] // 20)]
-    out, start = [], None
-    for x, v in enumerate(row):
-        if not v and start is None:
-            start = x
-        if v and start is not None:
-            f = (start + x) / 2 / rgba.shape[1]
-            if x - start >= 2 and 0.03 < f < 0.97:  # ne zaoblené konce klacíku
-                out.append(round(f, 4))
-            start = None
+def top_profile(rgba):
+    """Pro každý sloupec nejvyšší neprůhledný pixel (vyhlazeno), 999 = prázdný sloupec."""
+    a = rgba[..., 3] > 100
+    top = np.array([np.argmax(a[:, x]) if a[:, x].any() else 999 for x in range(a.shape[1])], float)
+    return np.convolve(top, np.ones(5) / 5, 'same')
+
+
+def extremes(sm, fn, gap=8):
+    """Lokální minima (fn=min, vršky výběžků) nebo maxima (fn=max, dna zátok) profilu, sloučená."""
+    out = []
+    for x in range(3, len(sm) - 3):
+        if sm[x] == fn(sm[x - 3:x + 4]) and (not out or x - out[-1] > gap):
+            out.append(x)
     return out
+
+
+def fix_rabuse2(poses):
+    """0 celá rabuše, 1 levý a 2 pravý kus zlomené, 3 kamínek. Stín na modrém pozadí zůstal jako
+    modrozelený lem: modravé pixely pryč."""
+    def unblue(rgba):
+        out = rgba.copy()
+        b, g, r = [out[..., i].astype(np.int16) for i in range(3)]
+        out[..., 3][(b > r + 8) & (b > 70)] = 0
+        out[..., 3] = cv2.erode(out[..., 3], np.ones((3, 3), np.uint8))
+        return trim(out)
+    return [unblue(p) for p in poses[:3]] + [poses[3]]
+
+
+def knobs(rgba):
+    """Výběžky rabuše2 zleva: [podíl šířky, podíl výšky vršku]."""
+    sm = top_profile(rgba)
+    w = rgba.shape[1]
+    return [[round(x / w, 4), round(sm[x] / rgba.shape[0], 4)] for x in extremes(sm, min, 14) if 0.03 < x / w < 0.97]  # ne rohy konců
 
 
 def top_anchor(rgba):
@@ -272,8 +309,11 @@ def main():
             else:
                 ax, ay = anchor(rgba)
             sprity[name][pose] = {'src': src, 'w': rgba.shape[1], 'h': rgba.shape[0], 'ax': ax, 'ay': ay, 'right': right}
-            if pose in cfg.get('notches', []):
-                sprity[name][pose]['notches'] = notches(rgba)
+            if pose in cfg.get('knobs', []):
+                kn = knobs(rgba)
+                # hra počítá s pevným počtem zubů (21 = poslední dobrý, 22 = přes): jiný počet = špatné měření
+                assert len(kn) == cfg['knobCount'], f'{name}/{pose}: čekám {cfg["knobCount"]} zubů, našel jsem {len(kn)}'
+                sprity[name][pose]['knobs'] = kn
             previews.append((rgba, ax, ay))
         print(name, 'měřítko', round(k, 3), {p: (v['w'], v['h']) for p, v in sprity[name].items()})
     js = ('// Vygenerováno skriptem tools/sprity.py — neupravovat ručně, spustit ho znovu.\n'

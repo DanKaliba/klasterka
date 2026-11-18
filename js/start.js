@@ -84,8 +84,8 @@ window.render_game_to_text = () => {
   }
   if (name === 'vrchol') {
     const s = K.scene.st, V = K.scene;
-    out.vrchol = { faze: s.phase, tetrivek: s.grouse.state, skore: [s.score.hero, s.score.grouse], hrdina: V.total(s.heroCards),
-      tetrivekKarty: V.total(s.grouseCards), vOcasu: s.deck.length, zapasyTetrivka: s.grouseMatches, krok: s.step };
+    out.vrchol = { faze: s.phase, tetrivek: s.grouse.state, hrdina: V.total(s.heroCards),
+      tetrivekKarty: V.total(s.grouseCards), vOcasu: s.deck.length, vyhryTetrivka: s.grouseMatches, krok: s.step };
   }
   if (name === 'finale') {
     const F = K.finale;
