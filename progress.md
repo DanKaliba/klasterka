@@ -142,6 +142,9 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   Pozadí je Danielův obrázek (2026-11-18, prompt V, pics/podklady-vrchol/vrchol-V.png): `python tools/vrchol.py`
   → assets/sceny/vrchol.jpg a vrstva vrchol-hrudka.png (ztmavená hrudka, prolne se po zalití). Mužík, plochý
   kámen a hrudka jsou v pozadí; hra na ně kreslí jen kamínky, karty, rabuše a květinu.
+- Poděkování (Daniel 2026-11-19): na konci hry pod nápisem Klášterka odkaz „poděkování“ (js/finale.js THANKS) otevře
+  podekovani.html v nové záložce: bouda Klášterka za webkameru, autoři a licence zvuků (Freesound), značka K, Helwig.
+  Nový zvuk nebo obrázek z cizího zdroje tam dopsat.
 - Veřejné repo https://github.com/DanKaliba/klasterka, hra na https://dankaliba.github.io/klasterka/ (Pages z main,
   od 2026-11-02). Práva k fotkám webkamery se ještě řeší; Daniel se rozhodl zveřejnit i tak.
 - Push odsud: remote musí mít uživatele v URL (`https://DanKaliba@github.com/...`) a `GIT_TERMINAL_PROMPT=0`.

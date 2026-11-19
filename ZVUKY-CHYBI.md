@@ -1,14 +1,16 @@
 # Chybějící zvuky
 
-Stav 2026-11-13. Hra volá zvuky jménem a hledá je v `assets/zvuky/<jméno>.mp3`. Když soubor chybí,
+Stav 2026-11-19. Hra volá zvuky jménem a hledá je v `assets/zvuky/<jméno>.mp3`. Když soubor chybí,
 hra ho tiše přeskočí, takže zvuky se dají doplňovat po jednom. Stačí soubor uložit pod přesně tímto
 jménem (malými písmeny, bez diakritiky). Hlasitost a výšku si hra nastavuje sama, ale krátký zvuk bez
 ticha na začátku zní nejlíp.
 
 **Už jsou:** `krok-1…8` (tráva), `led-1…4` (zmrzlá hlína), `ovce-1`, `ovce-2`, `jehne`, `stado`
-(smyčka), `strom-pada`, `triangl-1`, `triangl-2`.
+(smyčka), `strom-pada`, `triangl-1`, `triangl-2`; od 2026-11-19 `tetrivek-tokani`, `dvere`, `kasel-1…3`
+(hra losuje), `kaminek`, `ohen-1…2` (hra losuje; kuchyně i Nová Klínovka). Autoři a licence:
+`podekovani.html` (odkaz „poděkování“ na konci hry); nový zvuk z cizího zdroje tam dopsat.
 
-Celkem chybí **50 zvuků**: 47 v příběhu a 3 ve vedlejších scénách. Některé zazní na víc místech, proto
+Celkem chybí **44 zvuků**: 42 v příběhu a 2 ve vedlejších scénách. Některé zazní na víc místech, proto
 jsou ve více tabulkách.
 
 ## Všude
@@ -19,10 +21,7 @@ jsou ve více tabulkách.
 
 ## Louka
 
-| Soubor | Kdy zní |
-|---|---|
-| `dvere` | panáček vejde do chalupy (otevřou se dveře) |
-| `tetrivek-tokani` | klik na tetřívka na sloupu (tokání, bublavé „bu-bu-bu“) |
+Všechno hotové (`dvere`, `tetrivek-tokani`).
 
 ## Les (rampouch)
 
@@ -42,19 +41,17 @@ jsou ve více tabulkách.
 | `otrepani` | beran se otřepe a mech z něj odletí |
 | `frkani` | beran frkne nosem, než se rozběhne |
 | `trknuti` | beran trkne do souše |
-| `praskani` | souše praskne (zní i v kuchyni jako praskání ohně) |
+| `praskani` | souše praskne |
 
 ## Kuchyně na Kantorské (semínka)
 
 | Soubor | Kdy zní |
 |---|---|
-| `kasel` | babka, děda i panáček kašlou v kouři |
 | `vrzani` | otevře se okno (viz les) |
 | `tuk` | pohrabáč ťukne o tyč, kocour doskočí, fajfka cvakne o zem (krátké ťuknutí dřeva) |
 | `dymka` | děda bafne z fajfky (u studánky panáček bafne, ve vyšší hlasitosti) |
 | `predeni` | kocour přede |
 | `sustot` | šustění roští (zní i u studánky při vytahování větviček a na vrcholu) |
-| `praskani` | oheň se rozhoří (viz les) |
 | `poklice` | poklice na hrnci cvaká, opakuje se každé 3–4 s, potichu |
 | `mnau` | kocour zamňouká (protáhne se, lekne se) |
 | `lek` | děda se lekne kocoura (vyjeknutí) |
@@ -80,17 +77,15 @@ jsou ve více tabulkách.
 | `nalevani` | voda teče do hrnku (asi 1,5 s, tón stoupá) |
 | `zvonek` | klik na Krista na kříži, jemné zazvonění zvonečku |
 
-## Vrchol (oko bere s tetřívkem, zasazení sněžné květiny)
+## Vrchol (prosba o hrudku, oko bere s tetřívkem, zasazení sněžné květiny)
 
 | Soubor | Kdy zní |
 |---|---|
-| `tetrivek-tokani` | tetřívek toká: zve ke hře, vyhrál kolo (viz louka) |
-| `karta` | tetřívek vytáhne kartu z ocasu a položí ji (lusknutí karty) |
-| `prasknuti` | rabuše praskne, když hráč přetáhne 21 (praskne suchý klacík) |
-| `kaminek` | kluk položí kamínek na mužíka za vyhrané kolo (cvaknutí kamene o kámen) |
-| `frkani` | tetřívek načepýří peří: prohrál kolo, lekl se Krakonoše (viz les) |
-| `tetrivek` | poražený tetřívek odletí (viz finále) |
-| `sustot` | tetřívek odhodí pírko; zasazení semínek (viz kuchyně) |
+| `sustot` | kluk prosí o hrudku; zasazení semínek (viz kuchyně) |
+| `frkani` | tetřívek odmítne prosbu, zastraší kluka, prohraje kolo, lekne se Krakonoše (viz les) |
+| `karta` | tetřívek nabídne hru; vytáhne kartu z ocasu a položí ji (lusknutí karty) |
+| `prasknuti` | tetřívek zlomí svou rabuši, když prohraje kolo (praskne suché dřevo) |
+| `tetrivek` | tetřívek se lekne Krakonoše (vyšší, krátce); poražený odletí (viz finále) |
 | `voda` | zalití (viz studánka) |
 | `cinkani` | přiložení rampouchu (viz les) |
 | `chorose` | květina roste (asi 3 s) |
@@ -113,6 +108,5 @@ Skočka, Jelínek a Nová Klínovka nemají od 2026-11-09 úkol, ale dají se ot
 |---|---|
 | `ptak` | Jelínek: z keře vyletí pták |
 | `poleno` | Nová Klínovka: panáček přiloží poleno |
-| `ohen` | Nová Klínovka: oheň se rozhoří |
 
 (Používají i `sustot` a `buch`, ty jsou už v seznamech výše.)

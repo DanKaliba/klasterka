@@ -232,7 +232,7 @@ closeup('klinovka', {
       async click(st, scene) {
         if (st.logs < 2) { st.shakeT = K.time; return; }
         st.fire = true;
-        K.sound('ohen');
+        K.sound(K.OHEN);
         K.busy++;
         await K.after(1.4);
         st.hand = true;

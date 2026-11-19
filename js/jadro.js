@@ -187,8 +187,10 @@ const getSound = (name) => {
   }
   return sounds[name];
 };
-// volume 0–1, rate = rychlost přehrávání (mění i výšku, pro obměnu opakovaných zvuků)
+// volume 0–1, rate = rychlost přehrávání (mění i výšku, pro obměnu opakovaných zvuků).
+// name může být pole variant (K.KASEL, K.OHEN): zahraje se náhodně jedna z nich.
 K.sound = (name, o = {}) => {
+  if (Array.isArray(name)) name = name[Math.floor(Math.random() * name.length)];
   if (K.muted) return;
   const s = getSound(name);
   if (s === undefined) {
@@ -219,7 +221,10 @@ K.sound = (name, o = {}) => {
   s.play().catch(() => {});
 };
 // načíst zvuky předem (třeba při vstupu do scény), ať první zahrání nepřijde pozdě
-K.preloadSounds = (names) => { for (const n of names) getSound(n); };
+K.preloadSounds = (names) => { for (const n of names.flat()) getSound(n); };
+// varianty zvuků (tools/zvuky.py), hra je losuje
+K.KASEL = ['kasel-1', 'kasel-2', 'kasel-3'];
+K.OHEN = ['ohen-1', 'ohen-2'];
 // smyčka na pozadí (stádo): K.loop(jméno, hlasitost) se volá každý snímek, změna hlasitosti se plynule
 // dotáhne (~1,5 s), takže mezi scénami se zvuk sám zesílí / ztiší. Smyčka jednou rozběhnutá běží dál,
 // při nule jen potichu. mp3 má na krajích LOOP_PAD s přesahu (tools/zvuky.py), opakuje se úsek mezi nimi.

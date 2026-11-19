@@ -190,14 +190,14 @@ async function intro() {
   K.busy++;
   await heroGo(START_X, 280);
   st.cough.hero = K.time; // v kouři se zakucká i panáček
-  K.sound('kasel', { volume: 0.4, rate: 1.4 });
+  K.sound(K.KASEL, { volume: 0.4, rate: 1.4 });
   st.phase = 'smoke';
   K.busy--;
 }
 
 function cough(who) {
   st.cough[who] = K.time;
-  K.sound('kasel', { volume: 0.5, rate: who === 'granny' ? 1.15 : who === 'hero' ? 1.4 : 0.85 });
+  K.sound(K.KASEL, { volume: 0.5, rate: who === 'granny' ? 1.15 : who === 'hero' ? 1.4 : 0.85 });
   const heroMouth = () => K.heroMouth(st.hero.x, FY - st.hero.hopY, HERO_S, heroOpts()) || { x: st.hero.x + 18 * st.hero.facing, y: FY - 175 };
   const m = who === 'granny' ? GRANNY_MOUTH : who === 'grandpa' ? GRANDPA_COUGH : heroMouth();
   const dir = who === 'grandpa' ? -1 : who === 'granny' ? 1 : st.hero.facing;
@@ -329,7 +329,7 @@ async function fetchTwigs() {
   st.lean = 0;
   st.reach = false;
   st.twigs = null;
-  K.sound('praskani');
+  K.sound(K.OHEN); // oheň se rozhoří
   await K.tween(1.4, (t) => { st.fire = K.ease(t); });
   await heroGo(WATCH_X, 240);
   st.hero.facing = -1;
@@ -1005,7 +1005,7 @@ const scene = {
   get st() { return st; }, // pro testy
   enter() {
     st = init();
-    K.preloadSounds(['praskani', 'predeni', 'mnau', 'dymka', 'hrnek', 'semena', 'poklice', 'tuk', 'kasel', 'vrzani']);
+    K.preloadSounds([K.OHEN, 'predeni', 'mnau', 'dymka', 'hrnek', 'semena', 'poklice', 'tuk', K.KASEL, 'vrzani']);
     K.hero.visible = true;
     K.fade.a = 1;
     K.fadeTo(0, 0.7, '#efe6d2');

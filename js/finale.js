@@ -591,12 +591,15 @@ K.scenes.finale = {
       ctx.fillRect(0, 0, K.W, K.H);
       K.drawTitle(ctx, K.W / 2, K.H / 2 - 20, 120);
       ctx.restore();
-      if (a >= 1) K.drawRoundButton(ctx, K.W / 2, K.H / 2 + 120, 'znovu', true);
+      if (a >= 1) {
+        K.drawRoundButton(ctx, K.W / 2, K.H / 2 + 120, 'znovu', true);
+        drawThanksLink(ctx, K.mouse && inThanks(K.mouse));
+      }
     }
   },
 
   hot(p) {
-    if (F.ended) return K.dist(p, { x: K.W / 2, y: K.H / 2 + 120 }) < 45;
+    if (F.ended) return K.dist(p, { x: K.W / 2, y: K.H / 2 + 120 }) < 45 || inThanks(p);
     if (F.waiting && !F.liftOn && K.dist(p, poleHit()) < 70) return true;
     return !!K.sheepAt(p, scaleW);
   },
@@ -604,6 +607,7 @@ K.scenes.finale = {
   click(p) {
     if (F.ended) {
       if (K.dist(p, { x: K.W / 2, y: K.H / 2 + 120 }) < 45) location.reload();
+      else if (inThanks(p)) window.open('podekovani.html', '_blank'); // autoři, bouda Klášterka
       return;
     }
     if (F.waiting && !F.liftOn && K.dist(p, poleHit()) < 70) return startLift();
@@ -615,6 +619,23 @@ K.scenes.finale = {
     }
   },
 };
+
+// odkaz „poděkování“ pod nápisem na konci (Daniel 2026-11-19): otevře podekovani.html v nové záložce
+const THANKS = { x: K.W / 2, y: K.H / 2 + 215, w: 260, h: 54 };
+const inThanks = (p) => Math.abs(p.x - THANKS.x) < THANKS.w / 2 && Math.abs(p.y - THANKS.y) < THANKS.h / 2;
+function drawThanksLink(ctx, hover) {
+  ctx.save();
+  ctx.font = 'italic 34px Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = hover ? '#fff6dc' : 'rgba(243, 230, 200, 0.85)';
+  ctx.fillText('poděkování', THANKS.x, THANKS.y);
+  const w = ctx.measureText('poděkování').width;
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(THANKS.x - w / 2, THANKS.y + 20); ctx.lineTo(THANKS.x + w / 2, THANKS.y + 20); ctx.stroke();
+  ctx.restore();
+}
 
 function startLift() {
   F.liftOn = true;
