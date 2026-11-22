@@ -148,6 +148,24 @@ window.SCENARE = {
   daleko2: [['bezLesa'], ['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'klinovka'], ['ceka', 24000]],
 };
 
+// loutka hrdiny (?scena=loutka&test&skript=loutka…): tlačítka pohybů nahoře, klik jinam = otočka
+const LOUTKA_BTN = (i) => ['klik', 120 + i * 210, 130]; // 0 stoj, 1 chuze, 2 saha, 3 drzi, 4 fajfka, 5 mava, 6 lek, 7 mokry
+Object.assign(window.SCENARE, {
+  loutkaChuze: [['ceka', 300], LOUTKA_BTN(1), ['ceka', 1250]],
+  loutkaChuze2: [['ceka', 300], LOUTKA_BTN(1), ['ceka', 1500]],
+  loutkaSaha: [['ceka', 300], LOUTKA_BTN(2), ['ceka', 800]],
+  loutkaDrzi: [['ceka', 300], LOUTKA_BTN(3), ['ceka', 800]],
+  loutkaFajfka: [['ceka', 300], LOUTKA_BTN(4), ['ceka', 800]],
+  loutkaMava: [['ceka', 300], LOUTKA_BTN(5), ['ceka', 800]],
+  loutkaLekSkok: [['ceka', 300], LOUTKA_BTN(6), ['ceka', 330]],
+  loutkaLek: [['ceka', 300], LOUTKA_BTN(6), ['ceka', 1500]],
+  loutkaKlobouk: [['ceka', 300], LOUTKA_BTN(6), ['ceka', 1500], LOUTKA_BTN(0), ['ceka', 420]],
+  loutkaMokry: [['ceka', 300], LOUTKA_BTN(7), ['ceka', 900]],
+  loutkaOtrepani: [['ceka', 300], LOUTKA_BTN(7), ['ceka', 900], LOUTKA_BTN(0), ['ceka', 330]],
+  loutkaOtocka: [['ceka', 500], ['klik', 960, 500], ['ceka', 100]],
+  loutkaDrobnost: [['ceka', 3900]],
+});
+
 // celá hra od začátku do titulku
 const navstiv = (id, kroky) => [['klikChalupa', id], ['cekaScena', id], ['ceka', 700], ...kroky, ['cekaScena', 'louka'], ['ceka', 1500]];
 window.SCENARE.cela = [

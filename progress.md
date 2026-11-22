@@ -153,15 +153,20 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
 - `js/jadro.js` plátno, smyčka, časovače (`K.after/K.tween/K.until`), HUD, přechody, `advanceTime`
 - `js/kresleni.js` zástupné kresby (panáček, ovce, chalupníci, zvířata, ikony, papír); ovce z obrázku (`K.sprite`)
 - `js/sprity.js` pózy postav z obrázků (kocour, ovce: zdroj, kotva, směr) generuje `python tools/sprity.py`
-  z pics/podklady-postavy/ (Daniel 2026-11-13: kocour KC; ovce a hrdina jako loutky z dílů OV2b a H2)
+  z pics/podklady-postavy/ (Daniel 2026-11-13: kocour KC; ovce jako loutka z dílů OV2b)
   Ovce (kresleni.js drawSheepSprite): tělo z kotrče + hlava z obrázku, nohy tuší kreslí hra (chůze, lyže),
-  hlava se při pasení skloní kolem krku; jehně a beran mají vlastní díly. Hrdina (drawHeroPuppet): hlava
-  z H2 (3 výrazy: o.face 'wet' / 'startle'), kloubové díly z H3 (trup, paže + předloktí a stehno + lýtko,
-  bližší i vzdálené; Gemini je částečně spojil, opravuje je fix_h3 v tools/sprity.py). Ruka se ohýbá
-  v rameni a lokti (o.reach, o.wave, o.arm 'hold' = hrnek před sebou, 'mouth' = fajfka u pusy), noha
-  v kyčli a koleni (při chůzi se ohne koleno). K.heroHand a K.heroMouth dávají polohu ruky a pusy
-  (pohrabáč v kuchyni, hrnek a fajfka u studánky). Výška loutky = 150 * s jako dřív panáček z čar,
-  ten zůstal jako záloha.
+  hlava se při pasení skloní kolem krku; jehně a beran mají vlastní díly.
+  Hrdina (2026-11-22): kluk v klobouku z alba jako papírová loutka na mosazných nýtcích (prompty L1–L3,
+  díly hrdinaL2 + hrdinaL3; klobouk z troudnatcové plsti, obličej pod krempou). Kostra v kresleni.js
+  (LOUTKA = klouby dílů jako podíly obrázku): krk, rameno, loket, zápěstí, kyčel, koleno, kotník, klobouk
+  volně na hlavě. Póza = úhly kloubů; pohyby: stoj (dýchá, po 3 s drobnosti: podrbe se pod kloboukem,
+  nadzvedne krempu, otře si chodidlo o lýtko, kouká nahoru), chůze (8 kroků na dvojkrok, odraz z palce,
+  ruce se klátí), o.reach (na špičkách), o.wave, o.arm 'hold' / 'mouth' (fajfka pod krempou), o.face
+  'startle' (vyskočí, klobouk vyletí a dopadne do očí; pak si ho srovná) a 'wet' (schoulí se, drží krempu;
+  pak se otřepe). Papírový dojem: póza po krocích 12× za s, kloub každý krok trochu ujede, předloktí,
+  ruka a klobouk při přechodu dobíhají, otočka přes hranu kartonu, stín každého dílu. K.heroHand
+  a K.heroMouth dávají polohu ruky a pusy podle zobrazené pózy. Výška loutky = 150 * s jako dřív,
+  panáček z čar zůstal jako záloha. Ladění: ?scena=loutka (&pohyb=…), testy loutka* v tools/testy.js.
   Beran v lese (les.js): bokem je loutka berana (drawRamSideSprite, čumák na místě kresleného),
   zezadu kreslená hlava a rohy, tělo vyplněné kotrčem z dílu; obrázky zezadu čekají na prompt OV3.
 - `js/louka.js` hlavní scéna nad fotkou, cesta, ovce, přiblížení do chalupy

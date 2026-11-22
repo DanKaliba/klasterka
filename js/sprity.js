@@ -109,32 +109,6 @@ K.SPRITY = {
    "right": true
   }
  },
- "hrdinaDily": {
-  "hlava": {
-   "src": "assets/postavy/hrdinaDily-hlava.png",
-   "w": 94,
-   "h": 123,
-   "ax": 45,
-   "ay": 121,
-   "right": true
-  },
-  "hlavaMzouri": {
-   "src": "assets/postavy/hrdinaDily-hlavaMzouri.png",
-   "w": 97,
-   "h": 124,
-   "ax": 44,
-   "ay": 122,
-   "right": true
-  },
-  "hlavaLek": {
-   "src": "assets/postavy/hrdinaDily-hlavaLek.png",
-   "w": 96,
-   "h": 126,
-   "ax": 47,
-   "ay": 124,
-   "right": true
-  }
- },
  "tetrivek": {
   "sit": {
    "src": "assets/postavy/tetrivek-sit.png",
@@ -469,77 +443,143 @@ K.SPRITY = {
    "right": true
   }
  },
- "hrdinaKlouby": {
+ "hrdinaL2": {
+  "klobouk": {
+   "src": "assets/postavy/hrdinaL2-klobouk.png",
+   "w": 182,
+   "h": 119,
+   "ax": 91,
+   "ay": 59,
+   "right": true
+  },
+  "hlava": {
+   "src": "assets/postavy/hrdinaL2-hlava.png",
+   "w": 115,
+   "h": 130,
+   "ax": 57,
+   "ay": 65,
+   "right": true
+  },
   "trup": {
-   "src": "assets/postavy/hrdinaKlouby-trup.png",
-   "w": 126,
-   "h": 207,
-   "ax": 73,
-   "ay": 1,
+   "src": "assets/postavy/hrdinaL2-trup.png",
+   "w": 154,
+   "h": 219,
+   "ax": 77,
+   "ay": 109,
    "right": true
   },
   "paze": {
-   "src": "assets/postavy/hrdinaKlouby-paze.png",
-   "w": 50,
-   "h": 112,
-   "ax": 19,
-   "ay": 1,
+   "src": "assets/postavy/hrdinaL2-paze.png",
+   "w": 67,
+   "h": 142,
+   "ax": 33,
+   "ay": 71,
    "right": true
   },
   "predlokti": {
-   "src": "assets/postavy/hrdinaKlouby-predlokti.png",
-   "w": 53,
-   "h": 95,
-   "ax": 30,
-   "ay": 0,
+   "src": "assets/postavy/hrdinaL2-predlokti.png",
+   "w": 62,
+   "h": 143,
+   "ax": 31,
+   "ay": 71,
+   "right": true
+  },
+  "ruka": {
+   "src": "assets/postavy/hrdinaL2-ruka.png",
+   "w": 52,
+   "h": 69,
+   "ax": 26,
+   "ay": 34,
+   "right": true
+  },
+  "pest": {
+   "src": "assets/postavy/hrdinaL2-pest.png",
+   "w": 48,
+   "h": 51,
+   "ax": 24,
+   "ay": 25,
    "right": true
   },
   "paze2": {
-   "src": "assets/postavy/hrdinaKlouby-paze2.png",
-   "w": 52,
-   "h": 112,
-   "ax": 25,
-   "ay": 1,
+   "src": "assets/postavy/hrdinaL2-paze2.png",
+   "w": 67,
+   "h": 142,
+   "ax": 33,
+   "ay": 71,
    "right": true
   },
   "predlokti2": {
-   "src": "assets/postavy/hrdinaKlouby-predlokti2.png",
-   "w": 64,
-   "h": 85,
-   "ax": 42,
-   "ay": 0,
+   "src": "assets/postavy/hrdinaL2-predlokti2.png",
+   "w": 62,
+   "h": 143,
+   "ax": 31,
+   "ay": 71,
    "right": true
   },
+  "ruka2": {
+   "src": "assets/postavy/hrdinaL2-ruka2.png",
+   "w": 52,
+   "h": 69,
+   "ax": 26,
+   "ay": 34,
+   "right": true
+  },
+  "pest2": {
+   "src": "assets/postavy/hrdinaL2-pest2.png",
+   "w": 48,
+   "h": 51,
+   "ax": 24,
+   "ay": 25,
+   "right": true
+  }
+ },
+ "hrdinaL3": {
   "stehno": {
-   "src": "assets/postavy/hrdinaKlouby-stehno.png",
-   "w": 65,
-   "h": 134,
-   "ax": 35,
-   "ay": 1,
+   "src": "assets/postavy/hrdinaL3-stehno.png",
+   "w": 73,
+   "h": 189,
+   "ax": 36,
+   "ay": 94,
    "right": true
   },
   "lytko": {
-   "src": "assets/postavy/hrdinaKlouby-lytko.png",
-   "w": 80,
-   "h": 148,
-   "ax": 23,
-   "ay": 1,
+   "src": "assets/postavy/hrdinaL3-lytko.png",
+   "w": 44,
+   "h": 159,
+   "ax": 22,
+   "ay": 79,
+   "right": true
+  },
+  "chodidlo": {
+   "src": "assets/postavy/hrdinaL3-chodidlo.png",
+   "w": 82,
+   "h": 54,
+   "ax": 41,
+   "ay": 27,
    "right": true
   },
   "stehno2": {
-   "src": "assets/postavy/hrdinaKlouby-stehno2.png",
-   "w": 65,
-   "h": 134,
-   "ax": 35,
-   "ay": 1,
+   "src": "assets/postavy/hrdinaL3-stehno2.png",
+   "w": 73,
+   "h": 189,
+   "ax": 36,
+   "ay": 94,
    "right": true
   },
   "lytko2": {
-   "src": "assets/postavy/hrdinaKlouby-lytko2.png",
-   "w": 83,
-   "h": 148,
-   "ax": 26,
-   "ay": 1,
+   "src": "assets/postavy/hrdinaL3-lytko2.png",
+   "w": 44,
+   "h": 159,
+   "ax": 22,
+   "ay": 79,
+   "right": true
+  },
+  "chodidlo2": {
+   "src": "assets/postavy/hrdinaL3-chodidlo2.png",
+   "w": 82,
+   "h": 54,
+   "ax": 41,
+   "ay": 27,
    "right": true
   }
  }

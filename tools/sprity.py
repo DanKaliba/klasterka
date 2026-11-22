@@ -1,8 +1,9 @@
 # Postavy z Danielových obrázků (kresba + skutečný materiál, pics/podklady-postavy/PROMPT-postavy.md):
 #   kocour-KC.jpeg  6 póz kocoura (srst z jívových kočiček), mřížka 2×3 → assets/postavy/kocour-*.png
 #   (ovce-OV1.jpeg  celé pózy ovcí, od 2026-11-13 nahrazené loutkou z dílů OV2b)
-#   hrdina-H2.jpeg  díly hrdiny (hlavy, trup, ruka, noha) pro loutku → assets/postavy/hrdinaDily-*.png
-#   hrdina-H3.jpeg  kloubové díly hrdiny (paže, předloktí, stehna, lýtka) → assets/postavy/hrdinaKlouby-*.png
+#   hrdina-L2.png   kluk v klobouku: klobouk, hlava, trup, paže, předloktí, ruce → assets/postavy/hrdinaL2-*.png
+#   hrdina-L3.png   jeho stehno, lýtko, chodidlo → assets/postavy/hrdinaL3-*.png
+#   (hrdina-H2/H3, kluk s čepicí z troudnatce, nahrazený 2026-11-22)
 #   ovce-OV2b.jpeg  díly ovce (těla, hlavy) pro loutku, dvě řady  → assets/postavy/ovceDily-*.png
 # Pózy vyřízne podle modrého pozadí, zmenší na referenční velikost a zapíše js/sprity.js
 # (K.SPRITY: zdroj, kotva = střed spodku tlap/kopyt, rozměry, kam póza kouká).
@@ -36,17 +37,6 @@ SETS = {
         'mirror': ['telo', 'teloJehne'],
         'center': ['telo', 'teloJehne'],
         'ref': ('telo', 'w', 200),
-    },
-    # díly hrdiny jako loutky (Daniel 2026-11-13, prompt H2): tři hlavy s čepicí z troudnatce, trup, jedna
-    # ruka a jedna noha (hra je kreslí dvakrát). Nápis „DÍLY LOUTKY“ nahoře vlevo se vynechá (minY).
-    # Kotvy: hlava = spodek krku, trup = vršek krku, ruka = rameno, noha = kyčel (střed horního kraje).
-    'hrdinaDily': {
-        'src': 'hrdina-H2.jpeg', 'grid': 0, 'minY': 0.2,
-        'poses': ['hlava', 'hlavaMzouri', 'hlavaLek', 'trup', 'ruka', 'noha'],
-        'right': [True] * 6,
-        'top': ['trup', 'ruka', 'noha'],
-        'drop': ['trup', 'ruka', 'noha'],  # od H3 se berou jen hlavy
-        'ref': ('noha', 'h', 240),
     },
     # tetřívek na vrcholu (Daniel 2026-11-13, prompt T v pics/podklady-vrchol/PROMPT-vrchol.md): 5 póz,
     # všechny koukají doleva (sedí, toká s vějířem, tahá kartu zobákem, načepýřený poražený, odlétá)
@@ -103,16 +93,29 @@ SETS = {
                    'ovcak', 'drevorubec', 'tkadlec', 'hornik', 'sklar', 'ucitel'],
         'ref': ('boruvka', 'h', 360),
     },
-    # kloubové díly hrdiny (Daniel 2026-11-13, prompt H3). Gemini díly částečně spojil, opravuje je fix_h3:
-    # předloktí se vyříznou z ohnutých rukou (od lokte k dlani) a otočí dolů, bližší lýtko se odřízne od
-    # ohnuté nohy, stehno se natočí svisle a bližší je zesvětlené vzdálené. Měřítko jako trup v H2.
-    # Kotvy: trup = vršek krku, ostatní = střed horního kraje (rameno, loket, kyčel, koleno).
-    'hrdinaKlouby': {
-        'src': 'hrdina-H3.jpeg', 'grid': 2, 'fix': 'fix_h3',
-        'poses': ['trup', 'paze', 'predlokti', 'paze2', 'predlokti2', 'stehno', 'lytko', 'stehno2', 'lytko2'],
-        'right': [True] * 9,
-        'top': ['trup', 'paze', 'predlokti', 'paze2', 'predlokti2', 'stehno', 'lytko', 'stehno2', 'lytko2'],
-        'ref': ('trup', 'h', 207),
+    # hrdina 2: kluk v klobouku jako papírová loutka na nýtech (Daniel 2026-11-22, prompty L1–L3).
+    # L2 = klobouk, hlava, trup, paže, předloktí, otevřená ruka, pěst; L3 = stehno, lýtko, chodidlo.
+    # Generátor kreslí díly v různém měřítku, proto má každý díl vlastní zmenšení (scale = px výstupu
+    # na px zdroje), srovnané podle složené loutky v L1. Vzdálené končetiny (…2) jsou ztmavené kopie.
+    # Klouby jsou v js/kresleni.js (LOUTKA) jako podíly šířky a výšky dílu, takže přežijí jiné měřítko.
+    'hrdinaL2': {
+        'src': 'hrdina-L2.png', 'grid': 0,
+        'poses': ['klobouk', 'hlava', 'trup', 'paze', 'predlokti', 'ruka', 'pest'],
+        'right': [True] * 7,
+        'center': ['klobouk', 'hlava', 'trup', 'paze', 'predlokti', 'ruka', 'pest'],
+        'mirror': ['klobouk'],  # níž svěšená krempa dopředu, přes obličej
+        'scale': {'klobouk': 0.5, 'hlava': 0.47, 'trup': 0.5, 'paze': 0.4, 'predlokti': 0.4, 'ruka': 0.4, 'pest': 0.4},
+        'far': ['paze', 'predlokti', 'ruka', 'pest'],
+        'ref': ('trup', 'h', 219),
+    },
+    'hrdinaL3': {
+        'src': 'hrdina-L3.png', 'grid': 0,
+        'poses': ['stehno', 'lytko', 'chodidlo'],
+        'right': [True] * 3,
+        'center': ['stehno', 'lytko', 'chodidlo'],
+        'scale': {'stehno': 0.3, 'lytko': 0.3, 'chodidlo': 0.32},
+        'far': ['stehno', 'lytko', 'chodidlo'],
+        'ref': ('lytko', 'h', 159),
     },
 }
 
@@ -158,48 +161,12 @@ def trim(rgba):
     return rgba[ys.min():ys.max() + 1, xs.min():xs.max() + 1].copy()
 
 
-def keep(rgba, fn):
-    """Vynuluje alfu tam, kde fn(x, y) neplatí (výřez dílu z většího kusu)."""
+def darken(rgba, t):
+    """Vzdálená končetina: tmavší (barva × t), alfa beze změny."""
     out = rgba.copy()
-    yy, xx = np.mgrid[0:out.shape[0], 0:out.shape[1]]
-    out[..., 3][~fn(xx, yy)] = 0
-    return trim(out)
-
-
-def upright(rgba):
-    """Natočí podlouhlý díl svisle (hlavní osa dolů, levý konec nahoru)."""
-    ys, xs = np.nonzero(rgba[..., 3] > 128)
-    pts = np.stack([xs, ys], 1).astype(np.float64)
-    pts -= pts.mean(0)
-    w, v = np.linalg.eigh(np.cov(pts.T))
-    vx, vy = v[:, np.argmax(w)]
-    if vx < 0:
-        vx, vy = -vx, -vy
-    theta = np.degrees(np.arctan2(vy, vx))
-    pad = max(rgba.shape[:2])
-    big = cv2.copyMakeBorder(rgba, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=(0, 0, 0, 0))
-    c = (big.shape[1] / 2, big.shape[0] / 2)
-    m = cv2.getRotationMatrix2D(c, theta - 90, 1)
-    return trim(cv2.warpAffine(big, m, (big.shape[1], big.shape[0]), flags=cv2.INTER_CUBIC))
-
-
-def lighten(rgba, t):
-    out = rgba.copy()
-    out[..., :3] = (out[..., :3] * (1 - t) + 255 * t).astype(np.uint8)
+    out[..., :3] = (out[..., :3] * t).astype(np.uint8)
     return out
 
-
-def fix_h3(poses):
-    """H3: 0 trup, 1 paže, 2 ohnutá ruka, 3 paže vzadu, 4 ohnutá ruka vzadu, 5 ohnutá noha + bližší
-    lýtko, 6 stehno vzadu, 7 lýtko vzadu → trup, paže, předloktí, …, stehno, lýtko (bližší, vzdálené)."""
-    trup, paze, ruka, paze2, ruka2, noha, stehno2, lytko2 = poses
-    cw = lambda r: cv2.rotate(r, cv2.ROTATE_90_CLOCKWISE)
-    predlokti = cw(keep(ruka, lambda x, y: x >= 95))
-    predlokti2 = cw(keep(ruka2, lambda x, y: x >= 115))
-    lytko = keep(noha, lambda x, y: (x >= 292) & ((y < 250) | (x >= 310)))
-    stehno2 = upright(stehno2)
-    stehno = lighten(stehno2, 0.18)
-    return [trup, paze, predlokti, paze2, predlokti2, stehno, lytko, stehno2, lytko2]
 
 
 def fix_karty(poses):
@@ -294,15 +261,20 @@ def main():
         ref = poses[cfg['poses'].index(ref_pose)]
         k = size / (ref.shape[1] if dim == 'w' else ref.shape[0])
         sprity[name] = {}
-        for pose, right, rgba in zip(cfg['poses'], cfg['right'], poses):
+        items = list(zip(cfg['poses'], cfg['right'], poses))
+        for pose, right, rgba in list(items):
+            if pose in cfg.get('far', []):
+                items.append((pose + '2', right, darken(rgba, 0.8)))
+        for pose, right, rgba in items:
             if pose in cfg.get('drop', []):
                 continue
             if pose in cfg.get('mirror', []):
                 rgba = rgba[:, ::-1].copy()
-            rgba = cv2.resize(rgba, (round(rgba.shape[1] * k), round(rgba.shape[0] * k)), interpolation=cv2.INTER_AREA)
+            kp = cfg.get('scale', {}).get(pose.rstrip('2'), k)
+            rgba = cv2.resize(rgba, (round(rgba.shape[1] * kp), round(rgba.shape[0] * kp)), interpolation=cv2.INTER_AREA)
             src = f'assets/postavy/{name}-{pose}.png'
             save(ROOT / src, rgba)
-            if pose in cfg.get('center', []):
+            if pose in cfg.get('center', []) or pose.rstrip('2') in cfg.get('center', []):
                 ax, ay = rgba.shape[1] // 2, rgba.shape[0] // 2
             elif pose in cfg.get('top', []):
                 ax, ay = top_anchor(rgba)

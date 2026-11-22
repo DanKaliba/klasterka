@@ -32,141 +32,322 @@ function twoPass(ctx, halo, fn) {
 }
 
 // ---------- panáček (hrdina) ----------
-// y = chodidla, s = měřítko (výška ~130·s)
-// ---------- hrdina jako loutka ----------
-// Danielovy díly (2026-11-13, python tools/sprity.py): hlava s čepicí z troudnatce (3 výrazy, prompt H2,
-// K.SPRITY.hrdinaDily) a kloubové díly z H3 (K.SPRITY.hrdinaKlouby): trup, paže + předloktí a stehno +
-// lýtko, bližší i vzdálené. Ruka se ohýbá v rameni a lokti, noha v kyčli a koleni.
-// Klouby v px dílů (kotva každého dílu = střed horního kraje), postava hlavou doprava:
-const HJ = {
-  hip: { f: [62, 168], b: [70, 166] }, // kyčle na trupu
-  shoulder: { f: [64, 50], b: [50, 48] }, // ramena na trupu
-  neck: [75, 28], // spodek krku hlavy na trupu
-  upper: 100, // rameno → loket
-  thigh: 118, // kyčel → koleno
-  mouth: [13, -33], // pusa vůči spodku krku hlavy
+// y = chodidla, s = měřítko (celá postava ve stoji = 150·s)
+// ---------- hrdina jako papírová loutka ----------
+// Kluk v klobouku z alba (Daniel 2026-11-22, prompty L1–L3 v pics/podklady-postavy/PROMPT-postavy.md;
+// python tools/sprity.py → K.SPRITY.hrdinaL2 a hrdinaL3). Díly z kartonu spojené mosaznými nýtky:
+// rameno, loket, zápěstí, kyčel, koleno, kotník; hlava sedí na krku, klobouk volně na hlavě.
+// Obličej není vidět, city hraje tělo a klobouk. Aby to působilo jako papír, ne jako pružný panáček:
+//  - póza se mění po krocích (LOUTKA_FPS za sekundu, chůze WALK_STEPS kroků na dvojkrok) jako u animace
+//    po snímcích (Zeman),
+//  - každý krok kloub trochu ujede (JITTER, ruka animátora),
+//  - při přechodu mezi pózami předloktí, ruka a klobouk dobíhají (LAG), při chůzi se ruce klátí se zpožděním,
+//  - otočka = figurka se zúží na hranu kartonu a rozbalí zrcadlově,
+//  - každý díl vrhá drobný stín na díl pod sebou.
+// Klouby dílů jako podíly šířky a výšky obrázku (postava kouká doprava, končetina visí dolů):
+// a = horní kloub dílu, b = dolní kloub (u ruky konec prstů), grip = kde ruka drží věc.
+// Celé je to ve vlastní funkci, ať se jména (MOUTH, WET, mix…) nepotkají s konstantami scén.
+const drawHeroPuppet = (() => {
+const LOUTKA = {
+  trup: { neck: [0.58, 0.08], shF: [0.27, 0.2], shB: [0.62, 0.2], hipF: [0.42, 0.83], hipB: [0.58, 0.8], pelvis: [0.5, 0.82] },
+  hlava: { neck: [0.47, 0.88], seat: [0.47, 0.4], mouth: [0.84, 0.69] },
+  klobouk: { seat: [0.48, 0.78] },
+  paze: { a: [0.45, 0.13], b: [0.6, 0.86] },
+  predlokti: { a: [0.4, 0.13], b: [0.57, 0.86] },
+  ruka: { a: [0.3, 0.12], b: [0.62, 0.97], grip: [0.5, 0.55] },
+  pest: { a: [0.22, 0.14], b: [0.6, 0.85], grip: [0.62, 0.6] },
+  stehno: { a: [0.5, 0.12], b: [0.5, 0.88] },
+  lytko: { a: [0.5, 0.08], b: [0.5, 0.93] },
+  chodidlo: { a: [0.25, 0.15], heel: [0.08, 0.95], toe: [0.97, 0.9] },
 };
-// úhly (rad, 0 = visí dolů, kladně = konec jde dozadu) podle toho, co panáček dělá
-// o.reachA = jak daleko od svislice míří natažená ruka (výchozí 0.4; kuchyně ho dolaďuje k oknu)
-function heroAngles(o) {
-  const ph = o.phase || 0, walk = o.walking ? 1 : 0;
-  const legs = (side) => {
-    const p = ph + (side === 'f' ? 0 : Math.PI);
-    return { thigh: -0.38 * walk * Math.sin(p), knee: walk * 0.55 * Math.max(0, Math.cos(p)) };
-  };
-  const arm = { f: { up: 0.3 * walk * Math.sin(ph), fore: -0.25 }, b: { up: -0.3 * walk * Math.sin(ph), fore: -0.25 } };
-  if (o.arm === 'hold') arm.f = { up: -0.1, fore: -0.55 }; // drží něco před sebou v pase (hrnek)
-  if (o.arm === 'mouth') arm.f = { up: -0.55, fore: -2.35 }; // ruka u pusy (fajfka)
-  if (o.reach) arm.f = { up: -(Math.PI - (o.reachA ?? 0.4)), fore: -0.15 }; // natahuje se nahoru
-  if (o.wave) arm.f = { up: -(Math.PI - 0.7), fore: -0.6 + Math.sin(K.time * 10) * 0.45 };
-  return { legF: legs('f'), legB: legs('b'), armF: arm.f, armB: arm.b };
+const LOUTKA_FPS = 12;
+const WALK_STEPS = 8;
+const JITTER = 0.035;
+const PIN_R = 4.2; // nýtek v px dílů
+const L2_PARTS = ['trup', 'hlava', 'klobouk', 'paze', 'predlokti', 'ruka', 'pest', 'paze2', 'predlokti2', 'ruka2', 'pest2'];
+const L3_PARTS = ['stehno', 'lytko', 'chodidlo', 'stehno2', 'lytko2', 'chodidlo2'];
+
+// Póza = úhly kloubů v rad. Končetiny: 0 = visí dolů, kladně = konec jde dozadu (proti tomu, kam kouká).
+// lean = trup (kladně = předklon), neck = hlava, hat = klobouk vůči hlavě (kladně = krempa do očí),
+// hatY / lift = posun klobouku / celé postavy v px dílů (záporně = nahoru),
+// s/e/w = rameno, loket, zápěstí; h/k = kyčel, koleno; t = chodidlo vůči zemi (kladně = pata nahoře);
+// F = bližší strana, B = vzdálená. handF/handB: 'ruka' (otevřená) | 'pest'.
+const POSE_KEYS = ['lean', 'neck', 'hat', 'hatY', 'lift', 'sF', 'eF', 'wF', 'sB', 'eB', 'wB', 'hF', 'kF', 'tF', 'hB', 'kB', 'tB'];
+const LAG = { eF: 1.5, eB: 1.5, kF: 1.3, kB: 1.3, wF: 2.2, wB: 2.2, hat: 2.6, hatY: 2.6 };
+const STAND = { lean: 0, neck: 0, hat: 0, hatY: 0, lift: 0, sF: 0.06, eF: -0.14, wF: -0.12, sB: -0.04, eB: -0.12, wB: -0.1,
+  hF: 0.05, kF: 0.04, tF: 0, hB: -0.08, kB: 0.06, tB: 0, handF: 'ruka', handB: 'ruka', armOverHat: true };
+
+const ramp = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+const smooth = (u) => u * u * (3 - 2 * u);
+const env = (t, dur, io = 0.3) => smooth(ramp(t, 0, io)) * (1 - smooth(ramp(t, dur - io, dur))); // náběh, držení, doběh
+// přimíchá k póze q jinou (jen klíče z over) vahou w
+const mix = (q, over, w) => {
+  for (const k in over) q[k] = typeof over[k] === 'number' ? q[k] + (over[k] - q[k]) * w : w > 0.5 ? over[k] : q[k];
+  return q;
+};
+
+function walkPose(q, p) {
+  const d = (2 * Math.PI) / WALK_STEPS; // jeden krok animace = zpoždění předloktí, ruky a klobouku
+  const leg = (ph) => ({
+    h: -0.42 * Math.sin(ph),
+    k: 0.06 + 0.8 * Math.max(0, Math.cos(ph)) ** 2, // koleno se ohne, když noha jde dopředu
+    t: 0.5 * Math.max(0, -Math.sin(ph + 0.35)) - 0.12 * Math.max(0, Math.sin(ph)), // odraz z palce, došlap na patu
+  });
+  const F = leg(p), B = leg(p + Math.PI);
+  Object.assign(q, { hF: F.h, kF: F.k, tF: F.t, hB: B.h, kB: B.k, tB: B.t,
+    lean: 0.06, neck: 0.03 * Math.sin(2 * p - d),
+    sF: 0.32 * Math.sin(p), eF: -0.18 - 0.3 * Math.max(0, -Math.sin(p - d)), wF: -0.1 + 0.25 * Math.sin(p - 2 * d),
+    sB: -0.32 * Math.sin(p), eB: -0.18 - 0.3 * Math.max(0, Math.sin(p - d)), wB: -0.1 - 0.25 * Math.sin(p - 2 * d),
+    hat: 0.05 * Math.sin(2 * p - 2 * d), hatY: -3 * Math.max(0, Math.sin(2 * p - 2 * d)) });
 }
-const rotV = (a, len) => [-Math.sin(a) * len, Math.cos(a) * len]; // vektor délky len pod úhlem a
-const addV = (p, a, len) => { const v = rotV(a, len); return [p[0] + v[0], p[1] + v[1]]; };
-// polohy kloubů v px dílů vůči chodidlům (trup se posadí tak, aby níž položené chodidlo bylo na zemi)
-function heroJoints(o, P) {
-  const a = heroAngles(o);
-  // noha s trupem v počátku: kyčel → koleno → chodidlo
-  const leg = (side, l) => {
-    const hip = HJ.hip[side], knee = addV(hip, l.thigh, HJ.thigh);
-    return { hip, knee, toe: addV(knee, l.thigh + l.knee, P.lytko.sp.h), l };
-  };
-  const lf = leg('f', a.legF), lb = leg('b', a.legB);
-  const T = [-HJ.hip.f[0], -Math.max(lf.toe[1], lb.toe[1])]; // levý horní roh trupu (nejnižší chodidlo na y = 0)
-  const at = (p) => [T[0] + p[0], T[1] + p[1]];
-  const moved = (g) => ({ hip: at(g.hip), knee: at(g.knee), l: g.l });
-  const arm = (side, an) => {
-    const sh = at(HJ.shoulder[side]), elbow = addV(sh, an.up, HJ.upper);
-    const fore = P[side === 'f' ? 'predlokti' : 'predlokti2'].sp.h * 0.92;
-    return { sh, elbow, hand: addV(elbow, an.up + an.fore, fore), an };
-  };
-  const neck = at(HJ.neck);
-  return { T, neck, armF: arm('f', a.armF), armB: arm('b', a.armB), legF: moved(lf), legB: moved(lb), top: neck[1] - P.hlava.sp.ay };
+
+// drobnosti, když panáček stojí: podrbe se pod kloboukem, nadzvedne krempu, otře si chodidlo o lýtko, kouká nahoru
+const FIDGETS = [
+  (q, u) => mix(q, { sF: -2.45, eF: -1.65 + 0.25 * Math.sin(u * 55), wF: 0.4, neck: 0.12, hat: 0.06 }, env(u, 1.8)),
+  (q, u) => mix(q, { sF: -2.25, eF: -0.85, wF: -0.4, hat: -0.22, hatY: -4 }, env(u, 1.6)),
+  (q, u) => mix(q, { hF: -0.1, kF: 1.5 + 0.18 * Math.sin(u * 40), tF: 0.8, sF: 0.15, sB: -0.15, lean: -0.02 }, env(u, 1.8)),
+  (q, u) => mix(q, { neck: -0.25, hat: -0.1, lean: -0.04, sF: 0.12 }, env(u, 2, 0.4)),
+];
+const FIDGET_FROM = 3, FIDGET_EVERY = 5.5, FIDGET_DUR = 2;
+function standPose(q, tm) {
+  q.lean += 0.012 * Math.sin(tm * 2.1); // dýchá
+  q.sF += 0.02 * Math.sin(tm * 2.1 + 1);
+  if (tm < FIDGET_FROM) return;
+  const n = Math.floor((tm - FIDGET_FROM) / FIDGET_EVERY), u = tm - FIDGET_FROM - n * FIDGET_EVERY;
+  if (u < FIDGET_DUR) FIDGETS[Math.floor(K.hash(n * 7.7 + 3) * FIDGETS.length)](q, u);
 }
-function heroParts(face) {
-  const g = (n) => K.sprite('hrdinaKlouby', n);
-  const h = (n) => K.sprite('hrdinaDily', n);
-  const P = { trup: g('trup'), paze: g('paze'), predlokti: g('predlokti'), paze2: g('paze2'), predlokti2: g('predlokti2'),
-    stehno: g('stehno'), lytko: g('lytko'), stehno2: g('stehno2'), lytko2: g('lytko2'),
-    hlava: h(face === 'wet' ? 'hlavaMzouri' : face === 'startle' ? 'hlavaLek' : 'hlava') };
-  return Object.values(P).every(Boolean) ? P : null;
+
+const HOLD = { sF: -0.15, eF: -1.42, wF: 0.35, handF: 'pest' }; // drží věc před sebou (hrnek, karty)
+const MOUTH = { sF: -0.5, eF: -2.35, wF: -0.2, handF: 'pest', armOverHat: false }; // fajfka pod krempou
+const WET = { lean: 0.22, neck: 0.15, hF: -0.3, kF: 0.35, hB: -0.25, kB: 0.3, sF: -1.5, eF: -1.65, wF: -0.5,
+  sB: -1.4, eB: -1.75, wB: -0.5, hat: 0.1, hatY: 5, handF: 'ruka', handB: 'ruka' }; // schoulený, drží si krempu
+const ST_CROUCH = { lean: 0.18, hF: -0.45, kF: 0.75, tF: 0, hB: -0.4, kB: 0.7, tB: 0, sF: 0.3, eF: -0.4, sB: 0.2, eB: -0.4 };
+const ST_AIR = { lean: -0.1, lift: -40, hF: -1.0, kF: 1.6, tF: 0.5, hB: -0.8, kB: 1.5, tB: 0.5, sF: -2.75, eF: -0.25, wF: 0.35,
+  sB: -2.45, eB: -0.35, wB: 0.35, handF: 'ruka', handB: 'ruka' };
+const ST_AFTER = { lean: -0.05, lift: 0, hF: -0.15, kF: 0.25, tF: 0, hB: -0.1, kB: 0.2, tB: 0, sF: -1.3, eF: -0.9, wF: 0.3,
+  sB: -1.1, eB: -0.9, wB: 0.3 };
+// lek: přikrčí se, vyskočí s rukama nahoře, klobouk vyletí a dopadne nakřivo do očí
+function startlePose(q, tm) {
+  mix(q, ST_CROUCH, smooth(ramp(tm, 0, 0.08)));
+  mix(q, ST_AIR, smooth(ramp(tm, 0.08, 0.2)));
+  mix(q, ST_AFTER, smooth(ramp(tm, 0.42, 0.6)));
+  const fly = Math.sin(Math.PI * ramp(tm, 0.1, 0.65));
+  q.hatY = -120 * fly;
+  q.hat = 0.28 * ramp(tm, 0.5, 0.65) + 0.9 * fly;
 }
-// měřítko: celá loutka (chodidla → vršek čepice ve stoji s klidnou hlavou) = 150 * s jako dřív panáček z čar
-let heroRef = 0;
-// díly a klouby pro dané volby; v jednom snímku se pro stejné volby počítají jen jednou
-// (scéna kreslí panáčka a pak se ptá na jeho ruku a pusu)
-const heroCache = { t: -1, map: new Map() };
-function heroSolve(o) {
-  if (heroCache.t !== K.time) { heroCache.t = K.time; heroCache.map.clear(); }
-  const key = [o.face, o.arm, o.reach ? 1 : 0, o.reachA, o.wave ? 1 : 0, o.walking ? 1 : 0, o.walking ? o.phase : 0].join('|');
-  let r = heroCache.map.get(key);
-  if (r === undefined) {
-    const P = heroParts(o.face);
-    if (P && !heroRef) {
-      const neutral = heroParts(null);
-      if (neutral) heroRef = -heroJoints({}, neutral).top;
-    }
-    r = P && heroRef ? { P, j: heroJoints(o, P) } : null;
-    heroCache.map.set(key, r);
+// krátké pohyby po skončení stavu: po leknutí si srovná klobouk, po namočení se otřepe jako pes
+const CLIPS = {
+  klobouk: { dur: 0.9, fn: (q, u) => mix(q, { sF: -1.6, eF: -1.5, wF: -0.4, sB: -1.5, eB: -1.6, wB: -0.4, handF: 'ruka', handB: 'ruka' }, env(u, 0.9, 0.25)) },
+  otrepani: { dur: 0.8, fn: (q, u) => {
+    const o = Math.sin(u * 38);
+    mix(q, { lean: 0.12 * o, neck: -0.2 * o, hat: 0.3 * o, hatY: -6 * Math.abs(o), sF: 0.6 * o, eF: -0.5, sB: -0.6 * o, eB: -0.5,
+      wF: 0.8 * o, wB: -0.8 * o }, env(u, 0.8, 0.15));
+  } },
+};
+
+const heroMode = (o) => (o.face === 'startle' ? 'startle' : o.face === 'wet' ? 'wet' : o.wave ? 'wave' : o.reach ? 'reach' : o.walking ? 'walk' : 'stand');
+const heroKey = (o) => [heroMode(o), o.arm || '', o.reach ? (o.reachA ?? 0.4).toFixed(3) : ''].join('|');
+// cílová póza pro volby o; tm = jak dlouho stav trvá, t = čas (obojí po krocích LOUTKA_FPS)
+function heroTarget(o, tm, t) {
+  const q = { ...STAND }, mode = heroMode(o);
+  if (mode === 'walk') {
+    const step = (2 * Math.PI) / WALK_STEPS;
+    walkPose(q, Math.floor((o.phase || 0) / step) * step);
+  } else if (mode === 'stand') standPose(q, tm);
+  else if (mode === 'reach') {
+    Object.assign(q, { sF: -(Math.PI - (o.reachA ?? 0.4)), eF: -0.15, wF: -0.35, sB: -0.25, eB: -0.3, wB: -0.1,
+      hF: 0, kF: 0, hB: 0.04, kB: 0.02, tF: 0.55, tB: 0.55, neck: -0.2, hat: -0.08, handF: 'pest' }); // na špičkách
+  } else if (mode === 'wave') {
+    Object.assign(q, { sF: -2.6, eF: -0.25 + 0.35 * Math.sin(t * 9), wF: -0.1 + 0.6 * Math.sin(t * 9 - 1.2), neck: -0.08 });
+  } else if (mode === 'wet') {
+    Object.assign(q, WET);
+    q.lean += 0.025 * Math.sin(t * 47); // třese se
+  } else if (mode === 'startle') startlePose(q, tm);
+  if ((mode === 'walk' || mode === 'stand') && o.arm === 'hold') Object.assign(q, HOLD);
+  if ((mode === 'walk' || mode === 'stand') && o.arm === 'mouth') Object.assign(q, MOUTH);
+  return q;
+}
+
+// zobrazená póza: přechody, dobíhání, krátké pohyby a otočka; jeden hrdina na scénu
+const HS = { key: null, t0: 0, last: -9, from: null, cur: null, clip: null, clipT: 0, facing: 0, flipFrom: 1, flipT: -9 };
+function heroDisplay(o) {
+  const key = heroKey(o);
+  if (HS.cur && HS.last === K.time && HS.key === key) return HS.cur;
+  const tq = Math.floor(K.time * LOUTKA_FPS) / LOUTKA_FPS;
+  const gap = K.time - HS.last > 0.5 || K.time < HS.last; // dlouho se nekreslil (jiná scéna, test): bez přechodu
+  if (key !== HS.key) {
+    const was = HS.key && HS.key.split('|')[0], now = key.split('|')[0];
+    HS.clip = gap ? null : was === 'startle' && now !== 'startle' ? 'klobouk' : was === 'wet' && now !== 'wet' ? 'otrepani' : null;
+    HS.clipT = tq;
+    HS.from = gap || !HS.cur ? null : HS.cur.base;
+    HS.t0 = tq;
+    HS.key = key;
   }
-  return r;
+  HS.last = K.time;
+  const q = heroTarget(o, tq - HS.t0, tq);
+  if (HS.clip) {
+    const u = tq - HS.clipT;
+    if (u < CLIPS[HS.clip].dur) CLIPS[HS.clip].fn(q, u);
+    else HS.clip = null;
+  }
+  if (HS.from) {
+    const w = smooth(Math.min(1, (tq - HS.t0) / 0.33));
+    for (const k of POSE_KEYS) q[k] = HS.from[k] + (q[k] - HS.from[k]) * w ** (LAG[k] || 1);
+    if (w >= 1) HS.from = null;
+  }
+  const base = { ...q };
+  const step = Math.floor(K.time * LOUTKA_FPS);
+  POSE_KEYS.forEach((k, i) => { if (k !== 'lift' && k !== 'hatY') q[k] += (K.hash(step * 17.3 + i * 3.7) - 0.5) * JITTER; });
+  const f = o.facing || 1;
+  if (!HS.facing || gap) { HS.facing = f; HS.flipT = -9; }
+  else if (f !== HS.facing) { HS.flipFrom = HS.facing; HS.facing = f; HS.flipT = tq; }
+  const u = Math.min(1, (tq - HS.flipT) / 0.25);
+  let sx = u >= 1 ? f : HS.flipFrom + (f - HS.flipFrom) * u; // otočka přes hranu kartonu
+  if (Math.abs(sx) < 0.08) sx = 0.08 * f;
+  HS.cur = { q, base, sx };
+  return HS.cur;
 }
-// přední ruka a pusa ve světě (pro pohrabáč, hrnek, fajfku); null, dokud se loutka nenačte.
-// Předat stejné volby jako drawHero (walking, phase, arm, reach…), ať ruka sedí i v chůzi.
-K.heroHand = (x, y, s, o = {}) => {
-  const r = heroSolve(o);
-  if (!r) return null;
-  const k = (150 * s) / heroRef, f = o.facing || 1;
-  return { x: x + f * k * r.j.armF.hand[0], y: y + k * r.j.armF.hand[1] };
-};
-K.heroMouth = (x, y, s, o = {}) => {
-  const r = heroSolve(o);
-  if (!r) return null;
-  const k = (150 * s) / heroRef, f = o.facing || 1;
-  return { x: x + f * k * (r.j.neck[0] + HJ.mouth[0]), y: y + k * (r.j.neck[1] + HJ.mouth[1]) };
-};
-// o.face: 'wet' (mžourá: mokrý, kašle) | 'startle' (vyděšený); o.arm: 'hold' | 'mouth'; o.reach (+ o.reachA), o.wave;
-// o.halo (výchozí ano): světlý obrys, ať je malý panáček vidět na fotce louky
-function drawHeroPuppet(ctxIn, x, y, s, o) {
-  const r = heroSolve(o);
-  if (!r) return false;
-  const { P, j } = r, k = (150 * s) / heroRef, f = o.facing || 1;
-  let ctx = ctxIn; // plátno, do kterého se právě kreslí díly (hra, nebo pomocné plátno pro obrys)
-  const part = (p, at, rot) => {
-    ctx.save();
-    ctx.translate(at[0], at[1]);
-    if (rot) ctx.rotate(rot);
-    ctx.drawImage(p.img, -p.sp.ax, -p.sp.ay);
-    ctx.restore();
+
+let heroP = null;
+function heroParts() {
+  if (heroP) return heroP;
+  const P = {};
+  for (const [set, names] of [['hrdinaL2', L2_PARTS], ['hrdinaL3', L3_PARTS]]) {
+    for (const n of names) {
+      const sp = K.sprite(set, n);
+      if (!sp) return null;
+      P[n] = sp;
+    }
+  }
+  heroP = P;
+  return P;
+}
+// díly na místech pro pózu q (px dílů, počátek = pánev, y dolů; dy posadí nižší chodidlo na zem)
+function heroRig(P, q) {
+  const loc = (n, key) => { const f = LOUTKA[n.replace(/2$/, '')][key]; return [f[0] * P[n].sp.w, f[1] * P[n].sp.h]; };
+  const map = (pl, p) => {
+    const c = Math.cos(pl.rot), s = Math.sin(pl.rot), x = p[0] - pl.a[0], y = p[1] - pl.a[1];
+    return [pl.at[0] + x * c - y * s, pl.at[1] + x * s + y * c];
   };
-  const arm = (a, up, fore) => { part(fore, a.elbow, a.an.up + a.an.fore); part(up, a.sh, a.an.up); };
-  const leg = (l, th, sh) => { part(sh, l.knee, l.l.thigh + l.l.knee); part(th, l.hip, l.l.thigh); };
+  const place = (n, at, rot, a) => ({ n, at, rot, a });
+  // díl jako kost: horní kloub v at, osa a → b pod úhlem ang
+  const bone = (n, at, ang) => {
+    const a = loc(n, 'a'), b = loc(n, 'b');
+    const pl = place(n, at, ang - Math.atan2(a[0] - b[0], b[1] - a[1]), a);
+    pl.end = map(pl, b);
+    return pl;
+  };
+  const torso = place('trup', [0, 0], q.lean, loc('trup', 'pelvis'));
+  const head = place('hlava', map(torso, loc('trup', 'neck')), q.lean + q.neck, loc('hlava', 'neck'));
+  const seat = map(head, loc('hlava', 'seat'));
+  const hat = place('klobouk', [seat[0], seat[1] + q.hatY], q.lean + q.neck + q.hat, loc('klobouk', 'seat'));
+  const arm = (X, suf) => {
+    const A = q.lean + q['s' + X];
+    const up = bone('paze' + suf, map(torso, loc('trup', 'sh' + X)), A);
+    const fore = bone('predlokti' + suf, up.end, A + q['e' + X]);
+    const hn = (q['hand' + X] || 'ruka') + suf, hand = bone(hn, fore.end, A + q['e' + X] + q['w' + X]);
+    return { parts: [hand, fore, up], pins: [up.at, fore.at, hand.at], grip: map(hand, loc(hn, 'grip')) };
+  };
+  const leg = (X, suf) => {
+    const A = q.lean + q['h' + X];
+    const th = bone('stehno' + suf, map(torso, loc('trup', 'hip' + X)), A);
+    const sh = bone('lytko' + suf, th.end, A + q['k' + X]);
+    const ft = place('chodidlo' + suf, sh.end, q['t' + X], loc('chodidlo' + suf, 'a'));
+    return { parts: [ft, sh, th], pins: [sh.at, ft.at], sole: [map(ft, loc('chodidlo' + suf, 'heel')), map(ft, loc('chodidlo' + suf, 'toe'))] };
+  };
+  const aF = arm('F', ''), aB = arm('B', '2'), lF = leg('F', ''), lB = leg('B', '2');
+  const ground = Math.max(...[...lF.sole, ...lB.sole].map((p) => p[1]));
+  const hw = P.klobouk.sp.w;
+  const top = Math.min(...[[0, 0], [hw / 2, 0], [hw, 0]].map((p) => map(hat, p)[1]));
+  const layers = [
+    { parts: aB.parts, pins: aB.pins.slice(1) }, // vzdálená ruka (rameno schované za trupem)
+    { parts: lB.parts, pins: lB.pins },
+    { parts: lF.parts, pins: lF.pins }, // kyčle schová sako
+    { parts: [torso, head] },
+    ...(q.armOverHat === false ? [{ parts: aF.parts, pins: aF.pins }, { parts: [hat] }] : [{ parts: [hat] }, { parts: aF.parts, pins: aF.pins }]),
+  ];
+  return { layers, dy: q.lift - ground, hand: aF.grip, mouth: map(head, loc('hlava', 'mouth')), top, ground };
+}
+// výška loutky ve stoji (chodidla → vršek klobouku) v px dílů; měřítko 150·s jako dřív panáček z čar
+let heroRef = 0;
+function heroRefH(P) {
+  if (!heroRef) { const g = heroRig(P, { ...STAND }); heroRef = g.ground - g.top; }
+  return heroRef;
+}
+let pinCanvas = null;
+function pinImg() {
+  if (pinCanvas) return pinCanvas;
+  pinCanvas = document.createElement('canvas');
+  pinCanvas.width = pinCanvas.height = 32;
+  const g = pinCanvas.getContext('2d'), gr = g.createRadialGradient(12, 11, 1, 16, 16, 15);
+  gr.addColorStop(0, '#fff3c4');
+  gr.addColorStop(0.25, '#d8b25a');
+  gr.addColorStop(0.75, '#9a7428');
+  gr.addColorStop(1, '#5a4214');
+  g.fillStyle = gr;
+  g.beginPath();
+  g.arc(16, 16, 15, 0, Math.PI * 2);
+  g.fill();
+  return pinCanvas;
+}
+
+// bod loutky ve světě (ruka, pusa): podle zobrazené pózy, když se ptá na právě kreslenou, jinak podle cílové
+function heroPoint(x, y, s, o, which) {
+  const P = heroParts();
+  if (!P) return null;
+  let q, sx;
+  if (HS.cur && HS.key === heroKey(o)) ({ q, sx } = heroDisplay(o));
+  else { q = heroTarget(o, heroMode(o) === 'stand' ? 0 : 5, K.time); sx = o.facing || 1; }
+  const g = heroRig(P, q), k = (150 * s) / heroRefH(P), p = g[which];
+  return { x: x + sx * k * p[0], y: y + k * (p[1] + g.dy) };
+}
+// přední ruka (kde drží věc) a pusa ve světě (pro pohrabáč, hrnek, fajfku); null, dokud se loutka nenačte.
+// Předat stejné volby jako drawHero (walking, phase, arm, reach…), ať ruka sedí i v chůzi.
+K.heroHand = (x, y, s, o = {}) => heroPoint(x, y, s, o, 'hand');
+K.heroMouth = (x, y, s, o = {}) => heroPoint(x, y, s, o, 'mouth');
+// posune zobrazenou pózu bez kreslení (ladicí scéna v testech, kde se kreslí jen poslední snímek)
+K.heroTick = (o = {}) => { if (heroParts()) heroDisplay(o); };
+// o.face: 'wet' (schoulí se a drží si klobouk; po skončení se otřepe) | 'startle' (lek: vyskočí, klobouk vyletí);
+// o.arm: 'hold' | 'mouth'; o.reach (+ o.reachA), o.wave; o.halo (výchozí ano): světlý obrys, ať je malý
+// panáček vidět na fotce louky
+function drawHeroPuppet(ctxIn, x, y, s, o) {
+  const P = heroParts();
+  if (!P) return false;
+  const d = heroDisplay(o), g = heroRig(P, d.q), ref = heroRefH(P), k = (150 * s) / ref;
   const puppet = (c, px, py) => {
-    ctx = c;
     c.save();
     c.translate(px, py);
-    c.scale(f * k, k);
-    arm(j.armB, P.paze2, P.predlokti2); // vzdálená ruka a noha za trupem
-    leg(j.legB, P.stehno2, P.lytko2);
-    leg(j.legF, P.stehno, P.lytko);
-    c.drawImage(P.trup.img, j.T[0], j.T[1]);
-    part(P.hlava, j.neck, o.reach ? -0.12 : 0);
-    arm(j.armF, P.paze, P.predlokti); // bližší ruka před trupem
+    c.scale(d.sx * k, k);
+    c.translate(0, g.dy);
+    c.shadowColor = 'rgba(40, 28, 16, 0.35)'; // každý díl vrhá stín na díl pod sebou
+    c.shadowBlur = Math.max(1, 3 * k);
+    c.shadowOffsetX = Math.max(1, 2 * k);
+    c.shadowOffsetY = Math.max(1, 2.5 * k);
+    for (const L of g.layers) {
+      for (const pl of L.parts) {
+        c.save();
+        c.translate(pl.at[0], pl.at[1]);
+        c.rotate(pl.rot);
+        c.drawImage(P[pl.n].img, -pl.a[0], -pl.a[1]);
+        c.restore();
+      }
+      if (L.pins) for (const p of L.pins) c.drawImage(pinImg(), p[0] - PIN_R, p[1] - PIN_R, 2 * PIN_R, 2 * PIN_R);
+    }
     c.restore();
   };
   if (o.halo === false) { puppet(ctxIn, x, y); return true; }
   // světlý obrys kolem celé postavy: nejdřív bokem do plátna, pak jednou se stínem (jinak by záře
   // každého dílu zamlžila díly pod ním)
-  const out = ctxIn, R = Math.ceil(heroRef * k * 0.75) + 12; // loutka se vejde do čtverce 2R kolem pasu
+  const out = ctxIn, R = Math.ceil(ref * k * 0.85) + 12; // loutka i s vyletěným kloboukem se vejde nad chodidla
   const hc = heroHaloCanvas(2 * R);
-  const g = hc.getContext('2d');
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  g.clearRect(0, 0, hc.width, hc.height);
-  puppet(g, R, 1.5 * R);
+  const hg = hc.getContext('2d');
+  hg.setTransform(1, 0, 0, 1, 0, 0);
+  hg.clearRect(0, 0, hc.width, hc.height);
+  puppet(hg, R, 1.6 * R);
   out.save();
   out.shadowColor = 'rgba(255, 252, 240, 0.9)';
   out.shadowBlur = Math.max(2, 5 * s);
-  out.drawImage(hc, 0, 0, 2 * R, 2 * R, x - R, y - 1.5 * R, 2 * R, 2 * R);
+  out.drawImage(hc, 0, 0, 2 * R, 2 * R, x - R, y - 1.6 * R, 2 * R, 2 * R);
   out.restore();
   return true;
 }
@@ -176,6 +357,8 @@ function heroHaloCanvas(size) {
   if (heroHalo.width < size || heroHalo.height < size) heroHalo.width = heroHalo.height = Math.max(size, heroHalo.width);
   return heroHalo;
 }
+return drawHeroPuppet;
+})();
 
 K.drawHero = (ctx, x, y, s, o = {}) => {
   if ((o.alpha ?? 1) < 1) return K.withAlpha(ctx, o.alpha, (c) => K.drawHero(c, x, y, s, { ...o, alpha: 1 }));
