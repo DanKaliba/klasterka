@@ -1,5 +1,5 @@
 // Start hry a ladicí přepínače v adrese:
-//   ?scena=<louka|les|skocka|kantorska|kriz|jelinek|klinovka|vrchol|finale>
+//   ?scena=<louka|les|skocka|kantorska|kriz|jelinek|klinovka|vrchol|finale>  (kuchyne = kantorska, muka = kriz)
 //   ?vse        — všechny úkoly hotové, v batohu všechny 3 věci (rovnou na vrchol)
 //   ?les        — les už prošlý (batoh od stromu, beran ve stádu)
 //   ?finale=40  — finále přetočené o 40 s
@@ -23,7 +23,10 @@
   // zbytek snímků pro finále se načítá na pozadí během hraní
   K.load(window.SNIMKY.map(K.frameSrc));
 
-  const scena = K.params.get('scena') || 'louka';
+  // scény se jmenují podle chalup na mapě; jména souborů (muka.js, kuchyne.js) fungují taky
+  const ALIAS = { muka: 'kriz', studanka: 'kriz', kuchyne: 'kantorska' };
+  const p = K.params.get('scena') || 'louka';
+  const scena = ALIAS[p] || p;
   // les se přeskočí i při skoku rovnou do chalupy, na vrchol nebo do finále (batoh je potřeba pro HUD)
   if (K.params.has('vse') || K.params.has('les') || !['louka', 'les'].includes(scena)) K.forestDone();
   if (K.params.has('vse')) {

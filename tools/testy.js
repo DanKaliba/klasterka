@@ -110,7 +110,7 @@ window.SCENARE = {
   krizDym: [...MUKA_VETVE, ...MUKA_DYM, ['ceka', 2600]],
   krizSmrad: [...MUKA_VETVE, ...MUKA_DYM, ['ceka', 3100]],
   krizUtek: [...MUKA_VETVE, ...MUKA_DYM, ['ceka', 5000]],
-  // holou rukou: žába pořád jen cvrká, od 2. cvrknutí bublina s fajfkou
+  // holou rukou: žába pořád jen cvrká (bez nápovědy)
   krizRukou: [...MUKA_VETVE, ...MUKA_ZABA, ...MUKA_ZABA, ['klik', 1060, 752], ['ceka', 3300]],
   krizCista: [...MUKA_FAJFKA, ['ceka', 300]],
   krizSucho: [['cekaVolno'], ...MUKA_HRNEK, ['ceka', 1300]],

@@ -202,9 +202,13 @@ K.sound = (name, o = {}) => {
   }
   if (!s) return;
   K.soundStats.played++;
-  const volume = K.clamp(o.volume ?? 1), rate = o.rate ?? 1;
+  if (K.onSoundPlay) K.onSoundPlay(name); // směšovač zvýrazní, co právě hraje
+  // SOUND_GAIN = hlasitost souboru ze směšovače (js/mix.js), násobí hlasitost z místa ve hře
+  const volume = K.clamp((o.volume ?? 1) * (K.SOUND_GAIN[name] ?? 1), 0, 4), rate = o.rate ?? 1;
   if (s instanceof AudioBuffer) {
     if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; // bez kliku nehraje
+    // hudba se pod zvukem ztiší (kroky a jiné tiché zvuky v pozadí ji nechají být)
+    if (volume >= K.DUCK_FROM) duckUntil = Math.max(duckUntil, actx.currentTime + s.duration / rate);
     const src = actx.createBufferSource();
     src.buffer = s;
     src.playbackRate.value = rate;
@@ -214,7 +218,7 @@ K.sound = (name, o = {}) => {
     src.start();
     return;
   }
-  s.volume = volume;
+  s.volume = K.clamp(volume);
   s.preservesPitch = false;
   s.playbackRate = rate;
   s.currentTime = 0;
@@ -222,15 +226,24 @@ K.sound = (name, o = {}) => {
 };
 // načíst zvuky předem (třeba při vstupu do scény), ať první zahrání nepřijde pozdě
 K.preloadSounds = (names) => { for (const n of names.flat()) getSound(n); };
+K.soundNames = () => Object.keys(sounds); // pro směšovač: co hra už chtěla
+// hlasitost jednotlivých souborů (1 = beze změny), ladí se ve směšovači (klávesa M, js/mix.js)
+// Daniel 2026-11-22 ze směšovače
+K.SOUND_GAIN = { trknuti: 0.95 };
 // varianty zvuků (tools/zvuky.py), hra je losuje
 K.KASEL = ['kasel-1', 'kasel-2', 'kasel-3'];
 K.OHEN = ['ohen-1', 'ohen-2'];
+K.TUK = ['tuk-1', 'tuk-2'];
+K.DYMKA = ['dymka-1', 'dymka-2'];
+K.POKLICE = ['poklice-1', 'poklice-2', 'poklice-3'];
+K.TRIANGL = ['triangl-1', 'triangl-2']; // cinknutí ledu: kapka, rampouch (les, vrchol)
 // smyčka na pozadí (stádo): K.loop(jméno, hlasitost) se volá každý snímek, změna hlasitosti se plynule
 // dotáhne (~1,5 s), takže mezi scénami se zvuk sám zesílí / ztiší. Smyčka jednou rozběhnutá běží dál,
 // při nule jen potichu. mp3 má na krajích LOOP_PAD s přesahu (tools/zvuky.py), opakuje se úsek mezi nimi.
 const LOOP_PAD = 0.2;
 const loops = {};
-K.loop = (name, level) => {
+// o.tau = jak rychle se hlasitost dotáhne (s), o.start = odkud smyčka začne (jinak náhodně)
+K.loop = (name, level, o = {}) => {
   if (K.muted || (!loops[name] && level <= 0)) return;
   const l = (loops[name] ??= { level: 0, gain: null });
   const s = getSound(name);
@@ -247,10 +260,10 @@ K.loop = (name, level) => {
       src.loopStart = LOOP_PAD;
       src.loopEnd = s.duration - LOOP_PAD;
       src.connect(l.gain);
-      src.start(0, K.rand(LOOP_PAD, s.duration - LOOP_PAD)); // pokaždé jinde, ať stádo nezačíná stejně
+      src.start(0, o.start ?? K.rand(LOOP_PAD, s.duration - LOOP_PAD)); // stádo pokaždé jinde, ať nezačíná stejně
     }
     if (Math.abs(level - l.level) > 0.002) {
-      l.gain.gain.setTargetAtTime(level, actx.currentTime, 0.5);
+      l.gain.gain.setTargetAtTime(level, actx.currentTime, o.tau ?? 0.5);
       l.level = level;
     }
     return;
@@ -261,10 +274,23 @@ K.loop = (name, level) => {
   s.volume = K.clamp(l.level);
   if (l.level > 0.002 && s.paused) s.play().catch(() => {});
 };
+// podkresová hudba (Daniel 2026-11-22) hraje ve všech scénách; ladí se ?hudba=0.5. Zvuky hry musí být slyšet
+// přes ni: když zazní zvuk s hlasitostí aspoň DUCK_FROM, hudba se na jeho délku rychle ztiší na DUCK a pak se
+// pomalu vrátí. Kroky a tiché zvuky v pozadí (poklice) ji nechají být. Vše se ladí ve směšovači (klávesa M).
+// hodnoty Daniel 2026-11-22 ze směšovače
+K.MUSIC_VOLUME = +(K.params.get('hudba') ?? 0.12);
+K.DUCK = 0.35;
+K.DUCK_FROM = 0.28;
+let duckUntil = 0;
+const music = () => {
+  const ducked = actx && actx.currentTime < duckUntil;
+  K.loop('hudba', K.MUSIC_VOLUME * (ducked ? K.DUCK : 1), { tau: ducked ? 0.05 : 0.6, start: LOOP_PAD });
+};
 // stádo hraje potichu pod kroky (Daniel 2026-11-08: 0.15); ladí se ?stado=0.3
 K.FLOCK_VOLUME = +(K.params.get('stado') ?? 0.15);
 // bečení po kliku na ovci, náhodně ovce-1 / ovce-2 s trochu jinou výškou, jehně má svoje; ladí se ?ovce=0.6
-K.BLEAT_VOLUME = +(K.params.get('ovce') ?? 0.4);
+// (Daniel 2026-11-22 ve směšovači: 0.3)
+K.BLEAT_VOLUME = +(K.params.get('ovce') ?? 0.3);
 const BLEATS = ['ovce-1', 'ovce-2'];
 for (const n of [...BLEATS, 'jehne']) getSound(n);
 // bečení: zvuk a ovce na chvíli otevře pusu (sh.bleatT čte K.drawSheepFlock)
@@ -526,6 +552,7 @@ K.update = (dt) => {
   if (K.scene && K.scene.update) K.scene.update(dt);
   // stádo slyšet jen tam, kde jsou ovce vidět (scene.flock vrací 0–1)
   K.loop('stado', (K.scene && K.scene.flock ? K.scene.flock() : 0) * K.FLOCK_VOLUME);
+  music();
 };
 
 window.advanceTime = (ms) => {

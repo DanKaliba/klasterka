@@ -11,7 +11,7 @@
 //   obličeje, ten se otřepe a couvne (a znovu při každém dalším kliku holou rukou).
 // - Fajfka (Daniel 2026-11-13: point & click): hráč ji vytáhne z batůžku (klik na ni v HUD) a klikne
 //   s ní na žábu. Panáček si ji dá do pusy, dvakrát bafne a foukne na žábu dým. Žábě smrdí, vyděsí se
-//   a třemi skoky uteče doleva pryč. Od druhého cvrknutí má panáček bublinu s fajfkou (nápověda, můj nápad).
+//   a třemi skoky uteče doleva pryč. (Bublina s fajfkou jako nápověda je od 2026-11-22 pryč, Daniel.)
 // - Pramen se uvolní: probublá, bahno odplave žlábkem, listí sjede přes jeho konec, voda se vyčistí.
 // - Klik na konec žlábku: panáček podrží hrnek z kuchyně na Kantorské (Daniel 2026-11-13, místo džbánku,
 //   scény na sebe navazují). Dokud neteče, hrnkem zatřese a schová ho. Když teče, nabere vodu → batoh.
@@ -79,7 +79,6 @@ const init = () => ({
   heap: 0,
   pipe: false, // panáček má fajfku v puse
   smoke: [], // obláčky dýmu
-  heroIcon: null, // myšlenková bublina panáčka { icon, until }
   // žába: hidden (pod větvičkami) | peek (vykukují oči) | shown | big | squirt | scared | leap | gone
   frog: { state: 'hidden', x: FROG_AT.x, y: FROG_AT.y, flip: false, rot: 0, tries: 0, stinkT: -9 },
   drops: [],
@@ -90,6 +89,7 @@ const init = () => ({
   clouds: [], bubbles: [],
   jug: { x: JUG_FILL.x, y: JUG_FILL.y, full: 0, held: false, shakeT: -9 }, // hrnek v ruce
   glintT: -9,
+  chantT: -99, // kdy naposled zazněl sbor u Krista (dokud zní, další klik ho nepouští znovu)
 });
 
 // ---------- pohyb ----------
@@ -165,7 +165,7 @@ async function frogTouch(held) {
   await lean(0.3, 0.3);
   if (n === 0) {
     f.state = 'big';
-    K.sound('kvak');
+    K.sound('kvak-zly');
     await K.after(0.15);
     await Promise.all([lean(-0.1, 0.2), backOff(50, 0.3)]);
     await K.after(1.0);
@@ -173,8 +173,6 @@ async function frogTouch(held) {
     await lean(0, 0.2);
   } else {
     await squirt();
-    // od druhého cvrknutí si panáček vzpomene na dědovu fajfku (v batůžku, nebo v kuchyni)
-    if (n >= 2) st.heroIcon = { icon: 'fajfka', until: K.time + 1.8 };
   }
   K.busy--;
 }
@@ -229,7 +227,7 @@ async function pipeSmoke() {
   face(-1);
   h.pipe = true;
   for (let i = 0; i < 2; i++) {
-    K.sound('dymka', { volume: 0.6 });
+    K.sound(K.DYMKA, { volume: 0.6 });
     const b = pipeBowl();
     for (let k = 0; k < 3; k++) {
       st.smoke.push({ x0: b.x, y0: b.y - 6, x1: b.x + K.rand(-14, 14), y1: b.y - 90, t0: K.time + k * 0.12, dur: 1.4, r0: 4, r1: 16 });
@@ -246,7 +244,7 @@ async function pipeSmoke() {
   await K.after(0.9);
   f.state = 'scared';
   f.stinkT = K.time;
-  K.sound('kvak', { volume: 0.7, rate: 1.5 });
+  K.sound('kvak-strach', { volume: 0.7 });
   await K.after(1.1);
   await frogEscape();
   h.pipe = false;
@@ -374,6 +372,9 @@ function mudLayer() {
   return c;
 }
 const MUD_A = 0.82; // jak hustý je kal na začátku
+
+// délka assets/zvuky/kyrie.mp3 (s), viz tools/zvuky.py
+const KYRIE = 8;
 
 function drawGlint(ctx, x, y, t0) {
   const gt = K.time - t0;
@@ -625,9 +626,8 @@ const scene = {
       st.phase = 'intro';
       Object.assign(st.hero, { x: START_X, facing: -1, walking: false, hopY: 0, lean: 0, reach: false });
       st.jug.held = false;
-      st.heroIcon = null;
     }
-    K.preloadSounds(['kvak', 'plesk', 'cvrk', 'dymka', 'foukani', 'bublani', 'nalevani', 'sustot', 'splouchnuti', 'voda', 'brr']);
+    K.preloadSounds(['kvak', 'kvak-zly', 'kvak-strach', 'plesk', 'cvrk', K.DYMKA, 'foukani', 'bublani', 'nalevani', 'sustot', 'splouchnuti', 'voda', 'brr']);
     K.hero.visible = true;
     K.fade.a = 1;
     K.fadeTo(0, 0.6, FADE);
@@ -709,7 +709,6 @@ const scene = {
     drawDrops(ctx);
     drawSmoke(ctx);
     drawLayer(ctx, 'stovik');
-    if (st.heroIcon && K.time < st.heroIcon.until) K.drawBubble(ctx, h.x + 24, h.y - 240, 0.95, st.heroIcon.icon);
     K.drawRoundButton(ctx, EXIT.x, EXIT.y, 'zpet');
     if (K.debug) {
       ctx.strokeStyle = 'rgba(200, 0, 0, 0.7)';
@@ -733,7 +732,8 @@ const scene = {
     if (frogHit(p)) return frogTouch(held);
     if (jugHit(p)) return jugTry(held);
     if (K.dist(p, CHRIST) < CHRIST.r) {
-      if (K.time - st.glintT > 1.2) { st.glintT = K.time; K.sound('zvonek'); }
+      if (K.time - st.glintT > 1.2) st.glintT = K.time;
+      if (K.time - st.chantT > KYRIE) { st.chantT = K.time; K.sound('kyrie', { volume: 0.7 }); }
       return;
     }
     if (p.y > 840) {

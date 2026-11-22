@@ -408,10 +408,12 @@ const grouseTop = () => ({ x: K.L.vlek.sloup.x - K.L.snih.x, y: K.L.vlek.sloup.y
 const grouseScale = () => { const t = grouseTop(); return K.scaleAt(t.x, t.y) * 1.6; };
 const grouseAt = (p) => { const t = grouseTop(), s = grouseScale(); return Math.abs(p.x - t.x) < 26 * s && p.y < t.y + 6 && p.y > t.y - 34 * s; };
 
+const OUTDOOR = new Set(['kriz', 'vrchol']);
 async function enterPlace(id, target) {
   K.busy++;
   await K.hero.walkTo(K.nearestPathIndex(target).index);
-  K.sound('dvere');
+  // dveře vrzají jen u chalup; boží muka a vrchol jsou venku (Daniel 2026-11-22)
+  if (!OUTDOOR.has(id)) K.sound('dvere');
   await zoom(target, true);
   K.busy--;
   K.go(id);

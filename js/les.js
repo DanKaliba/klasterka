@@ -329,8 +329,8 @@ async function tapIcicle(i) {
     return;
   }
   if (st.sun < 1) {
-    // ve stínu jsou zmrzlé: zachvějí se, ale nekápnou
-    K.sound('cinkani');
+    // ve stínu jsou zmrzlé: zachvějí se, ale nekápnou; cinknou tišeji a výš než kapka
+    triangle(1.3, 0.35);
     K.busy--;
     return;
   }
@@ -349,8 +349,8 @@ async function tapIcicle(i) {
 }
 
 const hasIcicle = () => K.state.items.includes('rampouch');
-// cinknutí trianglu (dvě Danielovy nahrávky, náhodně): padající kapka i utržený rampouch
-const triangle = (rate = 1) => K.sound(`triangl-${1 + Math.floor(Math.random() * 2)}`, { volume: 0.6, rate: rate * K.rand(0.97, 1.03) });
+// cinknutí trianglu (dvě Danielovy nahrávky, náhodně): padající kapka, utržený i zmrzlý rampouch
+const triangle = (rate = 1, volume = 0.6) => K.sound(K.TRIANGL, { volume, rate: rate * K.rand(0.97, 1.03) });
 
 // dupnutím se rampouch utrhne a panáček ho chytí do batohu
 async function takeIcicle(i) {
@@ -1277,7 +1277,7 @@ K.scenes.les = {
   enter() {
     st = init();
     flow = null;
-    K.preloadSounds(['triangl-1', 'triangl-2', 'strom-pada']);
+    K.preloadSounds([K.TRIANGL, 'strom-pada']);
     K.hero.visible = true;
     K.fade.a = 1;
     K.fadeTo(0, 0.9, K.FOREST_FADE);

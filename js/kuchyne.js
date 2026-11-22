@@ -10,7 +10,7 @@
 // - Panáček přinese náruč z hromádky roští u dveří (hromádka zmizí) → babka přiloží → oheň, hrnec s
 //   bramborami se rozvaří, křížaly na tyči se v teple rozhoupou.
 // - Vůně brambor dojde až na kamna, kde na dece spí kocour. Probudí se, protáhne a jde za vůní:
-//   seskočí na římsu kamen a na polici, po polici dojde k hrnku a shodí ho. Hrnek spadne do koše
+//   seskočí na římsu kamen (pálí, mňoukne a poskočí) a na polici, po polici dojde k hrnku a shodí ho. Hrnek spadne do koše
 //   a semínka se vysypou. Kocour se vrátí po polici a skočí dědovi na hlavu, děda se lekne a upustí
 //   fajfku (Daniel 2026-11-13). Kocour seskočí dolů a přede, děda se zlobí.
 // - Panáček vybere z koše semínka (→ batoh) i hrnek a sebere fajfku (nástroje pro studánku u božích
@@ -238,7 +238,7 @@ async function windowTry() {
   h.facing = -1;
   await hop(18, 0.28);
   st.poker = 'rail';
-  K.sound('tuk', { volume: 0.4 });
+  K.sound(K.TUK, { volume: 0.4 });
   await drained;
   st.phase = 'free';
   st.nextPuff = K.time + 1.5;
@@ -251,7 +251,7 @@ async function takePoker() {
   st.hero.facing = -1;
   await hop(20, 0.28);
   st.poker = 'hero';
-  K.sound('tuk', { volume: 0.4 });
+  K.sound(K.TUK, { volume: 0.4 });
   K.busy--;
 }
 
@@ -260,7 +260,7 @@ const CLOUD_LEN = 4.6;
 function grandpaHint() {
   if (st.cloud && K.time - st.cloud.t0 < CLOUD_LEN) return;
   st.cloud = { t0: K.time };
-  K.sound('dymka');
+  K.sound(K.DYMKA);
   for (let i = 0; i < 8; i++) puffAt(MOUTH.x - 14, MOUTH.y + 4, -K.rand(60, 120), -K.rand(30, 80), 0.9);
 }
 
@@ -347,14 +347,16 @@ async function catWake() {
   c.earT = K.time;
   await K.after(0.8);
   c.pose = 'stretch';
-  K.sound('mnau');
   await K.after(1.3);
   c.pose = 'walk';
   await catGo([[CAT_BLANKET_END, CAT_BED.y]], 150); // pod křížalami: zavadí o ně
   await catLeap(CAT_LEDGE.x, CAT_LEDGE.y, 0.4, 20);
-  K.sound('tuk', { volume: 0.35 });
+  K.sound(K.TUK, { volume: 0.35 });
+  // římsa kamen pálí: mňoukne a poskočí (Daniel 2026-11-20: mňouknutí, když šlápne na něco horkého)
+  K.sound('mnau', { volume: 0.7, rate: 1.25 });
+  await K.tween(0.3, (t) => { c.y = CAT_LEDGE.y - Math.sin(t * Math.PI) * 26; });
   await catLeap(CAT_SHELF, SHELF_Y, 0.5, 40);
-  K.sound('tuk', { volume: 0.5 });
+  K.sound(K.TUK, { volume: 0.5 });
   c.pose = 'walk';
   await catGo([[CAT_SNIFF, SHELF_Y]], 140);
   c.pose = 'sniff'; // čichá dolů k hrnci
@@ -362,6 +364,7 @@ async function catWake() {
   c.pose = 'walk';
   await catGo([[CAT_BUMP, SHELF_Y]], 110);
   c.pose = 'sniff';
+  K.sound('mnau', { volume: 0.6 }); // shodí hrnek (Daniel 2026-11-20)
   await mugFall();
   await K.after(0.6);
   // kocour se vrátí po polici a skočí dědovi na hlavu; děda se lekne a upustí fajfku (Daniel 2026-11-13)
@@ -373,7 +376,7 @@ async function catWake() {
   await grandpaStartle();
   await K.after(0.7);
   await catLeap(CAT_FLOOR.x, CAT_FLOOR.y, 0.85, 60);
-  K.sound('tuk', { volume: 0.4 });
+  K.sound(K.TUK, { volume: 0.4 });
   c.pose = 'sit';
   c.facing = -1; // kouká k ohni a hrnci
   c.purrT = K.time;
@@ -397,7 +400,7 @@ async function grandpaStartle() {
     p.rot = K.lerp(0.3, PIPE_FLOOR.rot - Math.PI * 2, t); // jednou se protočí
   });
   p.rot = PIPE_FLOOR.rot;
-  K.sound('tuk', { volume: 0.5, rate: 0.8 });
+  K.sound(K.TUK, { volume: 0.5, rate: 0.8 });
   await K.tween(0.25, (t) => { p.y = PIPE_FLOOR.y - Math.sin(t * Math.PI) * 10; }); // poskočí
   p.state = 'floor';
 }
@@ -1005,7 +1008,7 @@ const scene = {
   get st() { return st; }, // pro testy
   enter() {
     st = init();
-    K.preloadSounds([K.OHEN, 'predeni', 'mnau', 'dymka', 'hrnek', 'semena', 'poklice', 'tuk', K.KASEL, 'vrzani']);
+    K.preloadSounds([K.OHEN, 'predeni', 'mnau', K.DYMKA, 'hrnek', 'semena', K.POKLICE, K.TUK, K.KASEL, 'vrzani']);
     K.hero.visible = true;
     K.fade.a = 1;
     K.fadeTo(0, 0.7, '#efe6d2');
@@ -1040,7 +1043,7 @@ const scene = {
     if (st.boil > 0.6 && K.time > st.nextLid) {
       st.lidT = K.time;
       st.nextLid = K.time + K.rand(2.6, 4.2);
-      K.sound('poklice', { volume: 0.25 });
+      K.sound(K.POKLICE, { volume: 0.25 });
     }
     // děda (až je čistý vzduch) občas bafne z dýmky
     if (st.smoke < 0.3 && K.time > st.nextPuff && st.pose.deda.k === 1) {

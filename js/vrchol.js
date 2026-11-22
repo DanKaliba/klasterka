@@ -441,7 +441,7 @@ async function plantStep() {
     K.sound('voda');
     await K.tween(1.0, (t) => { st.wet = t; });
   } else {
-    K.sound('cinkani');
+    K.sound(K.TRIANGL, { volume: 0.6, rate: 1.12 }); // rampouch cinkne jako v lese
     await K.tween(0.8, (t) => { st.frost = t; });
     await bloom();
   }
@@ -894,7 +894,7 @@ const scene = {
   enter() {
     // rozehraná hra zůstane (kluk si může dojít na louku a vrátit se), po finále začne znovu
     if (!st || st.phase === 'done') st = init();
-    K.preloadSounds(['karta', 'prasknuti', 'kaminek', 'tetrivek-tokani', 'frkani', 'tetrivek', 'sustot']);
+    K.preloadSounds(['karta', 'prasknuti', 'kaminek', 'tetrivek-tokani', 'frkani', 'tetrivek', 'sustot', K.TRIANGL]);
     K.fade.a = 1;
     K.fadeTo(0, 0.6, FADE);
     if (st.phase === 'intro' || st.phase === 'idle') {
