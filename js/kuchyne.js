@@ -76,7 +76,9 @@ const MUG_X = 520; // hrnek na levém konci police
 const BASKET = { x: 446, y: 858 }; // střed otvoru koše
 // přední stěna koše (kreslí se přes hrnek a semínka): spodní půlka okraje otvoru a stěna dolů ke dnu
 const BASKET_FRONT = { rx: 88, ry: 16, x0: 352, x1: 540, bottom: 1015 };
-const DOOR = { x: 478, y: 682, w: 124, h: 116 }; // dvířka topeniště (pant vlevo), otevřená
+const DOOR = { x: 478, y: 682, w: 124, h: 116 }; // dvířka topeniště (pant vlevo); ve fotce zavřená, hra je otevře
+const DOOR_OPEN = 2.05; // úhel otevřených dvířek (k babce)
+const DOOR_VENT = { x: 537, y: 740 }; // šoupátko uprostřed dvířek: když jsou zavřená, prosvítá jím oheň
 const FIRE = { x0: 490, x1: 590, y0: 694, y1: 788 }; // otvor topeniště
 const POT = { x: 595, y: 540 }; // okraj hrnce pod poklicí
 const LID = { x: 515, y: 506, w: 166, h: 40 };
@@ -132,6 +134,7 @@ const init = () => ({
   heroIcon: null, grannyIcon: null,
   smoke: 1, win: 0, poker: 'rail', // rail | hero
   cough: { granny: -9, grandpa: -9, hero: -9 }, nextCough: 1.2, coughWho: 0,
+  door: 1, // dvířka topeniště: 1 otevřená, 0 zavřená (babka je zavře, když se rozhoří)
   lean: 0, reach: false, angryT: -9, startleT: -9, carry: false, pile: true, twigs: null,
   pipe: { state: 'hand', x: PIPE_HAND.x, y: PIPE_HAND.y, rot: 0.3 }, // hand | fall | floor | taken
   pose: { babka: { k: 1 }, deda: { k: 1 } }, // čísla póz pro testy
@@ -264,28 +267,33 @@ async function takePoker() {
 
 // kluk se zeptá na sníh („sníh“ + ikona), děda potáhne z dýmky (víčko se rozžhaví) a vyfoukne obláček
 // s nápovědou: sněžná květina z herbáře → hrnek se semínky (Daniel 2026-11-23). Bez fajfky (po kocourovi)
-// jen vyfoukne.
+// mávne rukou: fajfka spadla, až když kocour shodil hrnek, takže nápověda už není potřeba.
 // obláček se vyfukuje: tři malé obláčky po PUFF_GAP s, pak hlavní (PUFF_MAIN) a v něm obrázky 4,6 s
 const PUFF_GAP = 0.5, PUFF_MAIN = 3 * PUFF_GAP;
 const CLOUD_LEN = PUFF_MAIN + 4.6;
 const ASK_LEN = 1.1; // „sníh“, pak děda táhne
 const DRAW_LEN = 1.5; // jak dlouho táhne z dýmky
+const WAVE_LEN = 1.5; // děda mávne rukou (bez fajfky), viz 'mavne' v js/deda.js
 async function grandpaHint() {
-  if (st.hintT && K.time - st.hintT < ASK_LEN + DRAW_LEN + CLOUD_LEN) return;
-  st.hintT = K.time;
-  // hráč může mezitím odejít (EXIT nečeká na busy): pak už nefoukat ani nehrát výdechy na louce
-  const s0 = st, gone = () => st !== s0 || K.scene !== KITCHEN;
+  if (st.hintT && K.time < st.hintT) return;
+  st.hintT = K.time + ASK_LEN + DRAW_LEN + CLOUD_LEN; // do té doby další klik nic nedělá (bez fajfky kratší)
+  // hráč může mezitím odejít (EXIT nečeká na busy): pak už nefoukat ani nehrát výdechy na louce.
+  // Fajfka může spadnout kdykoli (kocour děda vyleká), proto se na ni ptá po každém čekání znovu.
+  const s0 = st, gone = () => st !== s0 || K.scene !== KITCHEN, noPipe = () => st.pipe.state !== 'hand';
   st.hero.facing = Math.sign(DEDA_AT.x - st.hero.x) || 1;
   st.heroIcon = { icon: 'snih', until: K.time + 1.6 };
   K.sound(K.HLAS.snih); // „sníh“
   await K.after(ASK_LEN);
   if (gone()) return;
-  if (st.pipe.state === 'hand') {
-    st.drawT = K.time;
-    K.sound(K.DYMKA, { volume: 0.35, rate: 0.7 }); // potáhne
-    await K.after(DRAW_LEN);
-    if (gone()) return;
+  if (noPipe()) {
+    st.waveT = K.time; // ále, hrnek už je dole
+    st.hintT = K.time + WAVE_LEN;
+    return;
   }
+  st.drawT = K.time;
+  K.sound(K.DYMKA, { volume: 0.35, rate: 0.7 }); // potáhne
+  await K.after(DRAW_LEN);
+  if (gone() || noPipe()) return;
   st.cloud = { t0: K.time };
   // čtyři výdechy: tři malé obláčky, pak velký (každý „pfff“ a z pusy vyletí chomáček kouře);
   // výdech je syntetický šum (python tools/vydech.py), Daniel 2026-11-23
@@ -296,6 +304,7 @@ async function grandpaHint() {
     for (let j = 0; j < (main ? 8 : 3); j++) puffAt(m.x, m.y, -K.rand(60, 120), -K.rand(30, 80), main ? 0.9 : 0.6);
     if (!main) await K.after(PUFF_GAP);
     if (gone()) return;
+    if (noPipe()) { st.cloud = null; return; } // lekl se, fajfka spadla: dál nefouká
   }
 }
 
@@ -366,8 +375,10 @@ async function fetchTwigs() {
   st.twigs = null;
   K.sound(K.OHEN); // oheň se rozhoří
   await K.tween(1.4, (t) => { st.fire = K.ease(t); });
+  const closing = grannyCloseDoor(); // babka zavře dvířka, panáček zatím couvne a kouká
   await heroGo(WATCH_X, 240);
   st.hero.facing = -1;
+  await closing;
   await K.after(0.6);
   st.nextLid = K.time;
   await K.tween(1.8, (t) => { st.boil = t; });
@@ -375,6 +386,17 @@ async function fetchTwigs() {
   await K.tween(2.6, (t) => { st.smell = t; }); // vlnky vůně dojdou až ke kocourovi
   await catWake();
   K.busy--;
+}
+
+// když se rozhoří, babka přivře dvířka topeniště (Daniel 2026-11-23); kovově cvaknou
+async function grannyCloseDoor() {
+  await K.after(0.2);
+  st.reach = true;
+  await K.tween(0.4, (t) => { st.lean = K.ease(t); });
+  await K.tween(0.45, (t) => { st.door = 1 - t * t; }); // přirazí, na konci nejrychleji
+  K.sound('pohrabac-na', { volume: 0.45 });
+  st.reach = false;
+  await K.tween(0.4, (t) => { st.lean = 1 - K.ease(t); });
 }
 
 async function catWake() {
@@ -559,12 +581,35 @@ function drawWindow(ctx, bg) {
   drawSwing(ctx, cutBg(bg, 'okno', OKNO), OKNO, a, 0.2, 0.3 * Math.sin(Math.min(a, Math.PI / 2)));
 }
 
-// dvířka topeniště: otevřená doleva (babka u nich klečí), uvnitř tma, uhlíky a oheň
+// dvířka topeniště: otevřená doleva (babka u nich klečí), uvnitř tma, uhlíky a oheň. Zavřená jsou ve fotce,
+// hoří-li za nimi oheň, prosvítá šoupátkem a škvírou pod dvířky
 function drawFireDoor(ctx, bg) {
-  ctx.fillStyle = '#120a06';
-  ctx.fillRect(FIRE.x0, FIRE.y0, FIRE.x1 - FIRE.x0, FIRE.y1 - FIRE.y0);
-  drawFire(ctx);
-  if (bg) drawSwing(ctx, cutBg(bg, 'dvirka', DOOR), DOOR, 2.05, 0.12, 0.45);
+  if (st.door > 0 || !bg) {
+    ctx.fillStyle = '#120a06';
+    ctx.fillRect(FIRE.x0, FIRE.y0, FIRE.x1 - FIRE.x0, FIRE.y1 - FIRE.y0);
+    drawFire(ctx);
+  }
+  if (!bg) return;
+  const a = DOOR_OPEN * st.door;
+  if (a > 0) drawSwing(ctx, cutBg(bg, 'dvirka', DOOR), DOOR, a, 0.12, 0.45 * Math.sin(Math.min(a, Math.PI / 2)));
+  const shut = st.fire * K.clamp(1 - st.door * 4); // škvíry svítí, až když jsou skoro zavřená
+  if (shut > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const fl = 0.8 + Math.sin(K.time * 8.3) * 0.12 + Math.sin(K.time * 19.7) * 0.08;
+    const g = ctx.createRadialGradient(DOOR_VENT.x, DOOR_VENT.y, 1, DOOR_VENT.x, DOOR_VENT.y, 26);
+    g.addColorStop(0, `rgba(255, 150, 50, ${0.55 * shut * fl})`);
+    g.addColorStop(1, 'rgba(255, 90, 20, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(DOOR_VENT.x - 26, DOOR_VENT.y - 26, 52, 52);
+    const y = DOOR.y + DOOR.h - 2, s = ctx.createLinearGradient(0, y - 3, 0, y + 3);
+    s.addColorStop(0, 'rgba(255, 120, 40, 0)');
+    s.addColorStop(0.5, `rgba(255, 130, 40, ${0.4 * shut * fl})`);
+    s.addColorStop(1, 'rgba(255, 120, 40, 0)');
+    ctx.fillStyle = s;
+    ctx.fillRect(DOOR.x + 8, y - 3, DOOR.w - 16, 6);
+    ctx.restore();
+  }
 }
 
 const FLAME_PAD = 8;
@@ -617,7 +662,7 @@ function drawFire(ctx) {
 
 // záře ohně do kuchyně (na babku, koš, podlahu)
 function drawGlow(ctx) {
-  const k = st.fire;
+  const k = st.fire * (0.5 + 0.5 * st.door); // za zavřenými dvířky svítí míň
   if (k > 0) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -641,7 +686,7 @@ function grannyPose() {
   return st.fire > 0 ? 5 : 1;
 }
 // číslo dědova stavu pro testy (render_game_to_text)
-const DEDA_NUM = { kouri: 1, bez: 1, kasel: 2, fouka: 3, tah: 4, lek: DEDA_STARTLE, zlost: DEDA_ANGRY };
+const DEDA_NUM = { kouri: 1, bez: 1, kasel: 2, fouka: 3, tah: 4, lek: DEDA_STARTLE, zlost: DEDA_ANGRY, mavne: 7 };
 // babka jako loutka (js/babka.js): póza podle grannyPose, předklon ke dvířkům st.lean
 const grannyOpts = () => ({ pose: grannyPose(), lean: st.lean, facing: 1 });
 function drawGranny(ctx) {
@@ -652,11 +697,12 @@ function grandpaMode() {
   if (K.time - st.startleT < 1.6) return 'lek'; // nadskočí, ruce nahoru, kouká na kocoura
   if (K.time - st.cough.grandpa < COUGH_POSE) return 'kasel';
   if (st.pipe.state === 'hand' && K.time - (st.drawT ?? -99) < DRAW_LEN) return 'tah'; // táhne z dýmky
+  if (K.time - (st.waveT ?? -99) < WAVE_LEN) return 'mavne'; // bez fajfky na nápovědu jen mávne
   if (st.cloud && K.time - st.cloud.t0 < CLOUD_LEN) return 'fouka';
   if (K.time - st.angryT < 3.2) return 'zlost'; // hrozí pěstí
   return st.pipe.state === 'hand' ? 'kouri' : 'bez';
 }
-const grandpaOpts = () => ({ mode: grandpaMode(), pipe: st.pipe.state === 'hand', facing: -1 });
+const grandpaOpts = () => ({ mode: grandpaMode(), pipe: st.pipe.state === 'hand', facing: -1, waveLen: WAVE_LEN });
 function drawGrandpa(ctx) {
   st.deda = K.drawDeda(ctx, DEDA_AT.x, DEDA_AT.y, 1, grandpaOpts()) || st.deda;
   // když táhne, tabák ve fajfce se rozžhaví (víčko zasvítí a pulzuje s nádechy)

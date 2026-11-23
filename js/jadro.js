@@ -293,15 +293,15 @@ K.loop = (name, level, o = {}) => {
   if (l.level > 0.002 && s.paused) s.play().catch(() => {});
 };
 // Podkresová hudba (Jan Odvárka, Daniel 2026-11-22); ladí se ?hudba=0.5. Hlavní skladba „hudba“ hraje v lese,
-// louka má svou „hudba-louka“, finále „hudba-finale“; scéna si může říct o svou přes scene.music() (Kantorská, muka, vrchol mají dvě podle
+// louka má svou „hudba-louka“ a pak „hudba-pochod“ (K.meadowMusic), finále hlavní „hudba“ jako les; scéna si může říct o svou přes scene.music() (Kantorská, muka, vrchol mají dvě podle
 // toho, co se v nich stalo). Při změně se skladby prolnou, odložená se po chvíli zastaví a příště pokračuje,
 // kde skončila. Zvuky hry musí být slyšet přes ni: když zazní zvuk s hlasitostí aspoň DUCK_FROM, hudba se na
 // jeho délku rychle ztiší na DUCK a pak se pomalu vrátí. Kroky a tiché zvuky v pozadí (poklice) ji nechají
 // být. Vše se ladí ve směšovači (klávesa M); K.SOUND_GAIN[skladba] = hlasitost jedné skladby.
 // hodnoty Daniel 2026-11-22 ze směšovače, hudba a ztlumení pod zvukem upravené 2026-11-23
-K.MUSIC_VOLUME = +(K.params.get('hudba') ?? 0.13);
+K.MUSIC_VOLUME = +(K.params.get('hudba') ?? 0.63); // Daniel 2026-11-23 ze směšovače
 K.DUCK = 0.55;
-K.DUCK_FROM = 0.28;
+K.DUCK_FROM = 0.4;
 let duckUntil = 0;
 // skladby hrají přes <audio> napojené do Web Audio: dekódované celé by zabraly desítky MB každá.
 // Smyčka bez mezery (Daniel 2026-11-23): <audio loop> by na švu přehrál ticho, které mp3 kodér přidá na kraje
@@ -351,6 +351,10 @@ const musicSeam = (t) => {
   }
   t.cur = n; // stará dohraje do konce a sama se zastaví (bez loop)
 };
+// louka a detaily chalup (meadow): po otevření hry „hudba-louka“, od návratu z první scény „hudba-pochod“
+// (Daniel 2026-11-23, „Pochodák mezi scény“)
+K.marched = false;
+K.meadowMusic = () => (K.marched ? 'hudba-pochod' : 'hudba-louka');
 K.musicName = () => (K.scene && K.scene.music && K.scene.music()) || 'hudba';
 const music = () => {
   if (K.muted) return;
@@ -528,9 +532,15 @@ K.toolAt = (p) => {
   if (!K.state.bag) return null;
   return K.TOOLS.find((t, i) => K.hasTool(t) && K.dist(p, K.toolPos(i)) < 24) || null;
 };
+// položky z batohu (semínka, voda, rampouch) jdou vytáhnout stejně jako nástroj, ale jen tam, kde je scéna
+// umí použít (scene.pickItems(): vrchol při sázení, Daniel 2026-11-23); v HUD zůstanou, jen zbledne obrys
+K.itemAt = (p) => {
+  if (!K.state.bag || !K.scene || !K.scene.pickItems || !K.scene.pickItems()) return null;
+  return K.ITEMS.find((it, i) => K.state.items.includes(it) && K.dist(p, K.slotPos(i)) < 24) || null;
+};
 K.click = (p) => {
   if (K.busy > 0 || !K.scene || !K.scene.click) return;
-  const tool = K.toolAt(p);
+  const tool = K.toolAt(p) || K.itemAt(p);
   if (tool) {
     K.held = K.held === tool ? null : tool;
     K.heldT = K.time;
@@ -546,6 +556,7 @@ K.scenes = {};
 K.scene = null;
 K.go = (name, arg) => {
   K.held = null;
+  if (K.scene && !K.scene.meadow) K.marched = true; // vrací se z první puzzle scény: na louce už hraje pochodák
   K.scene = K.scenes[name];
   if (K.scene.enter) K.scene.enter(arg);
 };
@@ -585,7 +596,11 @@ function drawHud(ctx) {
     ctx.beginPath();
     ctx.arc(p.x, p.y, 19 * k, 0, Math.PI * 2);
     ctx.stroke();
-    if (K.state.items.includes(it)) K.drawIcon(ctx, it, p.x, p.y, 32, '#f3e6c8');
+    if (K.state.items.includes(it)) {
+      ctx.globalAlpha = K.held === it ? 0.25 : 1;
+      K.drawIcon(ctx, it, p.x, p.y, 32, '#f3e6c8');
+      ctx.globalAlpha = 1;
+    }
   });
   K.TOOLS.forEach((t, i) => {
     if (!K.hasTool(t)) return;
@@ -621,7 +636,7 @@ K.canvas.addEventListener('pointermove', (e) => {
   if (K.editor && K.editor.active) return K.editor.move(p, e);
   const hot = K.busy === 0 && K.scene && K.scene.hot && K.scene.hot(p);
   K.mouseHot = !!hot;
-  K.canvas.style.cursor = hot || (K.busy === 0 && K.toolAt(p)) ? 'pointer' : 'default';
+  K.canvas.style.cursor = hot || (K.busy === 0 && (K.toolAt(p) || K.itemAt(p))) ? 'pointer' : 'default';
 });
 K.canvas.addEventListener('pointerup', (e) => {
   if (K.editor && K.editor.active) K.editor.up(K.toWorld(e), e);

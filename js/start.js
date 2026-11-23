@@ -13,7 +13,8 @@
   const ctx = K.ctx;
   // načítací obrazovka: jen papír a ovečka
   K.scene = {
-    music: () => 'hudba-louka', // stejná jako louka, ať se po načtení skladba nemění
+    meadow: true,
+    music: K.meadowMusic, // stejná jako louka, ať se po načtení skladba nemění
     draw(c) {
       K.paper(c);
       K.drawSheep(c, K.W / 2, K.H / 2 + 40, 2, { halo: false, walking: true, phase: K.time * 6 });

@@ -15,8 +15,8 @@ otřepání a trknutí berana, ťuknutí a dýmka ve dvou variantách (K.TUK, K.
 lámání větviček (šustot), potok (voda a bublání), žába (tři nálady), růst květiny, vítr, poklice (tři cvaknutí, K.POKLICE);
 Daniel 2026-11-22: zurčení vody na cvrknutí žáby, mňouknutí kocoura; hlas hrdiny (VOICE) a vlek hlasem.
 Daniel 2026-11-23: beran, slunce (zvoneček), šustot (suchý keř místo větviček), karta (lusknutí), okno (vrznutí); strom: nebudme, coje, řeč (hlas-strom-rec); odměna = hlas-vitezstvi; buch (pád hrnku), vrzani (skřípání dřeva), nalévání do hrnku (NALEVANI), tetřívek (mávnutí křídel).
-Hudba (Jan Odvárka, Daniel 2026-11-22; sounds/hudba/, seznam HUDBA): hlavní (les), vlastní na louce a ve finále a dvě ke
-scéně Kantorská, muka a vrchol podle toho, co se ve scéně stalo (scene.music() v js/*.js). Každá je smyčka
+Hudba (Jan Odvárka, Daniel 2026-11-22; sounds/hudba/, seznam HUDBA): hlavní (les a finále), na louce do první scény
+vlastní, pak pochodák (2026-11-23), a dvě ke scéně Kantorská, muka a vrchol podle toho, co se ve scéně stalo (scene.music() v js/*.js). Každá je smyčka
 s prolnutím HUDBA_XF s, ticho na začátku pryč, hlasitost srovnaná na HUDBA_RMS. Hra je pouští přes <audio>
 (dlouhé skladby se nedekódují celé do paměti), proto bez přesahu PAD.
 
@@ -38,9 +38,9 @@ HUDBA_XF = 2.0  # prolnutí konce hudby do začátku (s)
 HUDBA_RMS = 0.075  # všechny skladby stejně hlasité (jako hlavní), špička nejvýš HUDBA_PEAK
 HUDBA_PEAK = 0.97
 HUDBA = {
-    'hudba': 'hlavni.mp3',  # „2. scena final (s klavesama)“: les
-    'hudba-finale': 'finale.mp3',  # „2. scena_final (se solem)“ (Daniel 2026-11-23): závěr z webkamery
-    'hudba-louka': 'louka.mp3',  # „1. scena_final“ (Daniel 2026-11-23): úvodní louka, cesta mezi chalupami a mukami
+    'hudba': 'hlavni.mp3',  # „2. scena final (s klavesama)“: les a závěr z webkamery
+    'hudba-louka': 'louka.mp3',  # „1. scena_final“ (Daniel 2026-11-23): louka od otevření hry do první scény
+    'hudba-pochod': 'pochod.mp3',  # „Pochodák mezi scény“ (Daniel 2026-11-23): louka a chalupy po první scéně
     'hudba-kantorska-kour': 'kantorska-kour.mp3',  # „chalupa zakouřená“, než se rozhoří oheň
     'hudba-kantorska-ohen': 'kantorska-ohen.mp3',  # „veselá s ohněm“
     'hudba-muka-zaba': 'muka-zaba.mp3',  # „žába ještě neutekla“
@@ -132,7 +132,8 @@ CLIPS = [
      'highpass=f=120,acompressor=threshold=0.05:ratio=6:attack=0.1:release=40:makeup=4'),
     ('765503__jjsounddesigner__firewood-crackling-variation-2.wav', 'ohen-1', (0.0, 4.0), 0.2, 1.0, 0.8, None),
     ('765502__jjsounddesigner__firewood-crackling-variation-1.wav', 'ohen-2', (0.4, 3.4), 0.05, 0.8, 0.8, None),
-    ('506665__rudmer_rotteveel__wood-creak-single-v10.wav', 'vetev', (0.0, 1.0), 0.005, 0.3, 0.85, None),
+    # větev se ulomí z lávky (Daniel 2026-11-23); dopad pak hra dozvučí „buch“ (pád hrnku), viz pullBranch v les.js
+    ('794523__modusmogulus__wooden-structure-breaking.wav', 'vetev', (0.0, 0.9), 0.003, 0.2, 0.85, None),
     # dlouhá nahrávka s několika žbluňknutími; tohle je to nejplnější (dopad a dočvachtnutí)
     ('703512__jfishsom__splash-recording-2.wav', 'splouchnuti', (66.42, 67.6), 0.01, 0.35, 0.85, None),
     # první vstup sboru, pak pomalu dozní (hra ho při dalším kliku nepouští znovu, dokud nedozní: KYRIE v muka.js)

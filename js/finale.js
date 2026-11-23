@@ -512,7 +512,7 @@ K.scenes.finale = {
   // stádo, dokud chumel neodjede z obrazu
   flock: () => (K.sheep.some((sh) => sh.mode !== 'gone') ? 1 : 0),
   lift: () => F.liftSpeed, // hlasitost smyčky vleku (K.update)
-  music: () => 'hudba-finale', // vlastní skladba se sólem (Daniel 2026-11-23)
+  music: () => 'hudba', // hlavní skladba s klávesami jako v lese (Daniel 2026-11-23)
   enter() {
     K.preloadSounds(['vitr', 'vlek', 'vlek-stop', 'tetrivek']);
     F.keys = buildTimeline();

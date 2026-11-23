@@ -11,9 +11,9 @@ ticha na začátku zní nejlíp.
   doletí do batohu), `hlas-snih-1…3` (odpoví stromu; poprosí tetřívka o hrudku), `hlas-smich-1…4` (zažene
   žábu dýmem), `hlas-brr-1…3` (zima u potoka; i u studánky po cvrknutí), `vlek` (smyčka ze tří pokusů,
   hraje celou dobu jízdy vleku)
-- Hudba (Jan Odvárka): `hudba-louka` (od otevření hry, louka mezi chalupami), `hudba` (les), `hudba-finale` (závěr z webkamery), `hudba-kantorska-kour` → `-ohen` (rozhoří se oheň),
+- Hudba (Jan Odvárka): `hudba-louka` (od otevření hry do první scény), `hudba-pochod` (louka a chalupy po první scéně), `hudba` (les i závěr z webkamery), `hudba-kantorska-kour` → `-ohen` (rozhoří se oheň),
   `hudba-muka-zaba` → `-utekla` (žába uteče), `hudba-vrchol` → `-kytka` (tetřívek odletí); při změně se
-  prolnou, pod každým zvukem hry se hudba na chvíli ztiší. Hlasitost 0,13, ladí se ve směšovači
+  prolnou, pod každým zvukem hry se hudba na chvíli ztiší. Hlasitost 0,63, ladí se ve směšovači
   (klávesa M).
 - Louka: `krok-1…8` (tráva), `led-1…4` (zmrzlá hlína), `ovce-1…2`, `jehne`, `stado` (smyčka), `dvere`,
   `tetrivek-tokani`

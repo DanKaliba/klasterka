@@ -426,10 +426,12 @@ async function grouseDefeat() {
 
 
 // ---------- zasazení květiny (jako dřív) ----------
-async function plantStep() {
+// from = odkud položka letí: z batohu (klik na hrudku), nebo od kurzoru (přetažená položka)
+async function plantStep(from0) {
   K.busy++;
+  const item = K.ITEMS[st.step], from = from0 || K.slotPos(K.ITEMS.indexOf(item));
+  if (from0) st.fly = { item, x: from.x, y: from.y }; // přetažená položka zůstane, kde ji pustil, než kluk dojde
   if (Math.abs(st.hero.x - PLANT_X) > 5) { await heroGo(PLANT_X, 320); st.hero.facing = 1; }
-  const item = K.ITEMS[st.step], from = K.slotPos(K.ITEMS.indexOf(item));
   st.fly = { item, x: from.x, y: from.y };
   await K.tween(0.9, (t) => {
     const e = K.ease(t);
@@ -449,6 +451,13 @@ async function plantStep() {
     await K.tween(0.8, (t) => { st.frost = t; });
     await bloom();
   }
+  K.busy--;
+}
+// na hrudku přetáhl jinou položku, než je na řadě: kluk si vzpomene, co patří dřív
+async function plantWrong() {
+  K.busy++;
+  if (Math.abs(st.hero.x - PLANT_X) > 5) { await heroGo(PLANT_X, 320); st.hero.facing = 1; }
+  await say('hero', K.ITEMS[st.step], 1.4);
   K.busy--;
 }
 // vyroste, rozkvete, práší jako sníh → finále
@@ -977,6 +986,7 @@ const scene = {
       K.drawRoundButton(ctx, BTN.stand.x, BTN.stand.y, 'dlan', !!(m && onBtn(m, BTN.stand)));
     }
   },
+  pickItems: () => !!st && st.phase === 'plant' && st.step < 3, // položky z batohu jdou vzít a pustit na hrudku
   hot(p) {
     if (canExit() && K.dist(p, EXIT) < 45) return true;
     if (st.phase === 'idle') return inGrouse(p);
@@ -996,7 +1006,13 @@ const scene = {
       if (inTail(p) || onBtn(p, BTN.draw)) return heroDraw();
       if (onBtn(p, BTN.stand)) return heroStand();
     }
-    if (st.phase === 'plant' && st.step < 3 && K.dist(p, MOUND) < 120) return plantStep();
+    if (st.phase === 'plant' && st.step < 3 && K.dist(p, MOUND) < 120) {
+      // stačí klik na hrudku (položky jdou po řadě), nebo položku z batohu přetáhnout jako fajfku na žábu
+      // nástroj v ruce (hrnek, fajfka) nevadí: zasadí se další položka z batohu jako dřív
+      const held = K.ITEMS.includes(K.held) ? K.held : null;
+      if (!held || held === K.ITEMS[st.step]) return plantStep(held ? { x: p.x + 18, y: p.y + 22 } : null);
+      return plantWrong();
+    }
     if ((st.phase === 'idle' || st.phase === 'plant') && p.y > WALK_Y) return walkTo(p.x);
   },
 };

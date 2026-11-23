@@ -101,6 +101,9 @@ window.SCENARE = {
   kuchHlava: [...OKNO, ['klik', 1735, 900], ['ceka', 31850]],
   kuchHlava2: [...OKNO, ['klik', 1735, 900], ['ceka', 32750]], // kocour na hlavě, děda vyskočí, fajfka letí
   kuchKos: [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['ceka', 500]],
+  // po kocourovi (fajfka na zemi) děda na „sníh“ jen mávne rukou (ruka nahoře, 0,6 s po „sníh“)
+  kuchDedaMava: [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['klik', 1250, 750], ['ceka', 1750]],
+  kuchDedaMava2: [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['klik', 1250, 750], ['ceka', 1950]],
   kuchFajfka: [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['klik', 1010, 995], ['cekaVolno'], ['ceka', 300]],
   kuchHotovo: [...KUCHYNE, ['cekaScena', 'louka'], ['ceka', 300]],
   // zpět: rovnou prolnutí na louku, žádná chůze přes celou kuchyni
@@ -141,6 +144,12 @@ window.SCENARE = {
   vrcholPrask: [['cekaVolno'], ['vrcholPraskni'], ['ceka', 900]], // zlomená rabuše s třískami
   vrcholOdlet: [['cekaVolno'], ['vrcholHraj'], ['ceka', 300]], // tetřívek odletěl, kluk u hrudky
   vrcholKvetina: [...VRCHOL_HRA, ['ceka', 6500]],
+  // položky přetažené z batohu na hrudku: nejdřív voda (špatně → bublina se semínky), pak semínka, voda, rampouch
+  vrcholSpatne: [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['klik', 178, 32], ['ceka', 400], ['klik', 1480, 600], ['ceka', 800]],
+  vrcholDrzi: [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['klik', 128, 32], ['ceka', 400]],
+  vrcholPretah: [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['klik', 178, 32], ['klik', 1480, 600], ['cekaVolno'],
+    ['klik', 128, 32], ['klik', 1480, 600], ['cekaVolno'], ['klik', 178, 32], ['klik', 1480, 600], ['cekaVolno'],
+    ['klik', 228, 32], ['klik', 1480, 600], ['ceka', 6500]],
   finale: [['ceka', 1000]],
   konec: [['ceka', 3000]],
   dokonce: [['cekaVlek'], ['ceka', 200], ['klikVlek'], ['cekaKonec'], ['ceka', 3000]],

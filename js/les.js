@@ -348,6 +348,7 @@ async function pullBranch() {
     }
   });
   await K.tween(0.8, (t) => { st.branch.k = t; });
+  K.sound('buch', { volume: 0.6 }); // dopad: konec ulomení dozvučí pád hrnku (Daniel 2026-11-23)
   K.sound('splouchnuti');
   st.rings.push({ x: BRANCH_C.x + 30, y: 872, t: K.time });
   st.branch.state = 'float';
@@ -1334,7 +1335,7 @@ K.scenes.les = {
     kept = null;
     flow = null;
     K.preloadSounds([K.TRIANGL, 'strom-pada', K.HLAS.snih, K.HLAS.hop, K.HLAS.strom, K.HLAS.vitezstvi, 'nebudme', 'coje', K.VRZANI,
-      K.HLAS.brr, 'beran', 'chrapot', 'frkani', 'otrepani', 'praskani', 'slunce-les', 'splouchnuti', 'trknuti', 'vetev', 'vravorani']);
+      K.HLAS.brr, 'beran', 'buch', 'chrapot', 'frkani', 'otrepani', 'praskani', 'slunce-les', 'splouchnuti', 'trknuti', 'vetev', 'vravorani']);
     K.hero.visible = true;
     K.fade.a = 1;
     K.fadeTo(0, 0.9, K.FOREST_FADE);

@@ -32,7 +32,7 @@
   const SIT = { lean: 0.06, neck: 0.04, lift: 0, sF: -0.3, eF: -0.6, wF: 0.1, sB: -0.25, eB: -0.6, wB: 0.1, // ruce na kolenou
     hF: -1.5, kF: 1.5, hB: -1.4, kB: 1.35, head: 'hlavaKlid', handF: 'ruka', handB: 'ruka' };
   // o.mode: 'kouri' (fajfka v puse) | 'tah' (zavře oči a dlouze potáhne, nadme se) | 'bez' (ruce na kolenou) | 'kasel'
-  //   | 'fouka' (kouř nahoru) | 'lek' | 'zlost';
+  //   | 'fouka' (kouř nahoru) | 'lek' | 'zlost' | 'mavne' (ále: odmávne rukou, WAVE_LEN s);
   // o.pipe: má fajfku v ruce
   function target(o, tm, t) {
     const q = { ...SIT };
@@ -53,6 +53,12 @@
         hF: -1.5 + 0.35 * j, kF: 1.5 - 0.6 * j, head: 'hlavaLek' });
     } else if (o.mode === 'zlost') {
       Object.assign(q, { lean: 0.15, neck: 0.1, sF: -2.5, eF: -1.3 + 0.3 * Math.sin(t * 14), wF: 0.2, handF: 'pest', head: 'hlavaZlost' });
+    } else if (o.mode === 'mavne') {
+      // ále: zvedne ruku z kolena, dvakrát jí odmávne stranou a zase ji položí (Daniel 2026-11-23)
+      const U = K.LOUTKA_UTIL, up = U.env(tm, o.waveLen ?? 1.5, 0.3); // délka z kuchyně (WAVE_LEN)
+      const fl = Math.sin((tm - 0.3) * Math.PI * 5) * U.ramp(tm, 0.3, 0.4) * (1 - U.ramp(tm, 0.9, 1.1));
+      Object.assign(q, { lean: 0.06 - 0.05 * up, neck: 0.04 - 0.12 * up, sF: -0.3 - 0.35 * up, eF: -0.6 - 0.75 * up + 0.3 * fl,
+        wF: 0.1 - 0.3 * up + 0.6 * fl });
     }
     if (o.pipe) {
       if (o.mode === 'kasel') { q.handB = 'drzi'; q.pipe = 'B'; } // zakuckal se: fajfka ve druhé ruce na koleni

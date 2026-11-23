@@ -834,6 +834,7 @@ K.drawBubble = (ctx, x, y, s, icon) => {
 // ---------- bublina-mrak: ovce bečí, že chce sníh (Daniel 2026-11-23, náčrtek pics/ovce - řeč.jpg) ----------
 // Bublina je sama sněhový mrak: zubatý obrys s ocáskem k puse ovce (x, y), mrak je šikmo nahoře před ní
 // (facing), z jeho spodku padají vločky. t = čas od zabečení (s), dur = jak dlouho bublina visí.
+const SNOW_BLUE = '#3a7fd0'; // vločky pod mrakem
 const CLOUD_BUMPS = [1.0, 0.82, 1.08, 0.9, 1.12, 0.86, 1.0, 0.92, 1.1, 0.84, 1.04]; // nepravidelné hrboly jako od ruky
 K.drawSnowCloud = (ctx, x, y, s, facing, t, dur) => {
   const pop = K.clamp(t / 0.28), grow = pop < 1 ? 1 + 0.12 * Math.sin(pop * Math.PI) : 1; // nafoukne se
@@ -856,10 +857,10 @@ K.drawSnowCloud = (ctx, x, y, s, facing, t, dur) => {
       const p = (t * 0.55 + i * 0.37) % 1; // každá vločka jinde na své dráze
       const fx = cx + (i / (M - 1) - 0.5) * rx * 1.5 + Math.sin(t * 2.2 + i * 1.7) * 6 * s;
       const fy = cy + ry * 0.55 + p * fall;
-      const r = (5 + (i % 3) * 1.2) * s;
+      const r = (6.8 + (i % 3) * 1.5) * s;
       ctx.globalAlpha = alpha * fallStart * Math.sin(p * Math.PI);
-      // vločka: světlý lem pod inkoustem, ať je vidět i na tmavé trávě
-      for (const [col, lw] of [['rgba(255, 252, 244, 0.9)', 5 * s], [INK, 2.2 * s]]) {
+      // vločka: modrá s bílým lemem, ať je vidět i na tmavé trávě (Daniel 2026-11-23)
+      for (const [col, lw] of [['rgba(255, 255, 255, 0.95)', 6 * s], [SNOW_BLUE, 2.8 * s]]) {
         ctx.strokeStyle = col;
         ctx.lineWidth = Math.max(1.4, lw);
         for (let a = 0; a < 3; a++) {

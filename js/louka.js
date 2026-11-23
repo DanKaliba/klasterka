@@ -312,8 +312,9 @@ async function backToForest() {
 }
 
 K.scenes.louka = {
-  // vlastní skladba (Daniel 2026-11-23): hraje od otevření hry a při cestě mezi chalupami a mukami
-  music: () => 'hudba-louka',
+  // vlastní skladba od otevření hry, po první scéně pochodák (K.meadowMusic, Daniel 2026-11-23)
+  meadow: true,
+  music: K.meadowMusic,
   flock: () => 1, // stádo na pozadí (js/jadro.js)
   async enter(arg) {
     K.frameNow = MEADOW_FRAME;

@@ -14,7 +14,8 @@ function closeup(id, spec) {
   let st = null;
   const scene = {
     get st() { return st; }, // pro testy
-    music: () => 'hudba-louka', // detail chalupy je zastávka na cestě po louce, hudba se nemění
+    meadow: true, // detail chalupy je zastávka na cestě po louce, hudba se nemění
+    music: K.meadowMusic,
     enter() {
       st = spec.init();
       K.preloadSounds([K.OHEN, 'buch', 'poleno', 'ptak', 'sustot']);
