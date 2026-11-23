@@ -194,10 +194,12 @@ K.sound = (name, o = {}) => {
   if (K.muted) return;
   const s = getSound(name);
   if (s === undefined) {
-    // ještě se načítá: zahraje se, pokud se stihne do 0,3 s, jinak by přišel pozdě
+    // ještě se načítá: zahraje se, pokud se stihne do 0,3 s, jinak by přišel pozdě. Hlas hrdiny počká
+    // déle (1,5 s): pozdní „brr“ je lepší než žádné (na mobilu se soubor stahuje pomaleji, 2026-11-23).
+    // Řeč stromu ne: kousky jdou za sebou (treeSpeech v les.js), pozdní by se překryl s dalším.
     K.soundStats.notReady++;
-    const t = K.time;
-    loading[name].then(() => { if (K.time - t < 0.3) K.sound(name, o); });
+    const t = K.time, late = o.late ?? (name.startsWith('hlas-') && !name.startsWith('hlas-strom-') ? 1.5 : 0.3);
+    loading[name].then(() => { if (K.time - t < late) K.sound(name, o); });
     return;
   }
   if (!s) return;
@@ -290,15 +292,15 @@ K.loop = (name, level, o = {}) => {
   s.volume = K.clamp(l.level);
   if (l.level > 0.002 && s.paused) s.play().catch(() => {});
 };
-// Podkresová hudba (Jan Odvárka, Daniel 2026-11-22); ladí se ?hudba=0.5. Hlavní skladba „hudba“ hraje na louce,
-// v lese a ve finále; scéna si může říct o svou přes scene.music() (Kantorská, muka, vrchol mají dvě podle
+// Podkresová hudba (Jan Odvárka, Daniel 2026-11-22); ladí se ?hudba=0.5. Hlavní skladba „hudba“ hraje v lese,
+// louka má svou „hudba-louka“, finále „hudba-finale“; scéna si může říct o svou přes scene.music() (Kantorská, muka, vrchol mají dvě podle
 // toho, co se v nich stalo). Při změně se skladby prolnou, odložená se po chvíli zastaví a příště pokračuje,
 // kde skončila. Zvuky hry musí být slyšet přes ni: když zazní zvuk s hlasitostí aspoň DUCK_FROM, hudba se na
 // jeho délku rychle ztiší na DUCK a pak se pomalu vrátí. Kroky a tiché zvuky v pozadí (poklice) ji nechají
 // být. Vše se ladí ve směšovači (klávesa M); K.SOUND_GAIN[skladba] = hlasitost jedné skladby.
-// hodnoty Daniel 2026-11-22 ze směšovače
-K.MUSIC_VOLUME = +(K.params.get('hudba') ?? 0.12);
-K.DUCK = 0.35;
+// hodnoty Daniel 2026-11-22 ze směšovače, hudba a ztlumení pod zvukem upravené 2026-11-23
+K.MUSIC_VOLUME = +(K.params.get('hudba') ?? 0.13);
+K.DUCK = 0.55;
 K.DUCK_FROM = 0.28;
 let duckUntil = 0;
 // skladby hrají přes <audio> napojené do Web Audio: dekódované celé by zabraly desítky MB každá.
@@ -376,7 +378,7 @@ const music = () => {
   }
 };
 // vlek ve finále (smyčka, Daniel 2026-11-23: celou dobu, co jezdí); ladí se ve směšovači
-K.LIFT_VOLUME = 0.6;
+K.LIFT_VOLUME = 0.11; // Daniel 2026-11-23 ze směšovače (původně 0.6)
 // stádo hraje potichu pod kroky (Daniel 2026-11-08: 0.15); ladí se ?stado=0.3
 K.FLOCK_VOLUME = +(K.params.get('stado') ?? 0.15);
 // bečení po kliku na ovci, náhodně ovce-1 / ovce-2 s trochu jinou výškou, jehně má svoje; ladí se ?ovce=0.6

@@ -1,5 +1,6 @@
 # Postavy z Danielových obrázků (kresba + skutečný materiál, pics/podklady-postavy/PROMPT-postavy.md):
-#   kocour-KC.jpeg  6 póz kocoura (srst z jívových kočiček), mřížka 2×3 → assets/postavy/kocour-*.png
+#   kocour-KC.jpeg  6 póz kocoura (srst z jívových kočiček), mřížka 2×3 → assets/postavy/kocour-*.png (záloha)
+#   kocour-KL2–KL4  kocour jako loutka: hrudník, zadek, ocas, nohy, hlavy, klubíčko → assets/postavy/kocourKL*-*.png
 #   (ovce-OV1.jpeg  celé pózy ovcí, od 2026-11-13 nahrazené loutkou z dílů OV2b)
 #   hrdina-L2.png   kluk v klobouku: klobouk, hlava, trup, paže, předloktí, ruce → assets/postavy/hrdinaL2-*.png
 #   hrdina-L3.png   jeho stehno, lýtko, chodidlo → assets/postavy/hrdinaL3-*.png
@@ -164,6 +165,37 @@ SETS = {
         'scale': {'hlavaKlid': 0.55, 'hlavaKasel': 0.55, 'hlavaFouka': 0.55, 'hlavaLek': 0.55, 'hlavaZlost': 0.55},
         'ref': ('hlavaKlid', 'h', 195),
     },
+    # kocour jako papírová loutka (Daniel 2026-11-23, prompty KL1–KL4 v PROMPT-postavy.md). Velikost dílů
+    # = px dřívějšího kocoura z KC (ve hře se zmenší na CAT_K). KL2: hrudník a zadek koukají doleva →
+    # zrcadlit; fix_kl2 odstřihne přirostlé horní nohy pod břichem (zakryje je přední noha loutky).
+    'kocourKL2': {
+        'src': 'kocour-KL2.jpg', 'grid': 0, 'fix': 'fix_kl2',
+        'poses': ['hrudnik', 'zadek', 'ocasA', 'ocasB', 'ocasC'],
+        'right': [True] * 5,
+        'mirror': ['hrudnik', 'zadek', 'ocasA', 'ocasB', 'ocasC'],
+        'center': ['hrudnik', 'zadek', 'ocasA', 'ocasB', 'ocasC'],
+        'scale': {'hrudnik': 0.22, 'zadek': 0.22, 'ocasA': 0.22, 'ocasB': 0.22, 'ocasC': 0.22},
+        'ref': ('hrudnik', 'h', 67),
+    },
+    # KL3: generátor nakreslil celé nohy; fix_kl3 rozdělí přední v lokti a zadní (s kulatou kýtou) v koleni
+    'kocourKL3': {
+        'src': 'kocour-KL3.jpg', 'grid': 0, 'fix': 'fix_kl3',
+        'poses': ['paze', 'predlokti', 'stehno', 'lytko'],
+        'right': [True] * 4,
+        'center': ['paze', 'predlokti', 'stehno', 'lytko'],
+        'scale': {'paze': 0.19, 'predlokti': 0.19, 'stehno': 0.22, 'lytko': 0.24},  # zadní nohy jsou delší
+        'far': ['paze', 'predlokti', 'stehno', 'lytko'],
+        'ref': ('paze', 'h', 40),
+    },
+    # KL4: pět hlav (klidná, spí/přede, zívá, mňouká, čichá) a klubíčko; slepené hlavy rozdělí fix_kl4
+    'kocourKL4': {
+        'src': 'kocour-KL4.jpg', 'grid': 0, 'fix': 'fix_kl4',
+        'poses': ['hlavaKlid', 'hlavaSpi', 'hlavaZiva', 'hlavaMnau', 'hlavaCich', 'klubko'],
+        'right': [True] * 6,
+        'center': ['hlavaKlid', 'hlavaSpi', 'hlavaZiva', 'hlavaMnau', 'hlavaCich', 'klubko'],
+        'scale': {'hlavaKlid': 0.22, 'hlavaSpi': 0.22, 'hlavaZiva': 0.22, 'hlavaMnau': 0.22, 'hlavaCich': 0.22, 'klubko': 0.66},
+        'ref': ('hlavaKlid', 'h', 63),
+    },
 }
 
 
@@ -238,6 +270,13 @@ def fix_e2(poses):
     v lokti (nakreslený šev v půlce): paže nahoře se zakulaceným spodkem, předloktí od švu dolů se
     zakulaceným vrškem (zajede pod paži). Druhá paže se nepoužije."""
     lower, torso, arm, _arm2, hand, palm, hanky = poses
+    upper, fore = split_limb(arm, 0.56, 0.5)
+    return [lower, torso, upper, fore, hand, palm, hanky]
+
+
+def split_limb(arm, cut_f, top_f):
+    """Celou končetinu rozdělí v kloubu: horní díl do cut_f výšky se zakulaceným spodkem, dolní od top_f
+    se zakulaceným vrškem (překryv cut_f − top_f zajede pod horní díl)."""
     h, w = arm.shape[:2]
     a = arm[..., 3] > 128
     yy, xx = np.mgrid[0:h, 0:w]
@@ -246,7 +285,7 @@ def fix_e2(poses):
         xs = np.nonzero(a[y])[0]
         return (xs.min() + xs.max()) / 2, (xs.max() - xs.min()) / 2
 
-    cut, top = int(h * 0.56), int(h * 0.5)
+    cut, top = int(h * cut_f), int(h * top_f)
     upper = arm.copy()
     upper[cut:, :, 3] = 0
     cx, r = row_span(cut - 1)
@@ -255,7 +294,46 @@ def fix_e2(poses):
     fore[:top, :, 3] = 0
     cx, r = row_span(top)
     fore[..., 3][(yy >= top) & (yy < top + r) & ((xx - cx) ** 2 + (yy - (top + r)) ** 2 > r * r)] = 0
-    return [lower, torso, trim(upper), trim(fore), hand, palm, hanky]
+    return trim(upper), trim(fore)
+
+
+def largest(rgba):
+    """Jen největší souvislý kus (bez kousků vousů sousední hlavy)."""
+    m = (rgba[..., 3] > 8).astype(np.uint8)
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(m)
+    keep = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+    out = rgba.copy()
+    out[..., 3][lab != keep] = 0
+    return trim(out)
+
+
+def fix_kl2(poses):
+    """KL2: 0 hrudník, 1 zadek (s přirostlou horní nohou), 2–4 články ocasu. Přirostlé nohy pod břichem
+    pryč; co z nich zbude na těle, zakryjí nohy loutky."""
+    chest, rear, *tail = poses
+    chest, rear = chest.copy(), rear.copy()
+    chest[int(chest.shape[0] * 0.82):, :, 3] = 0
+    rear[int(rear.shape[0] * 0.8):, :, 3] = 0
+    return [trim(chest), trim(rear), *tail]
+
+
+def fix_kl3(poses):
+    """KL3: celé nohy. 0 přední s kočičkami → paže a předloktí s tlapkou (loket v půlce), 3 zadní s kulatou
+    kýtou → stehno a lýtko s hleznem a tlapou (koleno pod kýtou). Ostatní (1, 2, 4, 5) se nepoužijí."""
+    paze, predlokti = split_limb(poses[0], 0.52, 0.46)
+    stehno, lytko = split_limb(poses[3], 0.56, 0.5)
+    return [paze, predlokti, stehno, lytko]
+
+
+def fix_kl4(poses):
+    """KL4: hlavy 2+3 a 5+klubíčko se dotýkají vousy → rozdělit v nejprázdnějším sloupci uprostřed."""
+    def split(rgba):
+        cols = (rgba[..., 3] > 8).sum(0)
+        w = rgba.shape[1]
+        x = int(w * 0.35) + int(np.argmin(cols[int(w * 0.35):int(w * 0.65)]))
+        return largest(rgba[:, :x]), largest(rgba[:, x:])
+    h1, h23, h4, h5b = poses
+    return [largest(h1), *split(h23), largest(h4), *split(h5b)]
 
 
 def darken(rgba, t):

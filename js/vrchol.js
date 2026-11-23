@@ -900,7 +900,8 @@ const scene = {
   enter() {
     // rozehraná hra zůstane (kluk si může dojít na louku a vrátit se), po finále začne znovu
     if (!st || st.phase === 'done') st = init();
-    K.preloadSounds([K.KARTA, 'prasknuti', 'kaminek', 'tetrivek-tokani', 'frkani', 'tetrivek', 'sustot', K.TRIANGL, K.HLAS.jeste, K.HLAS.staci, K.HLAS.vitezstvi, K.HLAS.snih]);
+    K.preloadSounds([K.KARTA, 'prasknuti', 'kaminek', 'tetrivek-tokani', 'frkani', 'tetrivek', 'sustot', K.TRIANGL, K.HLAS.jeste, K.HLAS.staci, K.HLAS.vitezstvi, K.HLAS.snih,
+      'chorose', 'slunce', 'vitr', 'voda']);
     K.fade.a = 1;
     K.fadeTo(0, 0.6, FADE);
     if (st.phase === 'intro' || st.phase === 'idle') {

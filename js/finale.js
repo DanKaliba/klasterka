@@ -512,6 +512,7 @@ K.scenes.finale = {
   // stádo, dokud chumel neodjede z obrazu
   flock: () => (K.sheep.some((sh) => sh.mode !== 'gone') ? 1 : 0),
   lift: () => F.liftSpeed, // hlasitost smyčky vleku (K.update)
+  music: () => 'hudba-finale', // vlastní skladba se sólem (Daniel 2026-11-23)
   enter() {
     K.preloadSounds(['vitr', 'vlek', 'vlek-stop', 'tetrivek']);
     F.keys = buildTimeline();
@@ -595,7 +596,7 @@ K.scenes.finale = {
       K.drawTitle(ctx, K.W / 2, K.H / 2 - 20, 120);
       ctx.restore();
       if (a >= 1) {
-        K.drawRoundButton(ctx, K.W / 2, K.H / 2 + 120, 'znovu', true);
+        K.drawReplayMark(ctx, K.W / 2, K.H / 2 + 120, true); // hrát znovu: červená němá značka
         drawThanksLink(ctx, K.mouse && inThanks(K.mouse));
       }
     }

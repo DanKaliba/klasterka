@@ -79,17 +79,25 @@ const SNAG_END = { y: 507 + (1414 - 1000) * 0.143, len: 1.54, wid: 1.12 };
 const STROM_RANA = 4.15; // s od začátku strom-pada.mp3 (tools/zvuky.py)
 const trunkY = (x) => 490 + (x - 1050) * 0.143; // chodidla na ležícím kmeni
 
-// větev s listím leží na lávce a listí visí přes přední kmen: stíní rampouchy
-const BRANCH_C = { x: 890, y: 578 };
-const LEAF_COLS = ['#8a5a2b', '#a46c33', '#6e4824', '#b5813f'];
-const LEAVES = Array.from({ length: 40 }, (_, i) => {
-  const droop = K.hash(i + 720); // 0 = leží nahoře, 1 = visí přes hranu
-  return {
-    x: 770 + (i / 39) * 245 + (K.hash(i + 700) - 0.5) * 16,
-    y: 576 + droop * 92 + K.hash(i + 740) * 8,
-    droop, rot: (K.hash(i + 760) - 0.5) * 2.4 + droop * 1.3, col: LEAF_COLS[i % 4], s: 0.9 + K.hash(i + 780) * 0.5,
-  };
-});
+// větev s listím leží na lávce a listí visí přes přední kmen: stíní rampouchy. Je to výřez z fotky
+// (Daniel 2026-11-23: kreslená vypadala uměle a hned prozradila, že se na ni má kliknout), python tools/vetev.py
+const BRANCH_C = { x: 890, y: 578 }; // kolem čeho se větev při pádu otáčí
+const VETEV_IMG = 'assets/sceny/les-vetev.webp'; // soubor je ve dvojnásobku, ve hře 300×91
+const BRANCH_AT = { x: 790, y: 571, ax: 30, ay: 44, w: 300, h: 91, rot: 0.11 }; // bod výřezu (ax, ay) leží na (x, y)
+// středy shluků listí ve výřezu ve hře (tools/vetev.py): odtud se při stažení sypou listy
+const VETEV_LISTI = [[166, 24], [195, 9], [204, 52], [205, 19], [208, 72], [235, 33], [241, 25], [251, 26], [253, 44],
+  [276, 45], [286, 62]];
+// samostatné listy na sypání v jednom pruhu [x, y, w, h] (tools/vetev.py); úzké jsou z boku
+const LISTY_IMG = 'assets/sceny/les-listy.webp';
+const LISTY = [[0, 0, 6, 24], [8, 0, 6, 24], [16, 0, 31, 18], [49, 0, 32, 17], [83, 0, 31, 16], [116, 0, 33, 14],
+  [151, 0, 6, 24], [159, 0, 5, 24], [166, 0, 32, 19], [200, 0, 32, 17], [234, 0, 32, 17], [268, 0, 34, 15]];
+K.img(VETEV_IMG);
+K.img(LISTY_IMG);
+// bod výřezu větve → souřadnice ve scéně (větev leží na lávce)
+const onBranch = ([px, py]) => {
+  const dx = px - BRANCH_AT.ax, dy = py - BRANCH_AT.ay, c = Math.cos(BRANCH_AT.rot), s = Math.sin(BRANCH_AT.rot);
+  return { x: BRANCH_AT.x + dx * c - dy * s, y: BRANCH_AT.y + dx * s + dy * c };
+};
 
 const shakeOf = (t0, amt) => {
   const d = K.time - (t0 ?? -9);
@@ -181,11 +189,30 @@ function afterRam() {
 const mouth = (sec) => { st.mouthUntil = K.time + sec; };
 const PLAN_SHOW = 11; // jak dlouho je vidět herbář (jedna celá smyčka kroků, PLAN_LOOP)
 function showPlan(sec) {
-  st.bubble = { kind: 'herbar', t0: K.time, until: K.time + sec };
-  // strom mluví (Daniel 2026-11-23): náhodný kousek řeči, pusa se hýbe, dokud zní
-  const talk = K.pick(K.HLAS.strom);
-  K.sound(talk);
-  mouth(Math.min(sec, K.soundLength(talk) ?? 2.5));
+  const b = st.bubble = { kind: 'herbar', t0: K.time, until: K.time + sec };
+  treeSpeech(b);
+}
+
+// strom mluví, dokud ukazuje herbář (Daniel 2026-11-23: „zvuk skončí dříve než animace“). Řeč je jedna
+// nahrávka rozstříhaná na 7 kousků (2–5 s, VOICE 'strom-rec' v tools/zvuky.py): jdou za sebou
+// v náhodném pořadí s krátkou pauzou, pusa se hýbe, dokud kousek zní. Další kousek začne, jen když
+// se celý vejde před konec herbáře; skončí i dřív, když bublina zmizí nebo se odejde ze scény.
+const SPEECH_GAP = 0.35;
+async function treeSpeech(b) {
+  const order = K.HLAS.strom.slice().sort(() => Math.random() - 0.5);
+  let spoke = false;
+  for (let i = 0; ; i++) {
+    if (st.bubble !== b || K.scene !== K.scenes.les) return;
+    const talk = order[i % order.length];
+    const len = K.soundLength(talk);
+    // kousek se ještě stahuje (pomalý mobil): přeskočit, za chvíli zkusit další, ať pusa nejede naprázdno
+    if (len === null) { await K.after(0.2); continue; }
+    if (spoke && K.time + len > b.until - 0.2) return;
+    spoke = true;
+    K.sound(talk);
+    mouth(Math.min(len, b.until - K.time));
+    await K.after(len + SPEECH_GAP);
+  }
 }
 
 async function treeClick() {
@@ -312,17 +339,21 @@ async function pullBranch() {
   await hop(740, deckY(740), 0.3, 14); // zatáhne
   K.sound('vetev');
   st.branch.state = 'fall';
-  for (const l of LEAVES) {
-    st.leaves.push({ x: l.x, y: l.y, rot: l.rot, col: l.col, s: l.s, vy: K.rand(150, 240), sway: K.rand(0, 6),
-      floor: K.rand(860, 900), land: null });
-  }
+  // ze shluků listí se utrhne pár listů a snáší se do potoka
+  VETEV_LISTI.forEach((pt, i) => {
+    for (let j = 0; j < 2; j++) {
+      const p = onBranch(pt);
+      st.leaves.push({ x: p.x + K.rand(-6, 6), y: p.y + K.rand(-4, 4), rot: K.rand(-1.5, 1.5), k: (i * 2 + j) % LISTY.length,
+        s: K.rand(0.5, 0.7), vy: K.rand(110, 200), sway: K.rand(0, 6), floor: K.rand(860, 900), land: null });
+    }
+  });
   await K.tween(0.8, (t) => { st.branch.k = t; });
   K.sound('splouchnuti');
   st.rings.push({ x: BRANCH_C.x + 30, y: 872, t: K.time });
   st.branch.state = 'float';
   st.branch.t0 = K.time;
   await K.after(0.9);
-  K.sound('slunce');
+  K.sound('slunce-les'); // kovové cinknutí s chvěním (Daniel 2026-11-23)
   await K.tween(2.2, (t) => { st.sun = K.ease(t); });
   st.glintT = K.time; // zalesknou se všechny naráz
   await K.after(0.6);
@@ -695,18 +726,16 @@ function drawCrack(ctx) {
   ctx.restore();
 }
 
-function drawLeaf(ctx, x, y, rot, s, col) {
+// jeden list z pruhu LISTY (k = který), vycentrovaný na (x, y)
+function drawLeaf(ctx, x, y, rot, s, k) {
+  const img = K.img(LISTY_IMG);
+  if (!K.ready(img)) return;
+  const [sx, sy, w, h] = LISTY[k];
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rot);
   ctx.scale(s, s);
-  ctx.fillStyle = col;
-  ctx.strokeStyle = 'rgba(40, 25, 12, 0.8)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(-12, 0); ctx.quadraticCurveTo(0, -8, 12, 0); ctx.quadraticCurveTo(0, 8, -12, 0);
-  ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(10, 0); ctx.stroke();
+  ctx.drawImage(img, sx, sy, w, h, -w / 2, -h / 2, w, h);
   ctx.restore();
 }
 
@@ -727,25 +756,12 @@ function drawBranch(ctx) {
   ctx.rotate(a);
   ctx.scale(s, s);
   ctx.translate(-BRANCH_C.x, -BRANCH_C.y);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  const main = [[765, 580], [840, 575], [910, 578], [975, 574], [1012, 582]];
-  const twigs = [[[840, 575], [862, 550]], [[910, 578], [930, 602]], [[975, 574], [995, 550]], [[875, 577], [888, 604]],
-    [[800, 577], [788, 554]]];
-  for (const [w, c] of [[11, K.INK], [6, '#6b5138']]) {
-    ctx.strokeStyle = c;
-    K.stroke(ctx, main, w, 1020, 1);
-    twigs.forEach((tw, i) => K.stroke(ctx, tw, w * 0.55, 1030 + i, 0.6));
-  }
-  if (b.state === 'on') {
-    // listí: část leží nahoře, část visí na stopkách přes přední kmen před rampouchy
-    ctx.strokeStyle = 'rgba(60, 40, 22, 0.8)';
-    ctx.lineWidth = 2;
-    for (const l of LEAVES) {
-      const sway = Math.sin(K.time * 1.3 + l.x * 0.05) * 2 * l.droop;
-      if (l.droop > 0.35) { ctx.beginPath(); ctx.moveTo(l.x, 580); ctx.lineTo(l.x + sway, l.y - 6); ctx.stroke(); }
-      drawLeaf(ctx, l.x + sway, l.y, l.rot, l.s, l.col);
-    }
+  // výřez z fotky (tools/vetev.py); dokud se nenačte, větev prostě není vidět
+  const img = K.img(VETEV_IMG);
+  if (K.ready(img)) {
+    ctx.translate(BRANCH_AT.x, BRANCH_AT.y);
+    ctx.rotate(BRANCH_AT.rot);
+    ctx.drawImage(img, -BRANCH_AT.ax, -BRANCH_AT.ay, BRANCH_AT.w, BRANCH_AT.h);
   }
   ctx.restore();
 }
@@ -1282,7 +1298,7 @@ function drawParticles(ctx) {
   for (const l of st.leaves) {
     ctx.save();
     ctx.globalAlpha = l.land === null ? 1 : K.clamp(1 - (K.time - l.land) / 2);
-    drawLeaf(ctx, l.x, l.y, l.rot, l.s, l.col);
+    drawLeaf(ctx, l.x, l.y, l.rot, l.s, l.k);
     ctx.restore();
   }
   for (const d of st.dust) {
@@ -1294,7 +1310,8 @@ function drawParticles(ctx) {
 
 const inRam = (p) => st.stand === 0 && ((p.x - RAM_X) / 150) ** 2 + ((p.y - 830) / 75) ** 2 < 1;
 const inTree = (p) => (p.x < 400 && p.y < 600) || K.dist(p, { x: 312, y: 280 }) < 130 || K.dist(p, BAG) < 60;
-const inBranch = (p) => st.branch.state === 'on' && p.x > 760 && p.x < 1020 && p.y > 540 && p.y < 625;
+// spodní kraj nad vrškem rampouchů (icicleAt od iy − 30 = 616), ať klik na rampouch nestáhne větev
+const inBranch = (p) => st.branch.state === 'on' && p.x > 755 && p.x < 1060 && p.y > 540 && p.y < 615;
 const icicleAt = (p) => ICICLES.findIndex((ic, i) => i !== st.taken
   && Math.abs(p.x - ic.x) < 30 && p.y > ic.iy - 30 && p.y < ic.iy + ic.len + 25);
 const inDeck = (p) => p.x > 430 && p.x < TIP_X + 40 && p.y > 520 && p.y < 660;
@@ -1316,7 +1333,8 @@ K.scenes.les = {
     }
     kept = null;
     flow = null;
-    K.preloadSounds([K.TRIANGL, 'strom-pada', K.HLAS.snih, K.HLAS.hop, K.HLAS.strom, K.HLAS.vitezstvi, 'nebudme', 'coje', K.VRZANI]);
+    K.preloadSounds([K.TRIANGL, 'strom-pada', K.HLAS.snih, K.HLAS.hop, K.HLAS.strom, K.HLAS.vitezstvi, 'nebudme', 'coje', K.VRZANI,
+      K.HLAS.brr, 'beran', 'chrapot', 'frkani', 'otrepani', 'praskani', 'slunce-les', 'splouchnuti', 'trknuti', 'vetev', 'vravorani']);
     K.hero.visible = true;
     K.fade.a = 1;
     K.fadeTo(0, 0.9, K.FOREST_FADE);
@@ -1393,7 +1411,7 @@ K.scenes.les = {
     K.drawHero(ctx, 0, 0, HERO_S, { facing: h.facing, walking: h.walking, phase: h.phase, halo: false });
     ctx.restore();
     if (st.heroIcon && K.time < st.heroIcon.until) K.drawBubble(ctx, h.x + 24, h.y - 220, 0.95, st.heroIcon.icon);
-    if (st.phase === 'free' && st.treeStage === 0 && K.busy === 0) K.drawHint(ctx, FACE.nose[0], FACE.nose[1], 80);
+    // kruh kolem obličeje stromu je pryč (Daniel 2026-11-23); na spícího stromu upozorní jen „z“
     drawClumps(ctx);
     drawParticles(ctx);
     drawTreeBubble(ctx);

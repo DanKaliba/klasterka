@@ -14,8 +14,10 @@ function closeup(id, spec) {
   let st = null;
   const scene = {
     get st() { return st; }, // pro testy
+    music: () => 'hudba-louka', // detail chalupy je zastávka na cestě po louce, hudba se nemění
     enter() {
       st = spec.init();
+      K.preloadSounds([K.OHEN, 'buch', 'poleno', 'ptak', 'sustot']);
       K.hero.visible = true;
       K.fadeTo(0, 0.6, '#efe6d2');
     },

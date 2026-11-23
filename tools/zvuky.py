@@ -15,7 +15,7 @@ otřepání a trknutí berana, ťuknutí a dýmka ve dvou variantách (K.TUK, K.
 lámání větviček (šustot), potok (voda a bublání), žába (tři nálady), růst květiny, vítr, poklice (tři cvaknutí, K.POKLICE);
 Daniel 2026-11-22: zurčení vody na cvrknutí žáby, mňouknutí kocoura; hlas hrdiny (VOICE) a vlek hlasem.
 Daniel 2026-11-23: beran, slunce (zvoneček), šustot (suchý keř místo větviček), karta (lusknutí), okno (vrznutí); strom: nebudme, coje, řeč (hlas-strom-rec); odměna = hlas-vitezstvi; buch (pád hrnku), vrzani (skřípání dřeva), nalévání do hrnku (NALEVANI), tetřívek (mávnutí křídel).
-Hudba (Jan Odvárka, Daniel 2026-11-22; sounds/hudba/, seznam HUDBA): hlavní (louka, les, finále) a dvě ke
+Hudba (Jan Odvárka, Daniel 2026-11-22; sounds/hudba/, seznam HUDBA): hlavní (les), vlastní na louce a ve finále a dvě ke
 scéně Kantorská, muka a vrchol podle toho, co se ve scéně stalo (scene.music() v js/*.js). Každá je smyčka
 s prolnutím HUDBA_XF s, ticho na začátku pryč, hlasitost srovnaná na HUDBA_RMS. Hra je pouští přes <audio>
 (dlouhé skladby se nedekódují celé do paměti), proto bez přesahu PAD.
@@ -38,7 +38,9 @@ HUDBA_XF = 2.0  # prolnutí konce hudby do začátku (s)
 HUDBA_RMS = 0.075  # všechny skladby stejně hlasité (jako hlavní), špička nejvýš HUDBA_PEAK
 HUDBA_PEAK = 0.97
 HUDBA = {
-    'hudba': 'hlavni.mp3',  # „2. scena final (s klavesama)“
+    'hudba': 'hlavni.mp3',  # „2. scena final (s klavesama)“: les
+    'hudba-finale': 'finale.mp3',  # „2. scena_final (se solem)“ (Daniel 2026-11-23): závěr z webkamery
+    'hudba-louka': 'louka.mp3',  # „1. scena_final“ (Daniel 2026-11-23): úvodní louka, cesta mezi chalupami a mukami
     'hudba-kantorska-kour': 'kantorska-kour.mp3',  # „chalupa zakouřená“, než se rozhoří oheň
     'hudba-kantorska-ohen': 'kantorska-ohen.mp3',  # „veselá s ohněm“
     'hudba-muka-zaba': 'muka-zaba.mp3',  # „žába ještě neutekla“
@@ -171,8 +173,14 @@ CLIPS = [
     ('61259__timtube__cat-meowing.wav', 'mnau', (0.58, 1.6), 0.005, 0.15, 0.85, None),
     # Daniel 2026-11-23: poslední, nejhlubší bečení z nahrávky = beran v lese se probouzí
     ('471162__sheyvan__sheep-bleating.wav', 'beran', (18.95, 20.3), 0.01, 0.35, 0.9, None),
-    # skleněný zvoneček: slunce prosvitne v lese, květina na vrcholu rozkvete
+    # skleněný zvoneček: květina na vrcholu rozkvete
     ('152757__l15452__small_glass_bell_2.wav', 'slunce', (0.68, 4.2), 0.005, 1.2, 0.8, None),
+    # Daniel 2026-11-23: slunce prosvitne v lese = lehké kovové cinknutí s chvěním (místo zvonečku)
+    ('741355__mish7913__metal-clank-light-and-wobbling.flac', 'slunce-les', (0.27, 3.7), 0.003, 1.0, 0.8, None),
+    # Daniel 2026-11-23: pohrabáč v Kantorské, první a poslední klapnutí z nahrávky (0,62 s a 7,07 s):
+    # první = pohrabáč zpátky na tyč, poslední = sundání z tyče
+    ('85555__maj061785__metal-clanking.aiff', 'pohrabac-na', (0.6, 1.25), 0.003, 0.25, 0.85, None),
+    ('85555__maj061785__metal-clanking.aiff', 'pohrabac-dolu', (7.05, 7.43), 0.003, 0.15, 0.85, None),
     # strom v lese (Daniel 2026-11-23, nahrané hlasem): „nebuďte mě“ a „co je?“
     ('hlas/nebudme.m4a', 'nebudme', (2.3, 7.6), 0.02, 0.5, 0.9, 'highpass=f=60'),
     ('hlas/coje.mp4', 'coje', (2.0, 4.85), 0.02, 0.3, 0.9, 'highpass=f=60'),

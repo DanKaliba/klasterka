@@ -53,6 +53,8 @@ window.SCENARE = {
   lesVoda: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 900, 950], ['ceka', 1500]],
   lesKonecLavky: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 700, 590], ['cekaVolno'], ['klik', 1500, 600], ['ceka', 1300]],
   lesVetev: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 890, 585], ['ceka', 1500]],
+  lesVetevPad: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 890, 585], ['ceka', 3300]], // větev padá, listí se sype
+  lesVetevPluje: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 890, 585], ['ceka', 4600]],
   // bez batohu se rampouch jen zachvěje (nic do batohu); s batohem od stromu ho první dupnutí utrhne,
   // další na slunci kápne
   lesRampouch: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 830, 690], ['ceka', 1200]],
@@ -84,17 +86,20 @@ window.SCENARE = {
   kuchVzduch: [...OKNO, ['ceka', 300]],
   kuchHacek: [['cekaVolno'], ['klik', 772, 760], ['cekaVolno'], ['klik', 1515, 520], ['ceka', 2400]], // háček pohrabáče u okna
   // pak děda (nápověda z kouře), roští od dveří babce → oheň → kocour shodí hrnek → semínka z koše
-  kuchDeda: [...OKNO, ['klik', 1250, 750], ['ceka', 2600]],
+  kuchDedaTah: [...OKNO, ['klik', 1250, 750], ['ceka', 1900]], // „sníh“, děda táhne z dýmky
+  kuchDedaSnih: [...OKNO, ['klik', 1250, 750], ['ceka', 500]], // kluk: „sníh“
+  kuchDedaFouk: [...OKNO, ['klik', 1250, 750], ['ceka', 3500]], // vyfukuje: dva malé obláčky
+  kuchDeda: [...OKNO, ['klik', 1250, 750], ['ceka', 5600]], // hlavní obláček s květinou (pak hrnek)
   kuchBabka: [...OKNO, ['klik', 300, 750], ['cekaVolno'], ['ceka', 300]],
   kuchPolice: [...OKNO, ['klik', 560, 290], ['ceka', 900]],
   kuchNesu: [...OKNO, ['klik', 1735, 900], ['ceka', 4500]],
   kuchPrilozi: [...OKNO, ['klik', 1735, 900], ['ceka', 7050]],
   kuchOhen: [...OKNO, ['klik', 1735, 900], ['ceka', 9000]],
   kuchKocour: [...OKNO, ['klik', 1735, 900], ['ceka', 15000]],
-  kuchPolicka: [...OKNO, ['klik', 1735, 900], ['ceka', 19500]],
-  kuchHrnek: [...OKNO, ['klik', 1735, 900], ['ceka', 23200]],
-  kuchHlava: [...OKNO, ['klik', 1735, 900], ['ceka', 29300]],
-  kuchHlava2: [...OKNO, ['klik', 1735, 900], ['ceka', 30200]], // kocour na hlavě, děda vyskočí, fajfka letí
+  kuchPolicka: [...OKNO, ['klik', 1735, 900], ['ceka', 20800]], // kocour po polici (loutka: přikrčení, tlapka +1,3 s)
+  kuchHrnek: [...OKNO, ['klik', 1735, 900], ['ceka', 25400]],
+  kuchHlava: [...OKNO, ['klik', 1735, 900], ['ceka', 31850]],
+  kuchHlava2: [...OKNO, ['klik', 1735, 900], ['ceka', 32750]], // kocour na hlavě, děda vyskočí, fajfka letí
   kuchKos: [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['ceka', 500]],
   kuchFajfka: [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['klik', 1010, 995], ['cekaVolno'], ['ceka', 300]],
   kuchHotovo: [...KUCHYNE, ['cekaScena', 'louka'], ['ceka', 300]],

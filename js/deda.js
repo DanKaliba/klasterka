@@ -31,12 +31,17 @@
   const KEYS = ['lean', 'neck', 'lift', 'sF', 'eF', 'wF', 'sB', 'eB', 'wB', 'hF', 'kF', 'hB', 'kB'];
   const SIT = { lean: 0.06, neck: 0.04, lift: 0, sF: -0.3, eF: -0.6, wF: 0.1, sB: -0.25, eB: -0.6, wB: 0.1, // ruce na kolenou
     hF: -1.5, kF: 1.5, hB: -1.4, kB: 1.35, head: 'hlavaKlid', handF: 'ruka', handB: 'ruka' };
-  // o.mode: 'kouri' (fajfka v puse) | 'bez' (ruce na kolenou) | 'kasel' | 'fouka' (kouř nahoru) | 'lek' | 'zlost';
+  // o.mode: 'kouri' (fajfka v puse) | 'tah' (zavře oči a dlouze potáhne, nadme se) | 'bez' (ruce na kolenou) | 'kasel'
+  //   | 'fouka' (kouř nahoru) | 'lek' | 'zlost';
   // o.pipe: má fajfku v ruce
   function target(o, tm, t) {
     const q = { ...SIT };
     q.lean += 0.012 * Math.sin(t * 1.6); // dýchá
     if (o.mode === 'kouri') Object.assign(q, { sF: -0.3, eF: -1.9, wF: 0.3, handF: 'drzi' }); // ruka s fajfkou u prsou
+    else if (o.mode === 'tah') {
+      const u = K.LOUTKA_UTIL.smooth(K.LOUTKA_UTIL.ramp(tm, 0.2, 1.2)); // nádech: zakloní se a narovná
+      Object.assign(q, { lean: 0.02 - 0.12 * u, neck: -0.05 - 0.1 * u, sF: -0.35, eF: -1.95, wF: 0.3, handF: 'drzi' });
+    }
     else if (o.mode === 'kasel') {
       Object.assign(q, { lean: 0.38, neck: 0.25, sF: -0.95, eF: -2.0, wF: -0.2, handF: 'pest', head: 'hlavaKasel' });
       q.lean += 0.07 * Math.abs(Math.sin(t * 19)); // záchvaty
@@ -51,7 +56,7 @@
     }
     if (o.pipe) {
       if (o.mode === 'kasel') { q.handB = 'drzi'; q.pipe = 'B'; } // zakuckal se: fajfka ve druhé ruce na koleni
-      else if (o.mode === 'kouri') { q.pipe = 'F'; q.pipeMouth = true; }
+      else if (o.mode === 'kouri' || o.mode === 'tah') { q.pipe = 'F'; q.pipeMouth = true; }
       else { q.handF = 'drzi'; q.pipe = 'F'; }
     }
     return q;

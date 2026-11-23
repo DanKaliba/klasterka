@@ -886,5 +886,163 @@ K.SPRITY = {
    "ay": 98,
    "right": true
   }
+ },
+ "kocourKL2": {
+  "hrudnik": {
+   "src": "assets/postavy/kocourKL2-hrudnik.png",
+   "w": 77,
+   "h": 55,
+   "ax": 38,
+   "ay": 27,
+   "right": true
+  },
+  "zadek": {
+   "src": "assets/postavy/kocourKL2-zadek.png",
+   "w": 70,
+   "h": 50,
+   "ax": 35,
+   "ay": 25,
+   "right": true
+  },
+  "ocasA": {
+   "src": "assets/postavy/kocourKL2-ocasA.png",
+   "w": 37,
+   "h": 24,
+   "ax": 18,
+   "ay": 12,
+   "right": true
+  },
+  "ocasB": {
+   "src": "assets/postavy/kocourKL2-ocasB.png",
+   "w": 34,
+   "h": 15,
+   "ax": 17,
+   "ay": 7,
+   "right": true
+  },
+  "ocasC": {
+   "src": "assets/postavy/kocourKL2-ocasC.png",
+   "w": 46,
+   "h": 20,
+   "ax": 23,
+   "ay": 10,
+   "right": true
+  }
+ },
+ "kocourKL3": {
+  "paze": {
+   "src": "assets/postavy/kocourKL3-paze.png",
+   "w": 25,
+   "h": 43,
+   "ax": 12,
+   "ay": 21,
+   "right": true
+  },
+  "predlokti": {
+   "src": "assets/postavy/kocourKL3-predlokti.png",
+   "w": 24,
+   "h": 44,
+   "ax": 12,
+   "ay": 22,
+   "right": true
+  },
+  "stehno": {
+   "src": "assets/postavy/kocourKL3-stehno.png",
+   "w": 52,
+   "h": 53,
+   "ax": 26,
+   "ay": 26,
+   "right": true
+  },
+  "lytko": {
+   "src": "assets/postavy/kocourKL3-lytko.png",
+   "w": 39,
+   "h": 51,
+   "ax": 19,
+   "ay": 25,
+   "right": true
+  },
+  "paze2": {
+   "src": "assets/postavy/kocourKL3-paze2.png",
+   "w": 25,
+   "h": 43,
+   "ax": 12,
+   "ay": 21,
+   "right": true
+  },
+  "predlokti2": {
+   "src": "assets/postavy/kocourKL3-predlokti2.png",
+   "w": 24,
+   "h": 44,
+   "ax": 12,
+   "ay": 22,
+   "right": true
+  },
+  "stehno2": {
+   "src": "assets/postavy/kocourKL3-stehno2.png",
+   "w": 52,
+   "h": 53,
+   "ax": 26,
+   "ay": 26,
+   "right": true
+  },
+  "lytko2": {
+   "src": "assets/postavy/kocourKL3-lytko2.png",
+   "w": 39,
+   "h": 51,
+   "ax": 19,
+   "ay": 25,
+   "right": true
+  }
+ },
+ "kocourKL4": {
+  "hlavaKlid": {
+   "src": "assets/postavy/kocourKL4-hlavaKlid.png",
+   "w": 49,
+   "h": 63,
+   "ax": 24,
+   "ay": 31,
+   "right": true
+  },
+  "hlavaSpi": {
+   "src": "assets/postavy/kocourKL4-hlavaSpi.png",
+   "w": 46,
+   "h": 57,
+   "ax": 23,
+   "ay": 28,
+   "right": true
+  },
+  "hlavaZiva": {
+   "src": "assets/postavy/kocourKL4-hlavaZiva.png",
+   "w": 50,
+   "h": 63,
+   "ax": 25,
+   "ay": 31,
+   "right": true
+  },
+  "hlavaMnau": {
+   "src": "assets/postavy/kocourKL4-hlavaMnau.png",
+   "w": 55,
+   "h": 51,
+   "ax": 27,
+   "ay": 25,
+   "right": true
+  },
+  "hlavaCich": {
+   "src": "assets/postavy/kocourKL4-hlavaCich.png",
+   "w": 49,
+   "h": 52,
+   "ax": 24,
+   "ay": 26,
+   "right": true
+  },
+  "klubko": {
+   "src": "assets/postavy/kocourKL4-klubko.png",
+   "w": 144,
+   "h": 141,
+   "ax": 72,
+   "ay": 70,
+   "right": true
+  }
  }
 };

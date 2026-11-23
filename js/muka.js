@@ -57,7 +57,17 @@ const PIPE_IMG = 'assets/predmety/fajfka.png'; // dědova fajfka (svisle, náust
 const PIPE_S = 0.34;
 const PIPE_ROT = 0.45; // jak moc fajfka v puse míří hlavičkou dopředu
 const CHRIST = { x: 450, y: 255, r: 130 };
-const TWIGS = [{ x: 1030, y: 752, rot: -0.3 }, { x: 1115, y: 764, rot: 0.12 }, { x: 1205, y: 754, rot: -0.15 }];
+const TWIGS = [{ x: 1030, y: 752, rot: -0.06 }, { x: 1115, y: 764, rot: 0.03 }, { x: 1205, y: 754, rot: -0.04 }];
+// větvičky a listí na hladině jsou výřezy z fotek (Daniel 2026-11-23, python tools/hladina.py): chomáč i ve
+// hře v polovině velikosti souboru, list v pruhu shora (na hladině ho hra zploští)
+const TWIG_IMG = S + 'muka-vetvicky.webp';
+const TWIG_RECTS = [[0, 0, 300, 132], [302, 0, 300, 149], [604, 0, 300, 156]];
+const LEAF_IMG = S + 'muka-listy.webp';
+const LEAF_RECTS = [[0, 0, 42, 23], [44, 0, 32, 19], [78, 0, 38, 23], [118, 0, 36, 23], [156, 0, 36, 20], [194, 0, 40, 22],
+  [236, 0, 44, 26], [282, 0, 35, 26]];
+const LEAF_FLAT = 0.45; // list leží na hladině, kamera kouká šikmo z boku
+K.img(TWIG_IMG);
+K.img(LEAF_IMG);
 // útěk žáby doleva před podstavcem kříže a pryč ze scény
 const ESCAPE = [{ x: 820, y: 870 }, { x: 560, y: 890 }, { x: 260, y: 895 }, { x: -140, y: 895 }];
 // vrstvy vyříznuté z pozadí (python tools/muka.py vypíše levý horní roh každé)
@@ -84,7 +94,7 @@ const init = () => ({
   drops: [],
   flow: 0, clear: 0, // pramen teče / voda se čistí
   floaters: Array.from({ length: 7 }, (_, i) => ({
-    x: BASIN.x - 120 + i * 38 + K.rand(-10, 10), y: BASIN.y + K.rand(-18, 14), rot: K.rand(0, 6), c: i % 3, gone: false,
+    x: BASIN.x - 120 + i * 38 + K.rand(-10, 10), y: BASIN.y + K.rand(-18, 14), rot: K.rand(0, 6), c: i % LEAF_RECTS.length, gone: false,
   })),
   clouds: [], bubbles: [],
   jug: { x: JUG_FILL.x, y: JUG_FILL.y, full: 0, held: false, shakeT: -9 }, // hrnek v ruce
@@ -452,17 +462,16 @@ function drawLayer(ctx, name) {
 }
 
 function drawFloaters(ctx) {
-  const cols = ['#9a6a2e', '#b88a3a', '#7a5a34'];
+  const img = K.img(LEAF_IMG);
+  if (!K.ready(img)) return;
   for (const l of st.floaters) {
     if (l.gone) continue;
+    const [sx, sy, w, h] = LEAF_RECTS[l.c];
     ctx.save();
     ctx.translate(l.x, l.y);
+    ctx.scale(1, LEAF_FLAT); // naplocho na hladině: otáčí se v rovině vody
     ctx.rotate(l.rot);
-    ctx.fillStyle = cols[l.c];
-    ctx.strokeStyle = K.INK;
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(0, 0, 13, 6, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();
+    ctx.drawImage(img, sx, sy, w, h, -w / 2, -h / 2, w, h);
     ctx.restore();
   }
 }
@@ -488,18 +497,15 @@ function drawTrough(ctx) {
   ctx.restore();
 }
 
-function drawTwig(ctx, b, seed) {
+// chomáč větviček i (výřez z fotky), vycentrovaný na (b.x, b.y); ve hře poloviční velikost souboru
+function drawTwig(ctx, b, i) {
+  const img = K.img(TWIG_IMG);
+  if (!K.ready(img)) return;
+  const [sx, sy, w, h] = TWIG_RECTS[i];
   ctx.save();
   ctx.translate(b.x, b.y);
   ctx.rotate(b.rot);
-  ctx.strokeStyle = '#5b4330';
-  K.stroke(ctx, [[-70, 0], [70, 0]], 6, seed);
-  K.stroke(ctx, [[-20, 0], [10, -22]], 4, seed + 3);
-  ctx.strokeStyle = '#3d5a3a';
-  for (let i = -60; i <= 60; i += 12) {
-    K.stroke(ctx, [[i, 0], [i + 12, -16]], 4, seed + i, 0.8);
-    K.stroke(ctx, [[i, 0], [i + 12, 16]], 4, seed + i + 1, 0.8);
-  }
+  ctx.drawImage(img, sx, sy, w, h, -w / 4, -h / 4, w / 2, h / 2);
   ctx.restore();
 }
 
@@ -636,7 +642,8 @@ const scene = {
       Object.assign(st.hero, { x: START_X, facing: -1, walking: false, hopY: 0, lean: 0, reach: false });
       st.jug.held = false;
     }
-    K.preloadSounds(['kvak', 'kvak-zly', 'kvak-strach', 'plesk', 'cvrk', K.DYMKA, 'foukani', 'bublani', 'nalevani', 'sustot', 'splouchnuti', 'voda', K.HLAS.brr, K.HLAS.smich]);
+    K.preloadSounds(['kvak', 'kvak-zly', 'kvak-strach', 'plesk', 'cvrk', K.DYMKA, 'foukani', 'bublani', 'nalevani', 'sustot', 'splouchnuti', 'voda', K.HLAS.brr, K.HLAS.smich,
+      'kyrie', K.HLAS.vitezstvi]);
     K.hero.visible = true;
     K.fade.a = 1;
     K.fadeTo(0, 0.6, FADE);
@@ -694,10 +701,10 @@ const scene = {
     }
     drawFloaters(ctx);
     drawLayer(ctx, 'obruba');
-    st.twigs.forEach((b, i) => !b.gone && !b.fly && drawTwig(ctx, b, 740 + i * 40));
+    st.twigs.forEach((b, i) => !b.gone && !b.fly && drawTwig(ctx, b, i));
     if (f.state === 'peek') drawPeek(ctx);
     // vytažené větvičky na hromádce
-    st.twigs.forEach((b, i) => (b.gone || b.fly) && drawTwig(ctx, b, 740 + i * 40));
+    st.twigs.forEach((b, i) => (b.gone || b.fly) && drawTwig(ctx, b, i));
     drawStink(ctx);
     if (f.state === 'leap') drawFrog(ctx);
     const j = st.jug, h = st.hero;

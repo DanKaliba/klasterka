@@ -831,6 +831,85 @@ K.drawBubble = (ctx, x, y, s, icon) => {
   ctx.restore();
 };
 
+// ---------- bublina-mrak: ovce bečí, že chce sníh (Daniel 2026-11-23, náčrtek pics/ovce - řeč.jpg) ----------
+// Bublina je sama sněhový mrak: zubatý obrys s ocáskem k puse ovce (x, y), mrak je šikmo nahoře před ní
+// (facing), z jeho spodku padají vločky. t = čas od zabečení (s), dur = jak dlouho bublina visí.
+const CLOUD_BUMPS = [1.0, 0.82, 1.08, 0.9, 1.12, 0.86, 1.0, 0.92, 1.1, 0.84, 1.04]; // nepravidelné hrboly jako od ruky
+K.drawSnowCloud = (ctx, x, y, s, facing, t, dur) => {
+  const pop = K.clamp(t / 0.28), grow = pop < 1 ? 1 + 0.12 * Math.sin(pop * Math.PI) : 1; // nafoukne se
+  const alpha = K.clamp((dur - t) / 0.35); // na konci zmizí
+  if (alpha <= 0 || pop <= 0) return;
+  const rx = 66 * s * pop * grow, ry = 38 * s * pop * grow;
+  // u kraje obrazovky se mrak přesune na druhou stranu hlavy (ocásek vede pořád k puse)
+  const fits = (f) => { const c = x + f * 92 * s, half = 66 * s * 1.45; return c - half > 8 && c + half < K.W - 8; };
+  const side = fits(facing) ? facing : -facing;
+  const cx = x + side * 92 * s, cy = y - 78 * s;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  // padající sníh (pod mrakem, kreslí se první, ať vločky vyjíždějí zpoza něj)
+  const fallStart = K.clamp((t - 0.3) / 0.4);
+  if (fallStart > 0) {
+    const M = 7, fall = 100 * s;
+    for (let i = 0; i < M; i++) {
+      const p = (t * 0.55 + i * 0.37) % 1; // každá vločka jinde na své dráze
+      const fx = cx + (i / (M - 1) - 0.5) * rx * 1.5 + Math.sin(t * 2.2 + i * 1.7) * 6 * s;
+      const fy = cy + ry * 0.55 + p * fall;
+      const r = (5 + (i % 3) * 1.2) * s;
+      ctx.globalAlpha = alpha * fallStart * Math.sin(p * Math.PI);
+      // vločka: světlý lem pod inkoustem, ať je vidět i na tmavé trávě
+      for (const [col, lw] of [['rgba(255, 252, 244, 0.9)', 5 * s], [INK, 2.2 * s]]) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = Math.max(1.4, lw);
+        for (let a = 0; a < 3; a++) {
+          const ang = a * Math.PI / 3 + t * 0.8 + i;
+          ctx.beginPath();
+          ctx.moveTo(fx - Math.cos(ang) * r, fy - Math.sin(ang) * r);
+          ctx.lineTo(fx + Math.cos(ang) * r, fy + Math.sin(ang) * r);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.globalAlpha = alpha;
+  }
+  // mrak: hrboly po obvodu elipsy (oblouky mezi body, vyboulené ven), lehce se vlní
+  ctx.fillStyle = 'rgba(255, 252, 244, 0.96)';
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 3 * s;
+  const N = CLOUD_BUMPS.length;
+  const pt = (k) => {
+    const a = (k / N) * Math.PI * 2;
+    return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry];
+  };
+  ctx.beginPath();
+  ctx.moveTo(...pt(0));
+  for (let k = 0; k < N; k++) {
+    const am = ((k + 0.5) / N) * Math.PI * 2;
+    const bump = CLOUD_BUMPS[k] * (1 + 0.04 * Math.sin(K.time * 2 + k));
+    const out = 1 + 0.42 * bump;
+    const [ex, ey] = pt(k + 1);
+    ctx.quadraticCurveTo(cx + Math.cos(am) * rx * out, cy + Math.sin(am) * ry * out, ex, ey);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // ocásek k puse ovce: dvě čáry od spodku mraku, výplň překryje obrys mezi nimi (jako u K.drawBubble)
+  const bx = cx - side * rx * 0.55, by = cy + ry * 0.75;
+  const w = 9 * s;
+  ctx.beginPath();
+  ctx.moveTo(bx - w, by - 6 * s);
+  ctx.lineTo(x, y);
+  ctx.lineTo(bx + w, by - 6 * s);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(bx - w, by - 2 * s);
+  ctx.lineTo(x, y);
+  ctx.lineTo(bx + w, by - 2 * s);
+  ctx.stroke();
+  ctx.restore();
+};
+
 // ---------- ikony ----------
 // batoh je fotka (Daniel 2026-11-10, python tools/batoh.py); dokud se nenačte, kreslí se čárou
 // ikony z obrázků (batoh, nástroje); dokud se nenačtou, kreslí se čarou
@@ -1161,6 +1240,37 @@ K.drawRoundButton = (ctx, x, y, icon, pulse) => {
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
   K.drawIcon(ctx, icon, x, y, 40, '#f3e6c8');
+  ctx.restore();
+};
+
+// „hrát znovu“ na konci hry: červená šipka stočená do kruhu ve stylu němých značek Krkonoš (Daniel
+// 2026-11-23; barva #eb3948 a poměry podle Němé_značky_Krkonoš.svg: plný tvar bez obrysu, tah asi
+// čtvrtina výšky značky, rovně useknutý konec). Kroužek po směru hodin, hrot nahoře míří doprava.
+const MARK_RED = '#eb3948';
+K.drawReplayMark = (ctx, x, y, pulse) => {
+  const k = 1 + (pulse ? Math.sin(K.time * 4) * 0.05 : 0);
+  const R = 27 * k, lw = 17 * k;
+  const a0 = -Math.PI / 2 + 1.0, a1 = (3 * Math.PI) / 2 - 0.2; // začátek vpravo nahoře, konec těsně vlevo od vrcholu
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = MARK_RED;
+  ctx.fillStyle = MARK_RED;
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'butt';
+  ctx.beginPath();
+  ctx.arc(0, 0, R, a0, a1 + 0.06); // kousek pod hrot, ať mezi nimi nezůstane světlá spára
+  ctx.stroke();
+  // hrot: trojúhelník na konci oblouku, míří po směru hodin (tečna), široký přes celý tah a kus navíc
+  const ex = Math.cos(a1) * R, ey = Math.sin(a1) * R;
+  const tx = -Math.sin(a1), ty = Math.cos(a1); // tečna po směru hodin
+  const nx = Math.cos(a1), ny = Math.sin(a1); // ven od středu
+  const half = lw * 1.05, len = lw * 1.2;
+  ctx.beginPath();
+  ctx.moveTo(ex + nx * half, ey + ny * half);
+  ctx.lineTo(ex - nx * half, ey - ny * half);
+  ctx.lineTo(ex + tx * len, ey + ty * len);
+  ctx.closePath();
+  ctx.fill();
   ctx.restore();
 };
 

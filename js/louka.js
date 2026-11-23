@@ -312,11 +312,14 @@ async function backToForest() {
 }
 
 K.scenes.louka = {
+  // vlastní skladba (Daniel 2026-11-23): hraje od otevření hry a při cestě mezi chalupami a mukami
+  music: () => 'hudba-louka',
   flock: () => 1, // stádo na pozadí (js/jadro.js)
   async enter(arg) {
     K.frameNow = MEADOW_FRAME;
     K.hero.visible = true;
     if (!K.sheep.length) K.makeSheep();
+    K.preloadSounds(['dvere', 'tetrivek-tokani']);
     if (arg && arg.from === 'les' && arg.back) {
       // z lesa zpátky levým krajem (Daniel 2026-11-23): vyjde z kraje lesa, kudy do něj vešel (při hraní
       // z dolní louky k ovcím); kam měl namířeno, už nejde (les zůstal nevyřešený)
@@ -362,9 +365,12 @@ K.scenes.louka = {
   update(dt) {
     K.hero.update(dt);
     fhint = forestAgain() ? forestHint() : null;
+    const talking = bubble && bubble.until > K.time;
     for (const sh of K.sheep) {
-      K.updateGrazing(sh, dt);
-      if (!bubble || bubble.until < K.time) sh.headUp = false;
+      // ovce, která právě mluví, stojí (neotočí se zády ke své bublině)
+      if (talking && bubble.sheep === sh) sh.walking = false;
+      else K.updateGrazing(sh, dt);
+      if (!talking) sh.headUp = false;
     }
   },
 
@@ -398,7 +404,10 @@ K.scenes.louka = {
     K.drawSheepFlock(ctx, [{ y: hp.y, draw: () => K.hero.draw(ctx) }]);
     if (bubble && bubble.until > K.time) {
       const sh = bubble.sheep, s = K.scaleAt(sh.x, sh.y) * K.sheepSize(sh);
-      K.drawBubble(ctx, sh.x + sh.facing * 30 * s, sh.y - 55 * s, Math.max(0.6, s), bubble.icon);
+      const mx = sh.x + sh.facing * 30 * s, my = sh.y - 55 * s;
+      // přání sněhu: bublina je rovnou sněhový mrak (Daniel 2026-11-23), dotaz na berana zůstává kulatý
+      if (bubble.icon === 'snih') K.drawSnowCloud(ctx, mx, my, Math.max(0.6, s), bubble.side, K.time - bubble.t0, bubble.until - bubble.t0);
+      else K.drawBubble(ctx, mx, my, Math.max(0.6, s), bubble.icon);
     }
     ctx.restore();
   },
@@ -439,7 +448,8 @@ function sheepTalk(sh) {
     sh.headUp = true;
     return;
   }
-  bubble = { sheep: sh, icon: 'ovceLyze', until: K.time + 3.2 };
+  // mrak zůstane na straně, kam ovce koukala při zabečení (i když se mezitím otočí)
+  bubble = { sheep: sh, icon: 'snih', side: sh.facing, t0: K.time, until: K.time + 3.2 };
   for (const o of K.sheep) o.headUp = true;
   K.state.asked = true;
 }

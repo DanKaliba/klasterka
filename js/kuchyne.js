@@ -135,9 +135,9 @@ const init = () => ({
   lean: 0, reach: false, angryT: -9, startleT: -9, carry: false, pile: true, twigs: null,
   pipe: { state: 'hand', x: PIPE_HAND.x, y: PIPE_HAND.y, rot: 0.3 }, // hand | fall | floor | taken
   pose: { babka: { k: 1 }, deda: { k: 1 } }, // čísla póz pro testy
-  fire: 0, boil: 0, smell: 0, lidT: -9,
+  fire: 0, boil: 0, smell: 0, smellUp: 0, lidT: -9,
   strings: STRINGS.map(() => ({ bumpT: -9 })),
-  cat: { x: CAT_BED.x, y: CAT_BED.y, pose: 'sleep', facing: -1, phase: 0, rot: 0, earT: -9, purrT: -9 },
+  cat: { x: CAT_BED.x, y: CAT_BED.y, pose: 'sleep', facing: -1, phase: 0, rot: 0, earT: -9, purrT: -9, meowT: -9, shakeT: -9, tapT: -9 },
   mug: { state: 'shelf', x: MUG_X, y: SHELF_Y - 25, rot: 0, s: 1 },
   seeds: [], taken: false,
   cloud: null, steam: [], puffs: [], wisps: [], nextPuff: 3, nextLid: 0,
@@ -179,6 +179,8 @@ async function catGo(pts, speed) {
 async function catLeap(x1, y1, dur, height) {
   const c = st.cat, x0 = c.x, y0 = c.y;
   c.facing = Math.sign(x1 - x0) || c.facing;
+  c.pose = 'prep'; // loutka: přikrčí se a zavrtí zadkem (Daniel 2026-11-23)
+  await K.after(0.35);
   c.pose = 'leap';
   await K.tween(dur, (t) => {
     c.x = K.lerp(x0, x1, t);
@@ -243,7 +245,7 @@ async function windowTry() {
   h.facing = -1;
   await hop(18, 0.28);
   st.poker = 'rail';
-  K.sound(K.TUK, { volume: 0.4 });
+  K.sound('pohrabac-na', { volume: 0.5 }); // cinkne o tyč (Daniel 2026-11-23)
   await drained;
   st.phase = 'free';
   st.nextPuff = K.time + 1.5;
@@ -256,18 +258,45 @@ async function takePoker() {
   st.hero.facing = -1;
   await hop(20, 0.28);
   st.poker = 'hero';
-  K.sound(K.TUK, { volume: 0.4 });
+  K.sound('pohrabac-dolu', { volume: 0.5 }); // cinkne, jak ho sundá z tyče (Daniel 2026-11-23)
   K.busy--;
 }
 
-// děda vyfoukne kouř a z něj nápověda: sněžná květina → hrnek se semínky
-const CLOUD_LEN = 4.6;
-function grandpaHint() {
-  if (st.cloud && K.time - st.cloud.t0 < CLOUD_LEN) return;
+// kluk se zeptá na sníh („sníh“ + ikona), děda potáhne z dýmky (víčko se rozžhaví) a vyfoukne obláček
+// s nápovědou: sněžná květina z herbáře → hrnek se semínky (Daniel 2026-11-23). Bez fajfky (po kocourovi)
+// jen vyfoukne.
+// obláček se vyfukuje: tři malé obláčky po PUFF_GAP s, pak hlavní (PUFF_MAIN) a v něm obrázky 4,6 s
+const PUFF_GAP = 0.5, PUFF_MAIN = 3 * PUFF_GAP;
+const CLOUD_LEN = PUFF_MAIN + 4.6;
+const ASK_LEN = 1.1; // „sníh“, pak děda táhne
+const DRAW_LEN = 1.5; // jak dlouho táhne z dýmky
+async function grandpaHint() {
+  if (st.hintT && K.time - st.hintT < ASK_LEN + DRAW_LEN + CLOUD_LEN) return;
+  st.hintT = K.time;
+  // hráč může mezitím odejít (EXIT nečeká na busy): pak už nefoukat ani nehrát výdechy na louce
+  const s0 = st, gone = () => st !== s0 || K.scene !== KITCHEN;
+  st.hero.facing = Math.sign(DEDA_AT.x - st.hero.x) || 1;
+  st.heroIcon = { icon: 'snih', until: K.time + 1.6 };
+  K.sound(K.HLAS.snih); // „sníh“
+  await K.after(ASK_LEN);
+  if (gone()) return;
+  if (st.pipe.state === 'hand') {
+    st.drawT = K.time;
+    K.sound(K.DYMKA, { volume: 0.35, rate: 0.7 }); // potáhne
+    await K.after(DRAW_LEN);
+    if (gone()) return;
+  }
   st.cloud = { t0: K.time };
-  K.sound(K.DYMKA);
-  const m = (st.deda && st.deda.mouth) || { x: MOUTH.x - 14, y: MOUTH.y + 4 };
-  for (let i = 0; i < 8; i++) puffAt(m.x, m.y, -K.rand(60, 120), -K.rand(30, 80), 0.9);
+  // čtyři výdechy: tři malé obláčky, pak velký (každý „pfff“ a z pusy vyletí chomáček kouře);
+  // výdech je syntetický šum (python tools/vydech.py), Daniel 2026-11-23
+  for (let i = 0; i < 4; i++) {
+    const main = i === 3;
+    K.sound(main ? 'vydech-dlouhy' : `vydech-${i + 1}`, { volume: main ? 0.9 : 0.75 });
+    const m = (st.deda && st.deda.mouth) || { x: MOUTH.x - 14, y: MOUTH.y + 4 };
+    for (let j = 0; j < (main ? 8 : 3); j++) puffAt(m.x, m.y, -K.rand(60, 120), -K.rand(30, 80), main ? 0.9 : 0.6);
+    if (!main) await K.after(PUFF_GAP);
+    if (gone()) return;
+  }
 }
 
 function puffAt(x, y, vx, vy, life = 1.8) {
@@ -358,9 +387,13 @@ async function catWake() {
   await catGo([[CAT_BLANKET_END, CAT_BED.y]], 150); // pod křížalami: zavadí o ně
   await catLeap(CAT_LEDGE.x, CAT_LEDGE.y, 0.4, 20);
   K.sound(K.TUK, { volume: 0.35 });
+  c.pose = 'walk';
   // římsa kamen pálí: mňoukne a poskočí (Daniel 2026-11-20: mňouknutí, když šlápne na něco horkého)
   K.sound('mnau', { volume: 0.7, rate: 1.25 });
+  c.meowT = K.time;
   await K.tween(0.3, (t) => { c.y = CAT_LEDGE.y - Math.sin(t * Math.PI) * 26; });
+  c.shakeT = K.time; // otřepe si spálenou tlapku
+  await K.after(0.6);
   await catLeap(CAT_SHELF, SHELF_Y, 0.5, 40);
   K.sound(K.TUK, { volume: 0.5 });
   c.pose = 'walk';
@@ -370,7 +403,10 @@ async function catWake() {
   c.pose = 'walk';
   await catGo([[CAT_BUMP, SHELF_Y]], 110);
   c.pose = 'sniff';
+  c.tapT = K.time; // dvakrát zkusmo ťukne tlapkou, pak hrnek shodí
+  await K.after(0.9);
   K.sound('mnau', { volume: 0.6 }); // shodí hrnek (Daniel 2026-11-20)
+  c.meowT = K.time;
   await mugFall();
   await K.after(0.6);
   // kocour se vrátí po polici a skočí dědovi na hlavu; děda se lekne a upustí fajfku (Daniel 2026-11-13)
@@ -378,7 +414,7 @@ async function catWake() {
   await catGo([[CAT_SHELF, SHELF_Y]], 160);
   const head = dedaHead();
   await catLeap(head.x, head.y, 0.65, 60);
-  c.pose = 'sit';
+  c.pose = 'crouch'; // přikrčí se, uši dozadu a drží se
   c.facing = -1;
   c.onHead = true; // jede s dědovou hlavou (update)
   await grandpaStartle();
@@ -605,7 +641,7 @@ function grannyPose() {
   return st.fire > 0 ? 5 : 1;
 }
 // číslo dědova stavu pro testy (render_game_to_text)
-const DEDA_NUM = { kouri: 1, bez: 1, kasel: 2, fouka: 3, lek: DEDA_STARTLE, zlost: DEDA_ANGRY };
+const DEDA_NUM = { kouri: 1, bez: 1, kasel: 2, fouka: 3, tah: 4, lek: DEDA_STARTLE, zlost: DEDA_ANGRY };
 // babka jako loutka (js/babka.js): póza podle grannyPose, předklon ke dvířkům st.lean
 const grannyOpts = () => ({ pose: grannyPose(), lean: st.lean, facing: 1 });
 function drawGranny(ctx) {
@@ -615,6 +651,7 @@ function drawGranny(ctx) {
 function grandpaMode() {
   if (K.time - st.startleT < 1.6) return 'lek'; // nadskočí, ruce nahoru, kouká na kocoura
   if (K.time - st.cough.grandpa < COUGH_POSE) return 'kasel';
+  if (st.pipe.state === 'hand' && K.time - (st.drawT ?? -99) < DRAW_LEN) return 'tah'; // táhne z dýmky
   if (st.cloud && K.time - st.cloud.t0 < CLOUD_LEN) return 'fouka';
   if (K.time - st.angryT < 3.2) return 'zlost'; // hrozí pěstí
   return st.pipe.state === 'hand' ? 'kouri' : 'bez';
@@ -622,6 +659,19 @@ function grandpaMode() {
 const grandpaOpts = () => ({ mode: grandpaMode(), pipe: st.pipe.state === 'hand', facing: -1 });
 function drawGrandpa(ctx) {
   st.deda = K.drawDeda(ctx, DEDA_AT.x, DEDA_AT.y, 1, grandpaOpts()) || st.deda;
+  // když táhne, tabák ve fajfce se rozžhaví (víčko zasvítí a pulzuje s nádechy)
+  if (grandpaMode() === 'tah' && st.deda && st.deda.bowl) {
+    const b = st.deda.bowl, u = K.clamp((K.time - st.drawT) / 0.4), k = u * (0.75 + 0.25 * Math.sin(K.time * 9));
+    const g = ctx.createRadialGradient(b.x, b.y + 4, 0, b.x, b.y + 4, 26);
+    g.addColorStop(0, `rgba(255, 196, 90, ${0.85 * k})`);
+    g.addColorStop(0.35, `rgba(240, 110, 30, ${0.45 * k})`);
+    g.addColorStop(1, 'rgba(240, 110, 30, 0)');
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(b.x, b.y + 4, 26, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
 }
 // kam skočí kocour: na temeno loutky (bez loutky CAT_HEAD)
 const dedaHead = () => (st.deda ? { x: st.deda.top.x, y: st.deda.top.y + 12 } : CAT_HEAD);
@@ -638,11 +688,13 @@ function drawSteam(ctx) {
   }
 }
 
-// vlnky vůně z hrnce: dokud kocour spí nahoře, míří k němu, pak jen stoupají
+// vlnky vůně z hrnce: dokud kocour leží na dece, míří k němu; jakmile vstane a jde, vůně se plynule
+// narovná a jen stoupá (Daniel 2026-11-23: „když kočka běží k hrnci, vůně ji pronásleduje“)
 function drawSmell(ctx) {
   if (st.smell <= 0) return;
-  const c = st.cat, up = c.pose === 'sit' || st.phase === 'seeds' || st.phase === 'done';
-  const T = up ? { x: POT.x + 40, y: POT.y - 260 } : { x: c.x - 30 * c.facing, y: c.y - 40 };
+  const BED = { x: CAT_BED.x + 30, y: CAT_BED.y - 40 }, UP = { x: POT.x + 40, y: POT.y - 260 };
+  const e = K.ease(st.smellUp);
+  const T = { x: K.lerp(BED.x, UP.x, e), y: K.lerp(BED.y, UP.y, e) };
   ctx.save();
   ctx.strokeStyle = 'rgba(255, 244, 222, 0.75)';
   ctx.lineWidth = 3;
@@ -722,20 +774,28 @@ function drawSmoke(ctx) {
 }
 
 // obláček kouře s obrázky (jako bubliny stromu, jen z kouře)
+let cloudFlower = null;
 function drawCloud(ctx) {
   const cl = st.cloud;
   if (!cl) return;
   const age = K.time - cl.t0;
   if (age > CLOUD_LEN) { st.cloud = null; return; }
-  const a = K.clamp(Math.min(age / 0.5, (CLOUD_LEN - age) / 0.5));
-  const C = CLOUD, grow = K.ease(K.clamp(age / 0.6));
+  const a = K.clamp((CLOUD_LEN - age) / 0.5); // na konci se rozplyne
+  const C = CLOUD, grow = K.ease(K.clamp((age - PUFF_MAIN) / 0.6));
   ctx.save();
-  ctx.globalAlpha = a;
   ctx.fillStyle = 'rgba(238, 236, 230, 0.93)';
-  // řetízek obláčků od dýmky
-  [[1236, 462, 9], [1208, 408, 14], [1174, 348, 20]].forEach(([x, y, r], i) => {
-    ctx.beginPath(); ctx.arc(x + Math.sin(K.time * 1.4 + i) * 2, y, r * grow, 0, Math.PI * 2); ctx.fill();
+  // řetízek obláčků: děda je vyfoukne jeden po druhém, každý vyletí z pusy a doplave na své místo
+  const m = (st.deda && st.deda.mouth) || { x: 1250, y: 500 };
+  const end = { x: C.x + C.r * 0.35, y: C.y + C.r * 0.9 };
+  [[0.22, 9], [0.48, 14], [0.74, 20]].forEach(([f, r], i) => {
+    const u = K.clamp((age - i * PUFF_GAP) / 0.45);
+    if (u <= 0) return;
+    const fly = K.ease(u), x = K.lerp(m.x - 10, K.lerp(m.x - 20, end.x, f), fly), y = K.lerp(m.y - 6, K.lerp(m.y - 30, end.y, f), fly);
+    ctx.globalAlpha = a * Math.min(1, u * 3);
+    ctx.beginPath(); ctx.arc(x + Math.sin(K.time * 1.4 + i) * 2, y, r * (0.35 + 0.65 * fly), 0, Math.PI * 2); ctx.fill();
   });
+  if (grow <= 0) { ctx.restore(); return; }
+  ctx.globalAlpha = a * Math.min(1, grow * 2);
   // nadýchaný okraj z kroužků
   for (let i = 0; i < 11; i++) {
     const an = (i / 11) * Math.PI * 2 + 0.3;
@@ -746,11 +806,21 @@ function drawCloud(ctx) {
   }
   ctx.beginPath(); ctx.ellipse(C.x, C.y, C.r * grow, C.r * 0.84 * grow, 0, 0, Math.PI * 2); ctx.fill();
   // obrázky: květina, pak hrnek (prolnutí)
-  const sw = 2.2;
-  const k1 = K.clamp(Math.min((age - 0.4) / 0.3, (sw - age) / 0.3));
+  const sw = PUFF_MAIN + 2.2;
+  const k1 = K.clamp(Math.min((age - PUFF_MAIN - 0.4) / 0.3, (sw - age) / 0.3));
   const k2 = K.clamp(Math.min((age - sw) / 0.3, (CLOUD_LEN - 0.3 - age) / 0.3));
   ctx.globalAlpha = a * k1;
-  K.drawIcon(ctx, 'kvetina', C.x, C.y, 120, '#4f4a44');
+  // sněžná květina z herbáře, jakou ukázal strom v lese (K.HERBAR z js/les.js); dokud se nenačte, ikona
+  const H = K.HERBAR;
+  if (!cloudFlower && H && K.ready(K.img(H.src))) cloudFlower = K.herbarCut(K.img(H.src), H.flower, 40);
+  if (cloudFlower) {
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(C.x, C.y, C.r * 0.95, C.r * 0.8, 0, 0, Math.PI * 2); ctx.clip();
+    const h = C.r * 1.95, w = (h * cloudFlower.width) / cloudFlower.height;
+    ctx.globalCompositeOperation = 'multiply'; // jako kresba v kouři (papír listu splyne s obláčkem)
+    ctx.drawImage(cloudFlower, C.x - w / 2, C.y - h / 2, w, h);
+    ctx.restore();
+  } else K.drawIcon(ctx, 'kvetina', C.x, C.y, 120, '#4f4a44');
   ctx.globalAlpha = a * k2;
   K.drawIcon(ctx, 'hrnek', C.x, C.y + 6, 120, '#4f4a44');
   ctx.restore();
@@ -914,8 +984,15 @@ function catTail(ctx, pts, w = 10) {
 // kocour je Danielův obrázek (2026-11-13, prompt KC: kresba tuší, srst z jívových kočiček, python
 // tools/sprity.py): pózy sleep / stretch / walk / leap / sniff / sit, kotva = střed spodku tlap.
 // Obrázek je ve velikosti dřív kresleného kocoura (CAT_S), ve hře se zmenší na CAT_K.
+// Od 2026-11-23 je kocour papírová loutka (js/kocour.js, prompty KL1–KL4); obrázek a kreslený jsou záloha.
+const catOpts = () => {
+  const c = st.cat;
+  return { pose: c.pose, phase: c.phase, facing: c.facing, rot: c.rot, earT: c.earT, purrT: c.purrT,
+    meowT: c.meowT, shakeT: c.shakeT, tapT: c.tapT };
+};
 function drawCat(ctx) {
-  const c = st.cat, t = K.time, spr = K.sprite('kocour', c.pose);
+  if (K.drawKocour && K.drawKocour(ctx, st.cat.x, st.cat.y, CAT_K, catOpts())) return;
+  const c = st.cat, t = K.time, spr = K.sprite('kocour', ['prep', 'crouch'].includes(c.pose) ? 'sit' : c.pose);
   if (!spr) return drawCatPaper(ctx);
   const { sp, img } = spr;
   ctx.save();
@@ -1001,7 +1078,8 @@ const scene = {
   music: () => (st && st.fire > 0 ? 'hudba-kantorska-ohen' : 'hudba-kantorska-kour'),
   enter() {
     st = init();
-    K.preloadSounds([K.OHEN, 'predeni', 'mnau', K.DYMKA, 'hrnek', 'semena', K.POKLICE, K.TUK, K.HLAS.hop, K.KASEL, 'okno']);
+    K.preloadSounds([K.OHEN, 'predeni', 'mnau', K.DYMKA, 'hrnek', 'semena', K.POKLICE, K.TUK, K.HLAS.hop, K.HLAS.snih, 'vydech-1', 'vydech-2', 'vydech-3', 'vydech-dlouhy', K.KASEL, 'okno',
+      'bruceni', 'buch', 'lek', 'sustot', K.HLAS.vitezstvi, 'pohrabac-na', 'pohrabac-dolu']);
     K.hero.visible = true;
     K.fade.a = 1;
     K.fadeTo(0, 0.7, '#efe6d2');
@@ -1034,6 +1112,8 @@ const scene = {
       st.steam.push({ x: POT.x + K.rand(-70, 70), y: POT.y - 4, vx: K.rand(-10, 25), vy: -K.rand(50, 100),
         r: K.rand(8, 14), t0: K.time, life: K.rand(1.4, 2.2) });
     }
+    // kocour vstal z deky → vůně se za 1,5 s narovná vzhůru (za kocourem nejde)
+    if (st.cat.pose !== 'sleep' && st.cat.pose !== 'stretch') st.smellUp = Math.min(1, st.smellUp + dt / 1.5);
     for (const s of st.steam) { s.x += s.vx * dt; s.y += s.vy * dt; s.vx += 6 * dt; }
     st.steam = st.steam.filter((s) => K.time - s.t0 < s.life);
     // poklice občas zacvaká

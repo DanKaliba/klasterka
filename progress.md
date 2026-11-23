@@ -99,6 +99,13 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   Kocour z obrázku je menší (CAT_K 0.72) a hrdina v kuchyni větší (HERO_S 1.9, dřív 1.3; výskok s pohrabáčem
   WIN_HOP a náruč roští se počítají z HERO_S), Daniel 2026-11-13. Děda se po skoku kocoura na hlavu nesměje,
   lekne se a zlobí se (hrozí pěstí, zvuk bruceni).
+  Kocour (2026-11-23): papírová loutka (prompty KL1–KL4, díly kocourKL2–KL4, js/kocour.js, K.drawKocour),
+  obrázky z KC zůstaly jako záloha. Tělo ze dvou dílů s nýtkem uprostřed zad, nohy ve dvou dílech (KL3 dalo
+  celé nohy, fix_kl3 je rozdělí), ocas ze tří článků, pět hlav = výrazy, spí jako klubíčko (jeden díl).
+  Pózy v st.cat.pose: sleep, stretch, walk, prep (přikrčí se a zavrtí zadkem před každým skokem), leap, sniff,
+  sit, crouch (na dědově hlavě); krátké pohyby přes časy meowT (rozpálená římsa, hrnek), shakeT (otřepe si
+  tlapku) a tapT (dvakrát ťukne do hrnku, pak ho shodí). Kocour je proto u dědy o ~2,5 s později (testy
+  kuchPolicka/kuchHrnek/kuchHlava* posunuté). Ladění: ?scena=loutka&postava=kocour (&pohyb=…).
   Babka (2026-11-23): papírová loutka jako děda (prompty E1–E3, díly babkaE2 + babkaE3, js/babka.js), šátek
   z opravdové látky. Klečí: spodek v kleku je jeden díl, ohýbá se v pase, ruce v rameni, lokti a zápěstí
   (E2 dalo celé paže, fix_e2 je rozdělí v lokti). Čtyři hlavy = výrazy. Pózy (grannyPose): 1 kouká do ohně,
@@ -113,6 +120,10 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   pěstí). Fajfku v dílech nemá: kreslí ji loutka stejným obrázkem `assets/predmety/fajfka.png`, který při
   leknutí vypadne z ruky na zem; pak má ruce prázdné a nekouří. K.drawDeda vrací pusu, temeno (kocour)
   a fajfku s víčkem (kouř). Ladění: ?scena=loutka&postava=deda.
+  Nápověda od dědy (Daniel 2026-11-23, grandpaHint): kluk řekne „sníh“ (K.HLAS.snih + ikona), děda potáhne
+  z dýmky (stav tah: fajfka u pusy, víčko se rozžhaví) a vyfukuje: tři malé obláčky jeden po druhém (každý
+  vyletí z pusy, zvuk vydech-1…3), pak hlavní (vydech-dlouhy; syntetický šum z tools/vydech.py); v něm květina
+  z herbáře (K.HERBAR, stejná jako na vrcholu), pak hrnek. Bez fajfky (po kocourovi) jen vyfoukne.
   Nástroje (2026-11-13, `K.TOOLS`, `K.giveTool` v jadro.js): hrnek a fajfka mají v HUD místa za klíči, bez
   kroužků, ikony jsou obrázky (kresleni.js `ICON_IMG`). Point & click (Daniel 2026-11-13): klik na nástroj
   v HUD ho vytáhne (`K.held`, ikona jede s kurzorem, v HUD zůstane bledý obrys), další klik do scény ho
@@ -263,6 +274,8 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
   jako celek (jinak prosvítají překrývající se chomáče/ovály). Používá drawHero, drawSheep (`o.alpha`) a beran.
 
 ## Nápady / poznámky pro dalšího
+- Zvuk `foukani` u studánky (kluk fouká kouř na žábu, muka.js) nemá soubor, je ticho. Daniel 2026-11-23:
+  kluk musí dýchat jinak než děda (vydech-* z kuchyně nepoužívat), nižší priorita.
 - Zimní snímky jsou proti podzimním posunuté o ~(4, 16) px → `rozlozeni.snih`; v editoru S + šipky.
 - Vlek (2026-11-02, podle Daniela): stojí na skutečném sloupu z fotky. Body `vlek.*` a `hrana` jsou
   v souřadnicích ZIMNÍCH snímků (bez `snih` posunu). Černé lano jde po skutečných drátech od hrany (`dole`)
