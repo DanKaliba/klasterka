@@ -582,5 +582,309 @@ K.SPRITY = {
    "ay": 27,
    "right": true
   }
+ },
+ "dedaD2": {
+  "stolicka": {
+   "src": "assets/postavy/dedaD2-stolicka.png",
+   "w": 174,
+   "h": 197,
+   "ax": 87,
+   "ay": 98,
+   "right": true
+  },
+  "trup": {
+   "src": "assets/postavy/dedaD2-trup.png",
+   "w": 153,
+   "h": 247,
+   "ax": 76,
+   "ay": 123,
+   "right": true
+  },
+  "stehno": {
+   "src": "assets/postavy/dedaD2-stehno.png",
+   "w": 92,
+   "h": 229,
+   "ax": 46,
+   "ay": 114,
+   "right": true
+  },
+  "bota": {
+   "src": "assets/postavy/dedaD2-bota.png",
+   "w": 145,
+   "h": 218,
+   "ax": 72,
+   "ay": 109,
+   "right": true
+  },
+  "paze": {
+   "src": "assets/postavy/dedaD2-paze.png",
+   "w": 58,
+   "h": 118,
+   "ax": 29,
+   "ay": 59,
+   "right": true
+  },
+  "predlokti": {
+   "src": "assets/postavy/dedaD2-predlokti.png",
+   "w": 33,
+   "h": 121,
+   "ax": 16,
+   "ay": 60,
+   "right": true
+  },
+  "ruka": {
+   "src": "assets/postavy/dedaD2-ruka.png",
+   "w": 55,
+   "h": 82,
+   "ax": 27,
+   "ay": 41,
+   "right": true
+  },
+  "pest": {
+   "src": "assets/postavy/dedaD2-pest.png",
+   "w": 42,
+   "h": 58,
+   "ax": 21,
+   "ay": 29,
+   "right": true
+  },
+  "drzi": {
+   "src": "assets/postavy/dedaD2-drzi.png",
+   "w": 41,
+   "h": 65,
+   "ax": 20,
+   "ay": 32,
+   "right": true
+  },
+  "stehno2": {
+   "src": "assets/postavy/dedaD2-stehno2.png",
+   "w": 92,
+   "h": 229,
+   "ax": 46,
+   "ay": 114,
+   "right": true
+  },
+  "bota2": {
+   "src": "assets/postavy/dedaD2-bota2.png",
+   "w": 145,
+   "h": 218,
+   "ax": 72,
+   "ay": 109,
+   "right": true
+  },
+  "paze2": {
+   "src": "assets/postavy/dedaD2-paze2.png",
+   "w": 58,
+   "h": 118,
+   "ax": 29,
+   "ay": 59,
+   "right": true
+  },
+  "predlokti2": {
+   "src": "assets/postavy/dedaD2-predlokti2.png",
+   "w": 33,
+   "h": 121,
+   "ax": 16,
+   "ay": 60,
+   "right": true
+  },
+  "ruka2": {
+   "src": "assets/postavy/dedaD2-ruka2.png",
+   "w": 55,
+   "h": 82,
+   "ax": 27,
+   "ay": 41,
+   "right": true
+  },
+  "pest2": {
+   "src": "assets/postavy/dedaD2-pest2.png",
+   "w": 42,
+   "h": 58,
+   "ax": 21,
+   "ay": 29,
+   "right": true
+  },
+  "drzi2": {
+   "src": "assets/postavy/dedaD2-drzi2.png",
+   "w": 41,
+   "h": 65,
+   "ax": 20,
+   "ay": 32,
+   "right": true
+  }
+ },
+ "babkaE2": {
+  "spodek": {
+   "src": "assets/postavy/babkaE2-spodek.png",
+   "w": 249,
+   "h": 256,
+   "ax": 124,
+   "ay": 128,
+   "right": true
+  },
+  "trup": {
+   "src": "assets/postavy/babkaE2-trup.png",
+   "w": 141,
+   "h": 204,
+   "ax": 70,
+   "ay": 102,
+   "right": true
+  },
+  "paze": {
+   "src": "assets/postavy/babkaE2-paze.png",
+   "w": 43,
+   "h": 97,
+   "ax": 21,
+   "ay": 48,
+   "right": true
+  },
+  "predlokti": {
+   "src": "assets/postavy/babkaE2-predlokti.png",
+   "w": 68,
+   "h": 87,
+   "ax": 34,
+   "ay": 43,
+   "right": true
+  },
+  "ruka": {
+   "src": "assets/postavy/babkaE2-ruka.png",
+   "w": 48,
+   "h": 73,
+   "ax": 24,
+   "ay": 36,
+   "right": true
+  },
+  "dlan": {
+   "src": "assets/postavy/babkaE2-dlan.png",
+   "w": 63,
+   "h": 32,
+   "ax": 31,
+   "ay": 16,
+   "right": true
+  },
+  "kapesnik": {
+   "src": "assets/postavy/babkaE2-kapesnik.png",
+   "w": 48,
+   "h": 61,
+   "ax": 24,
+   "ay": 30,
+   "right": true
+  },
+  "paze2": {
+   "src": "assets/postavy/babkaE2-paze2.png",
+   "w": 43,
+   "h": 97,
+   "ax": 21,
+   "ay": 48,
+   "right": true
+  },
+  "predlokti2": {
+   "src": "assets/postavy/babkaE2-predlokti2.png",
+   "w": 68,
+   "h": 87,
+   "ax": 34,
+   "ay": 43,
+   "right": true
+  },
+  "ruka2": {
+   "src": "assets/postavy/babkaE2-ruka2.png",
+   "w": 48,
+   "h": 73,
+   "ax": 24,
+   "ay": 36,
+   "right": true
+  },
+  "dlan2": {
+   "src": "assets/postavy/babkaE2-dlan2.png",
+   "w": 63,
+   "h": 32,
+   "ax": 31,
+   "ay": 16,
+   "right": true
+  },
+  "kapesnik2": {
+   "src": "assets/postavy/babkaE2-kapesnik2.png",
+   "w": 48,
+   "h": 61,
+   "ax": 24,
+   "ay": 30,
+   "right": true
+  }
+ },
+ "babkaE3": {
+  "hlavaSmutna": {
+   "src": "assets/postavy/babkaE3-hlavaSmutna.png",
+   "w": 161,
+   "h": 191,
+   "ax": 80,
+   "ay": 95,
+   "right": true
+  },
+  "hlavaKasel": {
+   "src": "assets/postavy/babkaE3-hlavaKasel.png",
+   "w": 164,
+   "h": 194,
+   "ax": 82,
+   "ay": 97,
+   "right": true
+  },
+  "hlavaProsi": {
+   "src": "assets/postavy/babkaE3-hlavaProsi.png",
+   "w": 144,
+   "h": 198,
+   "ax": 72,
+   "ay": 99,
+   "right": true
+  },
+  "hlavaSpokojena": {
+   "src": "assets/postavy/babkaE3-hlavaSpokojena.png",
+   "w": 150,
+   "h": 195,
+   "ax": 75,
+   "ay": 97,
+   "right": true
+  }
+ },
+ "dedaD3": {
+  "hlavaKlid": {
+   "src": "assets/postavy/dedaD3-hlavaKlid.png",
+   "w": 148,
+   "h": 195,
+   "ax": 74,
+   "ay": 97,
+   "right": true
+  },
+  "hlavaKasel": {
+   "src": "assets/postavy/dedaD3-hlavaKasel.png",
+   "w": 139,
+   "h": 201,
+   "ax": 69,
+   "ay": 100,
+   "right": true
+  },
+  "hlavaFouka": {
+   "src": "assets/postavy/dedaD3-hlavaFouka.png",
+   "w": 158,
+   "h": 167,
+   "ax": 79,
+   "ay": 83,
+   "right": true
+  },
+  "hlavaLek": {
+   "src": "assets/postavy/dedaD3-hlavaLek.png",
+   "w": 136,
+   "h": 197,
+   "ax": 68,
+   "ay": 98,
+   "right": true
+  },
+  "hlavaZlost": {
+   "src": "assets/postavy/dedaD3-hlavaZlost.png",
+   "w": 135,
+   "h": 196,
+   "ax": 67,
+   "ay": 98,
+   "right": true
+  }
  }
 };

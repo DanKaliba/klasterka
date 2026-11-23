@@ -153,7 +153,7 @@ async function deal(who) {
   g.state = 'pluck';
   g.pluckT = K.time;
   await K.after(0.35);
-  K.sound('karta', { volume: 0.6, rate: K.rand(0.9, 1.1) });
+  K.sound(K.KARTA, { volume: 0.6, rate: K.rand(0.9, 1.1) });
   const hand = who === 'hero' ? st.heroCards : st.grouseCards;
   const to = slot(who, hand.length, hand.length + 1);
   const from = { x: g.x + BEAK.x, y: g.y + BEAK.y }; // zobák
@@ -225,13 +225,14 @@ async function challenge() {
     st.asked = true;
     h.waveT = K.time; // ukáže na hrudku
     K.sound('sustot', { volume: 0.3 });
+    K.sound(K.HLAS.snih); // „sníh“ jako u stromu v lese (Daniel 2026-11-22)
     await say('hero', 'kvetina', 1.4);
     g.refuseT = K.time;
     K.sound('frkani', { volume: 0.6 });
     await say('grouse', 'kvetinaNe', 1.4);
   }
   g.tokT = K.time;
-  K.sound('karta', { volume: 0.6 });
+  K.sound(K.KARTA, { volume: 0.6 });
   await say('grouse', 'karty', 1.3);
   K.busy--;
   await startRound();
@@ -284,6 +285,7 @@ async function startRound() {
 
 async function heroDraw() {
   K.busy++;
+  K.sound(K.HLAS.jeste); // „ještě jednu“
   st.hero.arm = 'hold';
   await deal('hero');
   st.hero.arm = null;
@@ -307,6 +309,7 @@ async function heroStand() {
   K.busy++;
   st.phase = 'grouse';
   st.hero.waveT = K.time;
+  K.sound(K.HLAS.staci); // „stačí“
   await K.after(0.7);
   const g = st.grouse;
   // aspoň do 17; na 17–18 ho ješitnost láká táhnout dál, po vyhraném zápase ještě víc
@@ -337,6 +340,7 @@ async function roundEnd(winner) {
   st.phase = 'end';
   const g = st.grouse, h = st.hero;
   if (winner === 'hero') {
+    K.sound(K.HLAS.vitezstvi);
     // tetřívek prohrál: ze vzteku klovne do své rabuše a zlomí ji (Daniel 2026-11-18)
     g.state = 'pluck';
     g.pluckT = K.time;
@@ -375,7 +379,7 @@ async function gatherCards() {
   st.gather = [...fromH, ...fromG].map((f) => ({ ...f, x0: f.x, y0: f.y }));
   st.heroCards = [];
   st.grouseCards = [];
-  K.sound('karta', { volume: 0.5, rate: 0.8 });
+  K.sound(K.KARTA, { volume: 0.5, rate: 0.8 });
   const s0 = { ...st.stick };
   await K.tween(0.7, (t) => {
     const e = K.ease(t);
@@ -891,10 +895,12 @@ const scene = {
   get st() { return st; }, // pro testy
   total, // pro testy (hráčova strategie)
   dropPebble, // pro testy (spadlý kamínek)
+  // hudba: s tetřívkem, a když odletí a sází se květina (Daniel 2026-11-22)
+  music: () => (st && ['plant', 'bloom', 'done'].includes(st.phase) ? 'hudba-vrchol-kytka' : 'hudba-vrchol'),
   enter() {
     // rozehraná hra zůstane (kluk si může dojít na louku a vrátit se), po finále začne znovu
     if (!st || st.phase === 'done') st = init();
-    K.preloadSounds(['karta', 'prasknuti', 'kaminek', 'tetrivek-tokani', 'frkani', 'tetrivek', 'sustot', K.TRIANGL]);
+    K.preloadSounds([K.KARTA, 'prasknuti', 'kaminek', 'tetrivek-tokani', 'frkani', 'tetrivek', 'sustot', K.TRIANGL, K.HLAS.jeste, K.HLAS.staci, K.HLAS.vitezstvi, K.HLAS.snih]);
     K.fade.a = 1;
     K.fadeTo(0, 0.6, FADE);
     if (st.phase === 'intro' || st.phase === 'idle') {

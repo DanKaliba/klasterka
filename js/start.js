@@ -8,6 +8,7 @@
 //   ?debug      — vykreslit cestu a klikací místa
 //   ?bezHrnku   — u studánky (scena=kriz) bez hrnku a fajfky z kuchyně
 //   ?test       — čas stojí, posouvá ho window.advanceTime(ms)
+//   ?sev        — hudba začne 6 s před koncem skladby (poslech, jak plynule navazuje na začátek)
 (async () => {
   const ctx = K.ctx;
   // načítací obrazovka: jen papír a ovečka

@@ -45,6 +45,11 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   spirály a lyže se špičkou stočenou jako rohy). Rána probudí strom, pokud s ním panáček ještě nemluvil
   (dá batoh). Pak hráč pošle panáčka přes kmen na opěru a po schodech nahoru; bez rampouchu se zastaví na
   konci lávky a ukáže ho v bublině (utrhne si některý z rampouchů, které zůstaly).
+  Pojistka (Daniel 2026-11-22): když je les prošlý a rampouch chybí, je na louce na kraji lesa bílý kruh;
+  klik = panáček dojde k lesu a les se otevře ve stavu po beranovi (souška leží, beran pryč, strom vzhůru),
+  takže si rampouch utrhne a přejde (louka.js `backToForest`, les.js `afterRam`, test `lesZpet3`).
+  Zpátky (Daniel 2026-11-23): klik na levý kraj lesa = panáček odejde na dolní louku k ovcím; les zůstane
+  nevyřešený a pamatuje si, co se v něm stalo (les.js `goBack`, `kept`; testy `lesZpatky`, `lesZpatky2`).
   Pozadí = dva obrázky od Daniela (pics/les-lavka/A-pred.png a B-po.png, gitignore; prompty a náčrt
   kompozice v pics/podklady-les/PROMPT-most.md a C3-rozlozeni-lavka.png). `python tools/les_lavka.py` je
   zvětší na 1920×1080 (`les.jpg`, `les-po.jpg`) a vyřízne soušku podle rozdílu obou obrázků. Souřadnice
@@ -93,14 +98,21 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   srst z jívových kočiček), `python tools/sprity.py` → assets/postavy/kocour-*.png; kreslený zůstal jako záloha.
   Kocour z obrázku je menší (CAT_K 0.72) a hrdina v kuchyni větší (HERO_S 1.9, dřív 1.3; výskok s pohrabáčem
   WIN_HOP a náruč roští se počítají z HERO_S), Daniel 2026-11-13. Děda se po skoku kocoura na hlavu nesměje,
-  lekne se (póza 3) a zlobí se (třese se, zvuk bruceni); nové pózy 5 a 6 čekají na prompt C3.
-  Babka a děda (2026-11-12): kresba tuší podle ovčáka ze Zapomenutých řemesel, děda má vlasy a vousy
-  z opravdového lišejníku, babka šátek z opravdové látky (prompty B2, C2 v
-  `pics/podklady-kuchyne/PROMPT-postavy-lisejnik.md`). Pózy vyřezává `python tools/postavy.py` z modrého
-  pozadí; hra mezi nimi krátce prolíná. Babka: 1 kouká do ohně, 2 kašle, 3 prosí o roští, 4 přikládá,
-  5 spokojená (když hoří). Děda: 1 dýmka, 2 kašle, 3 vyfukuje nápovědu a kouká na ni / lekne se kocoura,
-  4 se směje (můj nápad). Děda má zatím v pózách kreslenou dýmku i potom, co mu spadne porcelánová fajfka
-  (`assets/predmety/fajfka.png` z `fajfka-F2.jpg`, prompt F2); čeká na pózy bez dýmky.
+  lekne se a zlobí se (hrozí pěstí, zvuk bruceni).
+  Babka (2026-11-23): papírová loutka jako děda (prompty E1–E3, díly babkaE2 + babkaE3, js/babka.js), šátek
+  z opravdové látky. Klečí: spodek v kleku je jeden díl, ohýbá se v pase, ruce v rameni, lokti a zápěstí
+  (E2 dalo celé paže, fix_e2 je rozdělí v lokti). Čtyři hlavy = výrazy. Pózy (grannyPose): 1 kouká do ohně,
+  2 kašle do kapesníku, 3 prosí o roští (dlaň nahoru), 4 natahuje ruce ke dvířkům (roští přiletí do dlaní,
+  st.babka.hands), 5 spokojená (když hoří). Ladění: ?scena=loutka&postava=babka.
+  Děda a babka sdílejí kostru sedících loutek js/loutky.js (K.sediciLoutka: podstavec, trup, hlava, ruce,
+  u dědy nohy; kroky, chvění, přechody a stíny jako u hrdiny). `tools/postavy.py` už řeže jen fajfku.
+  Děda (2026-11-22): papírová loutka na nýtech jako hrdina (prompty D1–D3, díly dedaD2 + dedaD3 v
+  tools/sprity.py, kostra js/deda.js), vlasy a vous z lišejníku, sedí na stoličce. Pět hlav = výrazy;
+  stavy (grandpaMode v kuchyne.js): kouri (fajfka v puse), bez (ruce na kolenou), kasel (předkloní se, pěst
+  u pusy, fajfka ve druhé ruce), fouka (nápověda kouřem nahoru), lek (nadskočí, ruce nahoru), zlost (hrozí
+  pěstí). Fajfku v dílech nemá: kreslí ji loutka stejným obrázkem `assets/predmety/fajfka.png`, který při
+  leknutí vypadne z ruky na zem; pak má ruce prázdné a nekouří. K.drawDeda vrací pusu, temeno (kocour)
+  a fajfku s víčkem (kouř). Ladění: ?scena=loutka&postava=deda.
   Nástroje (2026-11-13, `K.TOOLS`, `K.giveTool` v jadro.js): hrnek a fajfka mají v HUD místa za klíči, bez
   kroužků, ikony jsou obrázky (kresleni.js `ICON_IMG`). Point & click (Daniel 2026-11-13): klik na nástroj
   v HUD ho vytáhne (`K.held`, ikona jede s kurzorem, v HUD zůstane bledý obrys), další klik do scény ho

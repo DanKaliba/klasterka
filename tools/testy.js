@@ -94,6 +94,7 @@ window.SCENARE = {
   kuchPolicka: [...OKNO, ['klik', 1735, 900], ['ceka', 19500]],
   kuchHrnek: [...OKNO, ['klik', 1735, 900], ['ceka', 23200]],
   kuchHlava: [...OKNO, ['klik', 1735, 900], ['ceka', 29300]],
+  kuchHlava2: [...OKNO, ['klik', 1735, 900], ['ceka', 30200]], // kocour na hlavě, děda vyskočí, fajfka letí
   kuchKos: [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['ceka', 500]],
   kuchFajfka: [...OKNO, ['klik', 1735, 900], ['cekaVolno'], ['klik', 1010, 995], ['cekaVolno'], ['ceka', 300]],
   kuchHotovo: [...KUCHYNE, ['cekaScena', 'louka'], ['ceka', 300]],
@@ -148,6 +149,16 @@ window.SCENARE = {
   daleko2: [['bezLesa'], ['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['klikChalupa', 'klinovka'], ['ceka', 24000]],
 };
 
+// les: probudí berana a hned jde přes spadlou soušku, rampouch si neutrhne
+window.SCENARE.lesBezRampouchu = [['ceka', 300], ['cekaVolno'], ...VETEV, KRK, ['cekaVolno'], ['klik', 1500, 600], ['ceka', 6000]];
+// z lesa levým krajem zpátky k ovcím (větev už stažená); pak znovu do lesa: větev pořád pryč
+window.SCENARE.lesZpatky = [['ceka', 300], ['cekaVolno'], ...VETEV, ['cekaVolno'], ['klik', 50, 700], ['cekaScena', 'louka'], ['ceka', 2500]];
+window.SCENARE.lesZpatky2 = [...window.SCENARE.lesZpatky, ['jdiPresLes'], ['cekaScena', 'les'], ['ceka', 2500]];
+// na louce bez rampouchu: bílý kruh u lesa; klik → zpátky do lesa (souška leží), rampouch, přejít → louka
+window.SCENARE.lesZpet = [['bezRampouchu'], ['ceka', 2500]];
+window.SCENARE.lesZpet2 = [['bezRampouchu'], ['ceka', 2500], ['klikLes'], ['cekaScena', 'les'], ['ceka', 2500]];
+window.SCENARE.lesZpet3 = [['bezRampouchu'], ['ceka', 2500], ['klikLes'], ['cekaScena', 'les'], ['cekaVolno'],
+  ['klik', 900, 690], ['cekaVolno'], ['klik', 1500, 600], ['cekaScena', 'louka'], ['ceka', 1500]];
 // loutka hrdiny (?scena=loutka&test&skript=loutka…): tlačítka pohybů nahoře, klik jinam = otočka
 const LOUTKA_BTN = (i) => ['klik', 120 + i * 210, 130]; // 0 stoj, 1 chuze, 2 saha, 3 drzi, 4 fajfka, 5 mava, 6 lek, 7 mokry
 Object.assign(window.SCENARE, {
@@ -164,6 +175,7 @@ Object.assign(window.SCENARE, {
   loutkaOtrepani: [['ceka', 300], LOUTKA_BTN(7), ['ceka', 900], LOUTKA_BTN(0), ['ceka', 330]],
   loutkaOtocka: [['ceka', 500], ['klik', 960, 500], ['ceka', 100]],
   loutkaDrobnost: [['ceka', 3900]],
+  loutkaOtocit: [['ceka', 300], ['klik', 960, 600], ['ceka', 800]], // děda: klik = otočí se (fajfka zrcadlově)
 });
 
 // celá hra od začátku do titulku
@@ -203,6 +215,12 @@ window.SCENARE.cela = [
     else if (s[0] === 'cekaMimo') await waitFor(() => K.scene !== K.scenes[s[1]], 'mimo ' + s[1]);
     else if (s[0] === 'cekaVolno') await waitFor(() => K.busy === 0, 'volno');
     else if (s[0] === 'bezLesa') K.forestDone();
+    else if (s[0] === 'jdiPresLes') K.hero.walkTo(K.forestSpan()[1] + 1); // po cestě přes les na horní louku
+    else if (s[0] === 'bezRampouchu') { // les prošlý, ale rampouch si nevzal (bílý kruh u lesa)
+      K.forestDone();
+      K.state.items = K.state.items.filter((it) => it !== 'rampouch');
+      delete K.state.solved.rampouch;
+    }
     else if (s[0] === 'vrcholHraj') {
       // oko bere za kluka (táhne do 16, pak „stačí“), dokud tetřívek neodletí; nejvýš 10 min herního času
       const V = K.scenes.vrchol;
@@ -238,6 +256,7 @@ window.SCENARE.cela = [
       if (s[0] === 'klikChalupa') p = K.L.chalupy.find((c) => c.id === s[1]);
       if (s[0] === 'klikKolo') p = K.scene.st.wheel;
       if (s[0] === 'klikVrchol') p = K.L.vrchol;
+      if (s[0] === 'klikLes') p = K.forestHintAt();
       if (s[0] === 'klikNastroj') p = K.toolPos(K.TOOLS.indexOf(s[1])); // vytáhne nástroj z batůžku
       if (s[0] === 'klikVlek') { const V = K.L.vlek; p = { x: V.sloup.x, y: (V.sloup.y + V.pata.y) / 2 }; }
       K.mouse = p;

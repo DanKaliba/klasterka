@@ -13,8 +13,10 @@
     ['FLOCK_VOLUME', 'Stádo (smyčka)', 1],
     ['STEP_VOLUME', 'Kroky', 1],
     ['BLEAT_VOLUME', 'Bečení ovcí', 1],
+    ['LIFT_VOLUME', 'Vlek (smyčka ve finále)', 1],
   ];
-  const LOOPS = ['hudba', 'stado']; // ty řídí posuvníky nahoře, ne seznam souborů
+  const LOOPS = ['stado', 'vlek']; // řídí je posuvníky nahoře, ne seznam souborů
+  const MUSIC = /^hudba/; // skladby: posuvník hlasitosti, bez ▶ (hrají samy podle scény)
   const QUIET = /^(krok|led)-/; // kroky hrají pořád, do „naposledy“ se nepíšou
   const GAIN_MAX = 3;
   const defaults = {
@@ -43,7 +45,7 @@
     if (!panel || panel.hidden) return;
     const r = rows[name];
     if (r) r.flash();
-    if (QUIET.test(name) || LOOPS.includes(name)) return;
+    if (QUIET.test(name) || LOOPS.includes(name) || MUSIC.test(name)) return;
     recent = [name, ...recent.filter((n) => n !== name)].slice(0, 6);
     renderRecent();
   };
@@ -95,7 +97,7 @@
 
   const soundRow = (n) => {
     const s = slider(n, GAIN_MAX, () => K.SOUND_GAIN[n] ?? 1, (g) => { K.SOUND_GAIN[n] = g; }, defaults.gain[n] ?? 1,
-      () => K.sound(n));
+      MUSIC.test(n) ? null : () => K.sound(n));
     let t = 0;
     const flash = () => {
       s.row.classList.add('on');
@@ -127,9 +129,17 @@
     const style = el('style', { textContent: css });
     document.head.append(style);
     panel = el('div', { id: 'mix' });
-    // psaní do panelu nesmí spouštět klávesy hry (E editor, F celá obrazovka, M panel)
-    panel.addEventListener('keydown', (e) => e.stopPropagation());
-    const close = el('button', { textContent: '×', title: 'zavřít (M)', onclick: () => { panel.hidden = true; } });
+    // klávesy v panelu nesmí spouštět klávesy hry (šipky na posuvníku by posouvaly prvky v editoru, E editor,
+    // F celá obrazovka); projde jen M, ať jde panel zavřít a znovu otevřít, i když v něm zůstal fokus
+    // (posuvník, tlačítko). Při psaní do hledání nepropadne ani M.
+    panel.addEventListener('keydown', (e) => {
+      const typing = e.target.matches('input[type=search], textarea');
+      if (typing || (e.key !== 'm' && e.key !== 'M')) e.stopPropagation();
+    });
+    const close = el('button', {
+      textContent: '×', title: 'zavřít (M)',
+      onclick: () => { panel.hidden = true; document.activeElement?.blur(); },
+    });
     panel.append(el('h2', {}, el('span', { textContent: 'Směšovač' }), close));
     panel.append(el('small', { textContent: 'Dvojklik na posuvník = výchozí hodnota. Změněné jsou žlutě. Ukládá se v tomto prohlížeči.' }));
 

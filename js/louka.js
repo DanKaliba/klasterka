@@ -286,13 +286,52 @@ let lockBubble = 0;
 const allSolved = () => K.hasAllItems();
 const house = (id) => K.L.chalupy.find((c) => c.id === id);
 
+// Zapomenutý rampouch (Daniel 2026-11-22): les je prošlý, ale rampouch chybí → na kraji lesa bílý kruh,
+// klik = panáček dojde k lesu a vrátí se do lesní scény (js/les.js ji otevře ve stavu po beranovi).
+const FOREST_HINT_R = 45;
+// rampouch se pozná podle batohu (items), stejně jako v les.js (hasIcicle); K.forestDone ho tam dává bez solved
+const forestAgain = () => K.state.solved.les && !K.state.items.includes('rampouch');
+let fhint = null; // kruh u lesa pro tenhle snímek (počítá se jednou v update)
+function forestHint() {
+  const [fa, fb] = K.forestSpan();
+  if (fa < 0) return null;
+  // kraj lesa blíž k panáčkovi: poslední viditelný bod cesty před lesem nebo za ním
+  const c = K.L.cesta, hp = K.hero.off ? K.pathIndexNear(K.hero.off) : K.hero.p;
+  const dir = hp <= fa ? 1 : -1, edge = dir > 0 ? fa : fb;
+  const vis = c[Math.max(0, Math.min(c.length - 1, edge - dir))];
+  return { x: vis.x, y: vis.y - 20, dir, edge };
+}
+K.forestHintAt = () => fhint; // pro testy
+async function backToForest() {
+  const h = fhint;
+  K.busy++;
+  await K.hero.walkTo(h.edge);
+  K.hero.frozen = true;
+  K.busy--;
+  K.enterForest(h.dir);
+}
+
 K.scenes.louka = {
   flock: () => 1, // stádo na pozadí (js/jadro.js)
   async enter(arg) {
     K.frameNow = MEADOW_FRAME;
     K.hero.visible = true;
     if (!K.sheep.length) K.makeSheep();
-    if (arg && arg.from === 'les') {
+    if (arg && arg.from === 'les' && arg.back) {
+      // z lesa zpátky levým krajem (Daniel 2026-11-23): vyjde z kraje lesa, kudy do něj vešel (při hraní
+      // z dolní louky k ovcím); kam měl namířeno, už nejde (les zůstal nevyřešený)
+      const trip = K.forestTrip, [a, b] = K.forestSpan(), dir = trip ? trip.dir : 1;
+      const edge = dir > 0 ? a : b, last = K.L.cesta.length - 1;
+      K.forestTrip = null;
+      K.hero.off = null;
+      K.hero.stop();
+      K.hero.p = edge;
+      K.hero.frozen = false;
+      K.busy = 0;
+      K.fade.a = 1;
+      K.fadeTo(0, 1, K.FOREST_FADE);
+      K.hero.walkTo(Math.max(0, Math.min(last, edge - 2 * dir)));
+    } else if (arg && arg.from === 'les') {
       // z lesa: panáček vyjde na druhém kraji a dojde, kam měl namířeno
       const trip = K.forestTrip, [a, b] = K.forestSpan();
       K.forestTrip = null;
@@ -322,6 +361,7 @@ K.scenes.louka = {
 
   update(dt) {
     K.hero.update(dt);
+    fhint = forestAgain() ? forestHint() : null;
     for (const sh of K.sheep) {
       K.updateGrazing(sh, dt);
       if (!bubble || bubble.until < K.time) sh.headUp = false;
@@ -350,6 +390,7 @@ K.scenes.louka = {
       const missing = K.ITEMS.find((it) => !K.state.items.includes(it));
       if (lockBubble > K.time && missing) K.drawBubble(ctx, v.x, v.y - 6, 0.45, missing);
     }
+    if (fhint) K.drawHint(ctx, fhint.x, fhint.y, FOREST_HINT_R);
 
     drawFootprints(ctx);
     K.drawPoleGrouse(ctx, grouseTop(), grouseScale(), grouseT);
@@ -364,6 +405,7 @@ K.scenes.louka = {
 
   hot(p) {
     if (K.sheepAt(p) || grouseAt(p)) return true;
+    if (fhint && K.dist(p, fhint) < FOREST_HINT_R) return true;
     if (!K.state.asked) return false;
     if (K.dist(p, K.L.vrchol) < 50) return true;
     return K.L.chalupy.some((c) => K.CHALETS[c.id] && !K.state.solved[c.id] && K.dist(p, c) < c.w);
@@ -376,6 +418,7 @@ K.scenes.louka = {
       grouseT = K.time;
       return K.sound('tetrivek-tokani');
     }
+    if (fhint && K.dist(p, fhint) < FOREST_HINT_R) return backToForest();
     if (K.state.asked) {
       if (K.dist(p, K.L.vrchol) < 50) return allSolved() ? enterPlace('vrchol', K.L.vrchol) : (lockBubble = K.time + 2);
       const c = K.L.chalupy.find((h) => K.CHALETS[h.id] && !K.state.solved[h.id] && K.dist(p, h) < h.w);

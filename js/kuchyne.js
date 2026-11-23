@@ -24,8 +24,7 @@ const KITCHEN = (() => {
 const S = 'assets/sceny/';
 const BG = S + 'kuchyne.jpg';
 const IMG = {
-  babka: [1, 2, 3, 4, 5].map((i) => S + `kuchyne-babka-${i}.png`), kos: S + 'kuchyne-kos.png',
-  deda: [1, 2, 3, 4].map((i) => S + `kuchyne-deda-${i}.png`),
+  kos: S + 'kuchyne-kos.png',
   hrnek: S + 'kuchyne-hrnek.png', rosti: S + 'kuchyne-rosti.png', naruc: S + 'kuchyne-naruc.png',
   pohrabac: S + 'kuchyne-pohrabac.png', ven: S + 'kuchyne-okno-ven.png', fajfka: 'assets/predmety/fajfka.png',
   krizaly: [1, 2, 3].map((i) => S + `kuchyne-krizaly-${i}.png`),
@@ -35,16 +34,17 @@ const FADE = '#2a2118';
 
 // souřadnice v pozadí 1920×1080; levé horní rohy výřezů vypisuje tools/kuchyne.py
 const BOX = { kos: { x: 352, y: 841 }, pohrabac: { x: 755, y: 663 } };
-// pózy babky a dědy: kotva = bod výřezu na podlaze (vypisuje tools/postavy.py), AT = kam na podlahu
-// babka: 1 smutně kouká do ohně, 2 kašle, 3 prosí, 4 přikládá (ruce k dvířkům), 5 spokojená
-// děda: 1 dýmka v puse, 2 kašle, 3 vyfukuje kouř a kouká nahoru, 4 se směje
-// dědovy pózy pro kocoura na hlavě: leknutí a zlost. Až budou nové pózy 5 a 6 (úprava C3 v
-// pics/podklady-kuchyne/PROMPT-postavy-lisejnik.md), přepnout na 5 a 6; do té doby 3 a 1 s třesením.
-const DEDA_STARTLE = 3, DEDA_ANGRY = 1;
-const POSE_ANCHOR = { babka: [[1, 498], [1, 478], [1, 501], [1, 408], [1, 519]], deda: [[310, 588], [320, 533], [336, 615], [311, 603]] };
-const GRANNY_AT = { x: 83, y: 975 }; // paty
-const GRANDPA_AT = { x: 1400, y: 1008 }; // pravá noha stoličky
-const POSE_FADE = 0.18;
+// babka je papírová loutka (js/babka.js), BABKA_AT = podlaha pod středem sukně v kleku; pózy:
+// 1 smutně kouká do ohně, 2 kašle, 3 prosí, 4 přikládá (ruce k dvířkům), 5 spokojená. Pusu a dlaně
+// (kam přiletí roští) vrací kreslení do st.babka; GRANNY_MOUTH a GRANNY_HANDS níž jsou jen záloha.
+// děda je loutka (grandpaMode); číslo jeho stavu pro testy: 1 sedí (s fajfkou kouří), 2 kašle,
+// 3 vyfukuje kouř a kouká nahoru, 5 leknutí (kocour na hlavě), 6 zlost
+const DEDA_STARTLE = 5, DEDA_ANGRY = 6;
+const BABKA_AT = { x: 215, y: 975 };
+// děda je papírová loutka (js/deda.js): DEDA_AT = podlaha pod středem stoličky. Body na loutce (pusa,
+// temeno pro kocoura, fajfka a její víčko) vrací kreslení do st.deda; konstanty níž jsou jen záloha.
+const DEDA_AT = { x: 1350, y: 1008 };
+const DEDA_PIPE_S = 0.85; // fajfka v ruce i na zemi stejně velká
 const FY = 1045; // chodidla na podlaze
 const HERO_S = 1.9; // Daniel 2026-11-13: hrdina větší (dřív 1.3)
 // s pohrabáčem k oknu: ruka s háčkem má být WIN_HAND px nad podlahou (jako dřív při HERO_S 1.3 a výskoku 88).
@@ -134,7 +134,7 @@ const init = () => ({
   cough: { granny: -9, grandpa: -9, hero: -9 }, nextCough: 1.2, coughWho: 0,
   lean: 0, reach: false, angryT: -9, startleT: -9, carry: false, pile: true, twigs: null,
   pipe: { state: 'hand', x: PIPE_HAND.x, y: PIPE_HAND.y, rot: 0.3 }, // hand | fall | floor | taken
-  pose: { babka: { k: 1, prev: 1, t: -9 }, deda: { k: 1, prev: 1, t: -9 } },
+  pose: { babka: { k: 1 }, deda: { k: 1 } }, // čísla póz pro testy
   fire: 0, boil: 0, smell: 0, lidT: -9,
   strings: STRINGS.map(() => ({ bumpT: -9 })),
   cat: { x: CAT_BED.x, y: CAT_BED.y, pose: 'sleep', facing: -1, phase: 0, rot: 0, earT: -9, purrT: -9 },
@@ -159,7 +159,11 @@ async function heroGo(x, speed = 320) {
   h.walking = false;
 }
 
-const hop = (height, dur = 0.3) => K.tween(dur, (t) => { st.hero.hopY = Math.sin(t * Math.PI) * height; });
+// voice: výskok (k oknu, k polici) řekne „hop“, malé poskočení ne; dva skoky po sobě jen jednou
+const hop = (height, dur = 0.3, voice = height >= 30) => {
+  if (voice) K.sound(K.HLAS.hop, { volume: 0.8 });
+  return K.tween(dur, (t) => { st.hero.hopY = Math.sin(t * Math.PI) * height; });
+};
 
 async function catGo(pts, speed) {
   const c = st.cat;
@@ -199,7 +203,7 @@ function cough(who) {
   st.cough[who] = K.time;
   K.sound(K.KASEL, { volume: 0.5, rate: who === 'granny' ? 1.15 : who === 'hero' ? 1.4 : 0.85 });
   const heroMouth = () => K.heroMouth(st.hero.x, FY - st.hero.hopY, HERO_S, heroOpts()) || { x: st.hero.x + 18 * st.hero.facing, y: FY - 175 };
-  const m = who === 'granny' ? GRANNY_MOUTH : who === 'grandpa' ? GRANDPA_COUGH : heroMouth();
+  const m = who === 'granny' ? (st.babka && st.babka.mouth) || GRANNY_MOUTH : who === 'grandpa' ? (st.deda && st.deda.mouth) || GRANDPA_COUGH : heroMouth();
   const dir = who === 'grandpa' ? -1 : who === 'granny' ? 1 : st.hero.facing;
   for (let i = 0; i < 4; i++) puffAt(m.x, m.y, dir * K.rand(40, 90), -K.rand(10, 40), 0.8);
 }
@@ -213,7 +217,7 @@ async function windowTry() {
   h.reach = true;
   if (st.poker !== 'hero') {
     await hop(40, 0.36);
-    await hop(30, 0.32);
+    await hop(30, 0.32, false);
     h.reach = false; // nedosáhne (bez nápovědy, Daniel 2026-11-10: pohrabáč musí hráč najít sám)
     K.busy--;
     return;
@@ -221,8 +225,9 @@ async function windowTry() {
   st.phase = 'air';
   const R = windowReach(), WIN_HOP = R.hop;
   h.reachA = R.reachA;
+  if (WIN_HOP >= 30) K.sound(K.HLAS.hop, { volume: 0.8 }); // výskok k oknu (vlastní pohyb, ne hop())
   await K.tween(0.3, (t) => { h.hopY = Math.sin((t * Math.PI) / 2) * WIN_HOP; }); // háček zachytí rám
-  K.sound('vrzani', { volume: 0.5 });
+  K.sound('okno', { volume: 0.5 }); // vrzne okno (Daniel 2026-11-23)
   const x0 = h.x;
   await K.tween(1.1, (t) => {
     const e = K.ease(t);
@@ -261,7 +266,8 @@ function grandpaHint() {
   if (st.cloud && K.time - st.cloud.t0 < CLOUD_LEN) return;
   st.cloud = { t0: K.time };
   K.sound(K.DYMKA);
-  for (let i = 0; i < 8; i++) puffAt(MOUTH.x - 14, MOUTH.y + 4, -K.rand(60, 120), -K.rand(30, 80), 0.9);
+  const m = (st.deda && st.deda.mouth) || { x: MOUTH.x - 14, y: MOUTH.y + 4 };
+  for (let i = 0; i < 8; i++) puffAt(m.x, m.y, -K.rand(60, 120), -K.rand(30, 80), 0.9);
 }
 
 function puffAt(x, y, vx, vy, life = 1.8) {
@@ -311,9 +317,9 @@ async function fetchTwigs() {
   const from = { x: st.hero.x - 10, y: FY - 250 };
   st.twigs = { x: from.x, y: from.y, s: 1, rot: -Math.PI / 2, a: 1 };
   await K.tween(0.6, (t) => {
-    const e = K.ease(t);
-    st.twigs.x = K.lerp(from.x, GRANNY_HANDS.x, e);
-    st.twigs.y = K.lerp(from.y, GRANNY_HANDS.y, e) - Math.sin(t * Math.PI) * 50;
+    const e = K.ease(t), gh = (st.babka && st.babka.hands) || GRANNY_HANDS; // do dlaní loutky
+    st.twigs.x = K.lerp(from.x, gh.x, e);
+    st.twigs.y = K.lerp(from.y, gh.y, e) - Math.sin(t * Math.PI) * 50;
     st.twigs.rot = K.lerp(-Math.PI / 2, -0.25, e);
     st.twigs.s = K.lerp(1, 0.8, e);
   });
@@ -370,11 +376,14 @@ async function catWake() {
   // kocour se vrátí po polici a skočí dědovi na hlavu; děda se lekne a upustí fajfku (Daniel 2026-11-13)
   c.pose = 'walk';
   await catGo([[CAT_SHELF, SHELF_Y]], 160);
-  await catLeap(CAT_HEAD.x, CAT_HEAD.y, 0.65, 60);
+  const head = dedaHead();
+  await catLeap(head.x, head.y, 0.65, 60);
   c.pose = 'sit';
   c.facing = -1;
+  c.onHead = true; // jede s dědovou hlavou (update)
   await grandpaStartle();
   await K.after(0.7);
+  c.onHead = false;
   await catLeap(CAT_FLOOR.x, CAT_FLOOR.y, 0.85, 60);
   K.sound(K.TUK, { volume: 0.4 });
   c.pose = 'sit';
@@ -386,18 +395,19 @@ async function catWake() {
   st.phase = 'seeds';
 }
 
-// děda vyskočí leknutím (póza 3, kouká nahoru na kocoura), fajfka mu vypadne z ruky a skutálí se na zem
+// děda vyskočí leknutím (kouká nahoru na kocoura), fajfka mu vypadne z ruky a skutálí se na zem
 async function grandpaStartle() {
   st.startleT = K.time;
   K.sound('lek', { volume: 0.6 });
   K.sound('mnau', { volume: 0.5, rate: 1.3 });
-  const c = st.cat, p = st.pipe;
-  K.tween(0.45, (t) => { c.y = CAT_HEAD.y - Math.sin(t * Math.PI) * 40; }); // kocour s ním nadskočí
+  const p = st.pipe; // kocour nadskočí s jeho hlavou sám (st.cat.onHead)
+  // fajfka vypadne z ruky loutky tam, kde ji právě držel (bez loutky z PIPE_HAND)
+  const p0 = (st.deda && st.deda.pipe) || { x: PIPE_HAND.x, y: PIPE_HAND.y, rot: 0.3 };
   p.state = 'fall';
   await K.tween(0.75, (t) => {
-    p.x = K.lerp(PIPE_HAND.x, PIPE_FLOOR.x, t);
-    p.y = K.lerp(PIPE_HAND.y, PIPE_FLOOR.y, t * t) - Math.sin(t * Math.PI) * 70;
-    p.rot = K.lerp(0.3, PIPE_FLOOR.rot - Math.PI * 2, t); // jednou se protočí
+    p.x = K.lerp(p0.x, PIPE_FLOOR.x, t);
+    p.y = K.lerp(p0.y, PIPE_FLOOR.y, t * t) - Math.sin(t * Math.PI) * 70;
+    p.rot = K.lerp(p0.rot, PIPE_FLOOR.rot - Math.PI * 2, t); // jednou se protočí
   });
   p.rot = PIPE_FLOOR.rot;
   K.sound(K.TUK, { volume: 0.5, rate: 0.8 });
@@ -585,7 +595,7 @@ function drawGlow(ctx) {
   }
 }
 
-// babka a děda: pózy podle toho, co se děje, mezi pózami krátké prolnutí; dýchají a při kašli sebou škubnou
+// babka a děda (loutky): pózy podle toho, co se děje; přechody mezi nimi dělá loutka sama (js/loutky.js)
 const coughK = (t0) => { const t = K.time - t0; return t < 0.9 ? Math.sin(t * 24) * (1 - t / 0.9) : 0; };
 const COUGH_POSE = 1.2; // jak dlouho po zakašlání drží pózu s rukou u úst
 function grannyPose() {
@@ -594,49 +604,30 @@ function grannyPose() {
   if (st.grannyIcon && K.time < st.grannyIcon.until) return 3;
   return st.fire > 0 ? 5 : 1;
 }
-function grandpaPose() {
-  if (K.time - st.startleT < 1.6) return DEDA_STARTLE; // leknutí: kouká nahoru na kocoura
-  if (K.time - st.cough.grandpa < COUGH_POSE) return 2;
-  if (st.cloud && K.time - st.cloud.t0 < CLOUD_LEN) return 3;
-  if (K.time - st.angryT < 3.2) return DEDA_ANGRY;
-  return 1;
-}
-function setPose(who, k) {
-  const p = st.pose[who];
-  if (k !== p.k) { p.prev = p.k; p.k = k; p.t = K.time; }
-}
-function drawFigure(ctx, who, at, dx, jerk, breath) {
-  const p = st.pose[who];
-  const u = K.clamp((K.time - p.t) / POSE_FADE);
-  const one = (pose, alpha) => {
-    const img = K.img(IMG[who][pose - 1]);
-    if (!K.ready(img) || alpha <= 0) return;
-    const [ax, ay] = POSE_ANCHOR[who][pose - 1];
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(img, at.x - ax + dx, at.y - ay + jerk);
-  };
-  ctx.save();
-  // dech: lehce se natahuje nahoru od podlahy
-  ctx.translate(at.x, at.y);
-  ctx.scale(1, 1 + breath);
-  ctx.translate(-at.x, -at.y);
-  if (u < 1) one(p.prev, 1 - u);
-  one(p.k, u < 1 ? Math.min(1, u * 1.5) : 1);
-  ctx.restore();
-}
+// číslo dědova stavu pro testy (render_game_to_text)
+const DEDA_NUM = { kouri: 1, bez: 1, kasel: 2, fouka: 3, lek: DEDA_STARTLE, zlost: DEDA_ANGRY };
+// babka jako loutka (js/babka.js): póza podle grannyPose, předklon ke dvířkům st.lean
+const grannyOpts = () => ({ pose: grannyPose(), lean: st.lean, facing: 1 });
 function drawGranny(ctx) {
-  const k = coughK(st.cough.granny);
-  drawFigure(ctx, 'babka', GRANNY_AT, 12 * st.lean, Math.abs(k) * 3, Math.sin(K.time * 1.7) * 0.006);
+  st.babka = K.drawBabka(ctx, BABKA_AT.x, BABKA_AT.y, 1, grannyOpts()) || st.babka;
 }
+// děda jako loutka: co zrovna dělá; fajfku má v ruce, jen dokud mu nespadne (pak už nekouří)
+function grandpaMode() {
+  if (K.time - st.startleT < 1.6) return 'lek'; // nadskočí, ruce nahoru, kouká na kocoura
+  if (K.time - st.cough.grandpa < COUGH_POSE) return 'kasel';
+  if (st.cloud && K.time - st.cloud.t0 < CLOUD_LEN) return 'fouka';
+  if (K.time - st.angryT < 3.2) return 'zlost'; // hrozí pěstí
+  return st.pipe.state === 'hand' ? 'kouri' : 'bez';
+}
+const grandpaOpts = () => ({ mode: grandpaMode(), pipe: st.pipe.state === 'hand', facing: -1 });
 function drawGrandpa(ctx) {
-  const k = coughK(st.cough.grandpa), sT = K.time - st.startleT, aT = K.time - st.angryT;
-  const jump = sT < 0.45 ? -Math.sin((sT / 0.45) * Math.PI) * 40 : 0; // leknutím nadskočí
-  const shake = aT < 1.4 ? Math.sin(K.time * 32) * 4 * (1 - aT / 1.4) : 0; // vztekle se otřese
-  drawFigure(ctx, 'deda', GRANDPA_AT, shake, Math.abs(k) * 3 + jump, Math.sin(K.time * 1.3 + 1) * 0.006);
+  st.deda = K.drawDeda(ctx, DEDA_AT.x, DEDA_AT.y, 1, grandpaOpts()) || st.deda;
 }
+// kam skočí kocour: na temeno loutky (bez loutky CAT_HEAD)
+const dedaHead = () => (st.deda ? { x: st.deda.top.x, y: st.deda.top.y + 12 } : CAT_HEAD);
 function drawPipe(ctx) {
   const p = st.pipe;
-  if (p.state === 'fall' || p.state === 'floor') drawImgAt(ctx, IMG.fajfka, p.x, p.y, 1, p.rot);
+  if (p.state === 'fall' || p.state === 'floor') drawImgAt(ctx, IMG.fajfka, p.x, p.y, DEDA_PIPE_S, p.rot);
 }
 
 function drawSteam(ctx) {
@@ -1006,17 +997,23 @@ const busyPhase = () => st.phase === 'intro' || st.phase === 'air' || st.phase =
 
 const scene = {
   get st() { return st; }, // pro testy
+  // hudba: zakouřená chalupa, po rozhoření ohně veselá (Daniel 2026-11-22)
+  music: () => (st && st.fire > 0 ? 'hudba-kantorska-ohen' : 'hudba-kantorska-kour'),
   enter() {
     st = init();
-    K.preloadSounds([K.OHEN, 'predeni', 'mnau', K.DYMKA, 'hrnek', 'semena', K.POKLICE, K.TUK, K.KASEL, 'vrzani']);
+    K.preloadSounds([K.OHEN, 'predeni', 'mnau', K.DYMKA, 'hrnek', 'semena', K.POKLICE, K.TUK, K.HLAS.hop, K.KASEL, 'okno']);
     K.hero.visible = true;
     K.fade.a = 1;
     K.fadeTo(0, 0.7, '#efe6d2');
     intro();
   },
   update(dt) {
-    setPose('babka', grannyPose());
-    setPose('deda', grandpaPose());
+    st.pose.babka.k = grannyPose();
+    st.pose.deda.k = DEDA_NUM[grandpaMode()];
+    st.deda = K.drawDeda(null, DEDA_AT.x, DEDA_AT.y, 1, grandpaOpts()) || st.deda; // body loutky i bez kreslení
+    st.babka = K.drawBabka(null, BABKA_AT.x, BABKA_AT.y, 1, grannyOpts()) || st.babka;
+    // kocour sedí dědovi na hlavě a jede s ní (děda se zakloní a nadskočí)
+    if (st.cat.onHead) { const h = dedaHead(); st.cat.x = h.x; st.cat.y = h.y; }
     // v kouři babka s dědou střídavě kašlou; z dvířek čadí
     if (st.smoke > 0.35 && K.time > st.nextCough) {
       st.nextCough = K.time + K.rand(1.6, 3);
@@ -1045,10 +1042,11 @@ const scene = {
       st.nextLid = K.time + K.rand(2.6, 4.2);
       K.sound(K.POKLICE, { volume: 0.25 });
     }
-    // děda (až je čistý vzduch) občas bafne z dýmky
-    if (st.smoke < 0.3 && K.time > st.nextPuff && st.pose.deda.k === 1) {
+    // děda (až je čistý vzduch) občas bafne z dýmky; když mu fajfka spadla, už ne
+    if (st.smoke < 0.3 && K.time > st.nextPuff && grandpaMode() === 'kouri') {
       st.nextPuff = K.time + K.rand(4, 7);
-      for (let i = 0; i < 3; i++) puffAt(PIPE.x, PIPE.y - 6, -K.rand(10, 30), -K.rand(30, 50));
+      const b = (st.deda && st.deda.bowl) || { x: PIPE.x, y: PIPE.y - 6 }; // z víčka fajfky
+      for (let i = 0; i < 3; i++) puffAt(b.x, b.y, -K.rand(10, 30), -K.rand(30, 50));
     }
     for (const p of st.puffs) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.98; p.vy *= 0.985; }
     st.puffs = st.puffs.filter((p) => K.time - p.t0 < p.life);
@@ -1117,7 +1115,7 @@ const scene = {
       ctx.lineWidth = 2;
       for (const P of [GRANNY, GRANDPA]) { ctx.beginPath(); P.forEach(({ x, y }, i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); ctx.stroke(); }
       for (const R of [BUNDLE_HIT, SHELF_HIT, WIN_HIT, POKER_HIT]) ctx.strokeRect(R.x, R.y, R.w, R.h);
-      for (const q of [MOUTH, GRANDPA_COUGH, PIPE, GRANNY_MOUTH, GRANNY_HANDS, GRANNY_AT, GRANDPA_AT]) ctx.strokeRect(q.x - 6, q.y - 6, 12, 12);
+      for (const q of [MOUTH, GRANDPA_COUGH, PIPE, GRANNY_MOUTH, GRANNY_HANDS, BABKA_AT, DEDA_AT]) ctx.strokeRect(q.x - 6, q.y - 6, 12, 12);
       const B = BASKET_HIT;
       ctx.beginPath(); ctx.ellipse(B.x, B.y, B.rx, B.ry, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath(); ctx.ellipse(BASKET.x, BASKET.y, BASKET_FRONT.rx, BASKET_FRONT.ry, 0, 0, Math.PI * 2); ctx.stroke();

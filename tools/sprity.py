@@ -117,6 +117,53 @@ SETS = {
         'far': ['stehno', 'lytko', 'chodidlo'],
         'ref': ('lytko', 'h', 159),
     },
+    # děda v kuchyni jako papírová loutka (Daniel 2026-11-22, prompty D1–D3 v
+    # pics/podklady-kuchyne/PROMPT-postavy-lisejnik.md). Díly koukají doleva → zrcadlí se, ať je kostra
+    # stejná jako u hrdiny (kouká doprava); hra ho kreslí otočeného. Fajfku v dílech nemá, kreslí ji hra.
+    # D2: stolička, trup, stehno, lýtko s botou, dvě paže (rukáv vyhrnutý nad holé předloktí), ruka, pěst,
+    # ruka na stopku; fix_d2 rozdělí první paži v manžetě na paži a předloktí, druhá se nepoužije.
+    'dedaD2': {
+        'src': '../podklady-kuchyne/deda-D2.png', 'grid': 0, 'fix': 'fix_d2',
+        'poses': ['stolicka', 'trup', 'stehno', 'bota', 'paze', 'predlokti', 'ruka', 'pest', 'drzi'],
+        'right': [True] * 9,
+        'mirror': ['stolicka', 'trup', 'stehno', 'bota', 'paze', 'predlokti', 'ruka', 'pest', 'drzi'],
+        'center': ['stolicka', 'trup', 'stehno', 'bota', 'paze', 'predlokti', 'ruka', 'pest', 'drzi'],
+        'scale': {'stolicka': 0.72, 'trup': 0.67, 'stehno': 0.6, 'bota': 0.68, 'paze': 0.52, 'predlokti': (0.52, 0.7),
+                  'ruka': 0.4, 'pest': 0.42, 'drzi': 0.42},
+        'far': ['stehno', 'bota', 'paze', 'predlokti', 'ruka', 'pest', 'drzi'],
+        'ref': ('trup', 'h', 246),
+    },
+    # babka v kuchyni jako papírová loutka (Daniel 2026-11-23, prompty E1–E3): klečí, kouká doprava.
+    # E2: spodek v kleku (jeden díl), trup, dvě celé paže (fix_e2 první rozdělí v lokti), otevřená ruka
+    # (prsty nahoru), dlaň nahoru, ruka s kapesníkem. Ruce se neotáčí: kostra je natočí podle kloubů.
+    'babkaE2': {
+        'src': '../podklady-kuchyne/babka-E2.jpg', 'grid': 0, 'fix': 'fix_e2',
+        'poses': ['spodek', 'trup', 'paze', 'predlokti', 'ruka', 'dlan', 'kapesnik'],
+        'right': [True] * 7,
+        'center': ['spodek', 'trup', 'paze', 'predlokti', 'ruka', 'dlan', 'kapesnik'],
+        'scale': {'spodek': 0.7, 'trup': 0.7, 'paze': 0.62, 'predlokti': 0.62, 'ruka': 0.41, 'dlan': 0.41, 'kapesnik': 0.41},
+        'far': ['paze', 'predlokti', 'ruka', 'dlan', 'kapesnik'],
+        'ref': ('trup', 'h', 204),
+    },
+    # E3: čtyři hlavy se šátkem z opravdové látky: smutná, kašle, prosí (ustaraná), spokojená
+    'babkaE3': {
+        'src': '../podklady-kuchyne/babka-E3.jpg', 'grid': 0,
+        'poses': ['hlavaSmutna', 'hlavaKasel', 'hlavaProsi', 'hlavaSpokojena'],
+        'right': [True] * 4,
+        'center': ['hlavaSmutna', 'hlavaKasel', 'hlavaProsi', 'hlavaSpokojena'],
+        'scale': {'hlavaSmutna': 0.47, 'hlavaKasel': 0.47, 'hlavaProsi': 0.47, 'hlavaSpokojena': 0.47},
+        'ref': ('hlavaSmutna', 'h', 190),
+    },
+    # D3: pět hlav s lišejníkem: klidná (zavřené oči), kašle, kouká nahoru a fouká, leknutí, zlost
+    'dedaD3': {
+        'src': '../podklady-kuchyne/deda-D3.jpg', 'grid': 0,
+        'poses': ['hlavaKlid', 'hlavaKasel', 'hlavaFouka', 'hlavaLek', 'hlavaZlost'],
+        'right': [True] * 5,
+        'mirror': ['hlavaKlid', 'hlavaKasel', 'hlavaFouka', 'hlavaLek', 'hlavaZlost'],
+        'center': ['hlavaKlid', 'hlavaKasel', 'hlavaFouka', 'hlavaLek', 'hlavaZlost'],
+        'scale': {'hlavaKlid': 0.55, 'hlavaKasel': 0.55, 'hlavaFouka': 0.55, 'hlavaLek': 0.55, 'hlavaZlost': 0.55},
+        'ref': ('hlavaKlid', 'h', 195),
+    },
 }
 
 
@@ -159,6 +206,56 @@ def trim(rgba):
     a = rgba[..., 3] > 8
     ys, xs = np.nonzero(a)
     return rgba[ys.min():ys.max() + 1, xs.min():xs.max() + 1].copy()
+
+
+def fix_d2(poses):
+    """D2: 0 stolička, 1 trup, 2 stehno, 3 bota, 4 a 5 paže (rukáv, manžeta, holé předloktí), 6 ruka, 7 pěst,
+    8 ruka na stopku. První paže se rozdělí v manžetě: nahoře paže i s manžetou, dole holé předloktí
+    s kulatým horním koncem (schová se pod manžetu). Druhá paže se nepoužije."""
+    stool, torso, thigh, boot, arm, _arm2, hand, fist, grip = poses
+    a = arm[..., 3] > 128
+    widths = a.sum(1)
+    h = arm.shape[0]
+    # manžeta = nejširší řádky ve střední části paže; její spodek dělí paži a předloktí
+    mid = np.arange(int(h * 0.35), int(h * 0.85))
+    cuff = mid[widths[mid] >= widths[mid].max() * 0.92]
+    cut = int(cuff.max()) - 4
+    upper = arm.copy()
+    upper[cut + 1:, :, 3] = 0
+    top = int(cuff.min()) + (cut - int(cuff.min())) // 2  # předloktí začíná v půlce manžety
+    fore = arm[top:].copy()
+    fa = fore[..., 3] > 128
+    xs = np.nonzero(fa[-int(fa.shape[0] * 0.4):].any(0))[0]  # holá část: šířka a střed
+    cx, r = (xs.min() + xs.max()) / 2, (xs.max() - xs.min()) / 2
+    yy, xx = np.mgrid[0:fore.shape[0], 0:fore.shape[1]]
+    fore[..., 3][(yy < r) & ((xx - cx) ** 2 + (yy - r) ** 2 > r * r)] = 0
+    fore[..., 3][(yy >= r) & (np.abs(xx - cx) > r)] = 0  # zbytek manžety po stranách pryč
+    return [stool, torso, thigh, boot, trim(upper), trim(fore), hand, fist, grip]
+
+
+def fix_e2(poses):
+    """E2: 0 spodek, 1 trup, 2 a 3 celá paže s loktem, 4 ruka, 5 dlaň, 6 kapesník. První paže se rozdělí
+    v lokti (nakreslený šev v půlce): paže nahoře se zakulaceným spodkem, předloktí od švu dolů se
+    zakulaceným vrškem (zajede pod paži). Druhá paže se nepoužije."""
+    lower, torso, arm, _arm2, hand, palm, hanky = poses
+    h, w = arm.shape[:2]
+    a = arm[..., 3] > 128
+    yy, xx = np.mgrid[0:h, 0:w]
+
+    def row_span(y):
+        xs = np.nonzero(a[y])[0]
+        return (xs.min() + xs.max()) / 2, (xs.max() - xs.min()) / 2
+
+    cut, top = int(h * 0.56), int(h * 0.5)
+    upper = arm.copy()
+    upper[cut:, :, 3] = 0
+    cx, r = row_span(cut - 1)
+    upper[..., 3][(yy < cut) & (yy > cut - r) & ((xx - cx) ** 2 + (yy - (cut - r)) ** 2 > r * r)] = 0
+    fore = arm.copy()
+    fore[:top, :, 3] = 0
+    cx, r = row_span(top)
+    fore[..., 3][(yy >= top) & (yy < top + r) & ((xx - cx) ** 2 + (yy - (top + r)) ** 2 > r * r)] = 0
+    return [lower, torso, trim(upper), trim(fore), hand, palm, hanky]
 
 
 def darken(rgba, t):
@@ -268,10 +365,11 @@ def main():
         for pose, right, rgba in items:
             if pose in cfg.get('drop', []):
                 continue
-            if pose in cfg.get('mirror', []):
+            if pose in cfg.get('mirror', []) or (pose.endswith('2') and pose[:-1] in cfg.get('far', []) and pose[:-1] in cfg.get('mirror', [])):
                 rgba = rgba[:, ::-1].copy()
             kp = cfg.get('scale', {}).get(pose.rstrip('2'), k)
-            rgba = cv2.resize(rgba, (round(rgba.shape[1] * kp), round(rgba.shape[0] * kp)), interpolation=cv2.INTER_AREA)
+            kx, ky = kp if isinstance(kp, tuple) else (kp, kp)  # (šířka, výška): předloktí dědy se natáhne
+            rgba = cv2.resize(rgba, (round(rgba.shape[1] * kx), round(rgba.shape[0] * ky)), interpolation=cv2.INTER_AREA)
             src = f'assets/postavy/{name}-{pose}.png'
             save(ROOT / src, rgba)
             if pose in cfg.get('center', []) or pose.rstrip('2') in cfg.get('center', []):

@@ -227,6 +227,8 @@ K.sound = (name, o = {}) => {
 // načíst zvuky předem (třeba při vstupu do scény), ať první zahrání nepřijde pozdě
 K.preloadSounds = (names) => { for (const n of names.flat()) getSound(n); };
 K.soundNames = () => Object.keys(sounds); // pro směšovač: co hra už chtěla
+// délka načteného zvuku v s (null, dokud se načítá nebo chybí): třeba jak dlouho má strom hýbat pusou
+K.soundLength = (name) => { const s = sounds[name]; return s ? s.duration || null : null; };
 // hlasitost jednotlivých souborů (1 = beze změny), ladí se ve směšovači (klávesa M, js/mix.js)
 // Daniel 2026-11-22 ze směšovače
 K.SOUND_GAIN = { trknuti: 0.95 };
@@ -236,7 +238,21 @@ K.OHEN = ['ohen-1', 'ohen-2'];
 K.TUK = ['tuk-1', 'tuk-2'];
 K.DYMKA = ['dymka-1', 'dymka-2'];
 K.POKLICE = ['poklice-1', 'poklice-2', 'poklice-3'];
+K.KARTA = ['karta-1', 'karta-2', 'karta-3', 'karta-4']; // lusknutí karty (vrchol)
+K.VRZANI = ['vrzani-1', 'vrzani-2', 'vrzani-3', 'vrzani-4']; // strom v lese se protahuje
 K.TRIANGL = ['triangl-1', 'triangl-2']; // cinknutí ledu: kapka, rampouch (les, vrchol)
+// hlas hrdiny (Andrea Kubisová): pokusy hlas-<jméno>-1…N, počty podle VOICE v tools/zvuky.py
+const takes = (name, n) => Array.from({ length: n }, (_, i) => `hlas-${name}-${i + 1}`);
+K.HLAS = {
+  hop: takes('hop', 9), // výskok (kuchyně k oknu a k polici, les přes kořeny)
+  jeste: takes('jeste', 6), // „ještě jednu“ (vrchol, další karta)
+  staci: takes('staci', 7), // „stačí“
+  vitezstvi: takes('vitezstvi', 6), // porazí tetřívka
+  snih: takes('snih', 3), // odpoví stromu, co potřebuje
+  smich: takes('smich', 4), // zažene žábu dýmem (studánka)
+  strom: takes('strom-rec', 7), // strom mluví nad herbářem (les)
+  brr: takes('brr', 3), // zima u ledového potoka (les), po cvrknutí žáby (studánka)
+};
 // smyčka na pozadí (stádo): K.loop(jméno, hlasitost) se volá každý snímek, změna hlasitosti se plynule
 // dotáhne (~1,5 s), takže mezi scénami se zvuk sám zesílí / ztiší. Smyčka jednou rozběhnutá běží dál,
 // při nule jen potichu. mp3 má na krajích LOOP_PAD s přesahu (tools/zvuky.py), opakuje se úsek mezi nimi.
@@ -274,18 +290,93 @@ K.loop = (name, level, o = {}) => {
   s.volume = K.clamp(l.level);
   if (l.level > 0.002 && s.paused) s.play().catch(() => {});
 };
-// podkresová hudba (Daniel 2026-11-22) hraje ve všech scénách; ladí se ?hudba=0.5. Zvuky hry musí být slyšet
-// přes ni: když zazní zvuk s hlasitostí aspoň DUCK_FROM, hudba se na jeho délku rychle ztiší na DUCK a pak se
-// pomalu vrátí. Kroky a tiché zvuky v pozadí (poklice) ji nechají být. Vše se ladí ve směšovači (klávesa M).
+// Podkresová hudba (Jan Odvárka, Daniel 2026-11-22); ladí se ?hudba=0.5. Hlavní skladba „hudba“ hraje na louce,
+// v lese a ve finále; scéna si může říct o svou přes scene.music() (Kantorská, muka, vrchol mají dvě podle
+// toho, co se v nich stalo). Při změně se skladby prolnou, odložená se po chvíli zastaví a příště pokračuje,
+// kde skončila. Zvuky hry musí být slyšet přes ni: když zazní zvuk s hlasitostí aspoň DUCK_FROM, hudba se na
+// jeho délku rychle ztiší na DUCK a pak se pomalu vrátí. Kroky a tiché zvuky v pozadí (poklice) ji nechají
+// být. Vše se ladí ve směšovači (klávesa M); K.SOUND_GAIN[skladba] = hlasitost jedné skladby.
 // hodnoty Daniel 2026-11-22 ze směšovače
 K.MUSIC_VOLUME = +(K.params.get('hudba') ?? 0.12);
 K.DUCK = 0.35;
 K.DUCK_FROM = 0.28;
 let duckUntil = 0;
-const music = () => {
-  const ducked = actx && actx.currentTime < duckUntil;
-  K.loop('hudba', K.MUSIC_VOLUME * (ducked ? K.DUCK : 1), { tau: ducked ? 0.05 : 0.6, start: LOOP_PAD });
+// skladby hrají přes <audio> napojené do Web Audio: dekódované celé by zabraly desítky MB každá.
+// Smyčka bez mezery (Daniel 2026-11-23): <audio loop> by na švu přehrál ticho, které mp3 kodér přidá na kraje
+// (cvaknutí po každém kole). Proto má skladba dva přehrávače: MUSIC_XF s před koncem se na druhém spustí
+// začátek (bez úvodního ticha MUSIC_SKIP) a oba se prolnou. Konec skladby už do začátku navazuje
+// (tools/zvuky.py music()), takže krátké prolnutí není slyšet. Bez Web Audio (file://) jen <audio loop>.
+const MUSIC_XF = 0.3;
+const MUSIC_SKIP = 0.03;
+const XF_IN = new Float32Array(32).map((_, i) => Math.sin((i / 31) * Math.PI / 2)); // stejný výkon při prolnutí
+const XF_OUT = XF_IN.slice().reverse();
+const tracks = {};
+const track = (name) => {
+  if (!tracks[name]) {
+    const mk = () => new Audio(`assets/zvuky/${name}.mp3`);
+    const t = { els: [mk()], xg: [], cur: 0, gain: null, level: 0, offT: null, get el() { return this.els[this.cur]; } };
+    if (actx) {
+      t.els.push(mk());
+      t.gain = actx.createGain();
+      t.gain.gain.value = 0;
+      t.gain.connect(actx.destination);
+      t.els.forEach((el, i) => {
+        const g = actx.createGain();
+        g.gain.value = i === 0 ? 1 : 0;
+        actx.createMediaElementSource(el).connect(g).connect(t.gain);
+        t.xg.push(g);
+      });
+    } else {
+      t.el.loop = true;
+      t.el.volume = 0;
+    }
+    // ?sev: skladba začne 6 s před koncem, ať je hned slyšet, jak navazuje na začátek
+    if (K.params.has('sev')) t.el.addEventListener('loadedmetadata', () => { t.els[0].currentTime = Math.max(0, t.els[0].duration - 6); }, { once: true });
+    tracks[name] = t;
+  }
+  return tracks[name];
 };
+// těsně před koncem hrající kopie spustí druhou od začátku a prolne je
+const musicSeam = (t) => {
+  const a = t.el, d = a.duration;
+  if (!t.gain || a.paused || !isFinite(d) || a.currentTime < d - MUSIC_XF - 0.04) return;
+  const n = 1 - t.cur, b = t.els[n], now = actx.currentTime;
+  b.currentTime = MUSIC_SKIP;
+  b.play().catch(() => {});
+  for (const [g, curve] of [[t.xg[t.cur], XF_OUT], [t.xg[n], XF_IN]]) {
+    g.gain.cancelScheduledValues(now);
+    g.gain.setValueCurveAtTime(curve, now, MUSIC_XF);
+  }
+  t.cur = n; // stará dohraje do konce a sama se zastaví (bez loop)
+};
+K.musicName = () => (K.scene && K.scene.music && K.scene.music()) || 'hudba';
+const music = () => {
+  if (K.muted) return;
+  if (actx ? actx.state !== 'running' : !navigator.userActivation?.hasBeenActive) return; // až po prvním kliku
+  const want = K.musicName();
+  const ducked = actx && actx.currentTime < duckUntil;
+  track(want);
+  for (const [name, t] of Object.entries(tracks)) {
+    const on = name === want;
+    const level = on ? K.MUSIC_VOLUME * (K.SOUND_GAIN[name] ?? 1) * (ducked ? K.DUCK : 1) : 0;
+    if (Math.abs(level - t.level) > 0.002) {
+      // pod zvuk rychle, zpátky a do nové skladby pomalu, odložená doznívá
+      if (t.gain) t.gain.gain.setTargetAtTime(level, actx.currentTime, on && ducked ? 0.05 : on ? 0.6 : 0.9);
+      t.level = level;
+    }
+    if (!t.gain) t.el.volume = K.clamp(t.el.volume + (level - t.el.volume) * 0.03);
+    if (on) {
+      t.offT = null;
+      if (t.el.paused) t.el.play().catch(() => {});
+      musicSeam(t);
+    } else if (t.els.some((el) => !el.paused)) {
+      t.offT ??= K.time;
+      if (K.time - t.offT > 5) for (const el of t.els) el.pause(); // dozněla
+    }
+  }
+};
+// vlek ve finále (smyčka, Daniel 2026-11-23: celou dobu, co jezdí); ladí se ve směšovači
+K.LIFT_VOLUME = 0.6;
 // stádo hraje potichu pod kroky (Daniel 2026-11-08: 0.15); ladí se ?stado=0.3
 K.FLOCK_VOLUME = +(K.params.get('stado') ?? 0.15);
 // bečení po kliku na ovci, náhodně ovce-1 / ovce-2 s trochu jinou výškou, jehně má svoje; ladí se ?ovce=0.6
@@ -386,7 +477,7 @@ K.slotPos = (i) => ({ x: 128 + i * 50, y: 32 });
 K.solve = async (id, item, from) => {
   if (K.state.solved[id]) return;
   K.state.solved[id] = true;
-  K.sound('odmena');
+  K.sound(K.HLAS.vitezstvi); // odměna: kluk má radost (Daniel 2026-11-23, stejná nahrávka jako vítězství)
   // předmět přeletí do batůžku, batůžek poskočí a předmět se objeví na svém místě
   const bag = K.BAG;
   const fly = { item, x: from.x, y: from.y, s: 70 };
@@ -552,6 +643,8 @@ K.update = (dt) => {
   if (K.scene && K.scene.update) K.scene.update(dt);
   // stádo slyšet jen tam, kde jsou ovce vidět (scene.flock vrací 0–1)
   K.loop('stado', (K.scene && K.scene.flock ? K.scene.flock() : 0) * K.FLOCK_VOLUME);
+  // vlek hučí, dokud jede (scene.lift vrací rychlost 0–1, finale.js)
+  K.loop('vlek', (K.scene && K.scene.lift ? K.scene.lift() : 0) * K.LIFT_VOLUME, { start: LOOP_PAD });
   music();
 };
 

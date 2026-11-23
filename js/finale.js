@@ -20,8 +20,8 @@ function buildTimeline() {
   // soumrak → noc, chalupy se rozsvěcejí
   add(3, { night: 1, win: 1, stars: 1, ev: 'huddle' });
   add(2);
-  // začíná sněžit, hvězdy mizí
-  add(2.5, { snow: 1, stars: 0 });
+  // začíná sněžit, hvězdy mizí; zafouká vítr jako na vrcholu, když pyl z květiny poletí jako sníh
+  add(2.5, { snow: 1, stars: 0, ev: 'snow' });
   // pod sněhem se podklad vymění za zasněžený snímek
   add(4, { frame: '2026-01-05_0800' });
   add(2.5, { lift: 1 });
@@ -481,6 +481,7 @@ function drawSnow(ctx, amount) {
 
 // ---------- události časové osy ----------
 const EVENTS = {
+  snow() { K.sound('vitr'); }, // Daniel 2026-11-23
   start() {
     K.hero.visible = false;
     for (const sh of K.sheep) sh.mode = 'graze';
@@ -510,7 +511,9 @@ const EVENTS = {
 K.scenes.finale = {
   // stádo, dokud chumel neodjede z obrazu
   flock: () => (K.sheep.some((sh) => sh.mode !== 'gone') ? 1 : 0),
+  lift: () => F.liftSpeed, // hlasitost smyčky vleku (K.update)
   enter() {
+    K.preloadSounds(['vitr', 'vlek', 'vlek-stop', 'tetrivek']);
     F.keys = buildTimeline();
     F.t = 0;
     F.i = 0;
@@ -640,7 +643,6 @@ function drawThanksLink(ctx, hover) {
 function startLift() {
   F.liftOn = true;
   F.waiting = false;
-  K.sound('vlek');
   if (F.bird.on) { F.bird.flyAt = K.time; K.sound('tetrivek'); }
   K.tween(2, (t) => { F.liftSpeed = t; });
   // ovce postupně sjedou z chumlu pod spodní okraj a odtud naskočí na vlek

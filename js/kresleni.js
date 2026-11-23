@@ -119,6 +119,7 @@ function standPose(q, tm) {
 
 const HOLD = { sF: -0.15, eF: -1.42, wF: 0.35, handF: 'pest' }; // drží věc před sebou (hrnek, karty)
 const MOUTH = { sF: -0.5, eF: -2.35, wF: -0.2, handF: 'pest', armOverHat: false }; // fajfka pod krempou
+const POINT = { sF: -1.3, eF: -0.12, wF: -0.15, handF: 'ruka' }; // ukazuje nataženou rukou před sebe k zemi
 const WET = { lean: 0.22, neck: 0.15, hF: -0.3, kF: 0.35, hB: -0.25, kB: 0.3, sF: -1.5, eF: -1.65, wF: -0.5,
   sB: -1.4, eB: -1.75, wB: -0.5, hat: 0.1, hatY: 5, handF: 'ruka', handB: 'ruka' }; // schoulený, drží si krempu
 const ST_CROUCH = { lean: 0.18, hF: -0.45, kF: 0.75, tF: 0, hB: -0.4, kB: 0.7, tB: 0, sF: 0.3, eF: -0.4, sB: 0.2, eB: -0.4 };
@@ -146,7 +147,7 @@ const CLIPS = {
 };
 
 const heroMode = (o) => (o.face === 'startle' ? 'startle' : o.face === 'wet' ? 'wet' : o.wave ? 'wave' : o.reach ? 'reach' : o.walking ? 'walk' : 'stand');
-const heroKey = (o) => [heroMode(o), o.arm || '', o.reach ? (o.reachA ?? 0.4).toFixed(3) : ''].join('|');
+const heroKey = (o) => [heroMode(o), o.arm || '', o.reach ? (o.reachA ?? 0.4).toFixed(3) : '', o.laugh ? 'L' : ''].join('|');
 // cílová póza pro volby o; tm = jak dlouho stav trvá, t = čas (obojí po krocích LOUTKA_FPS)
 function heroTarget(o, tm, t) {
   const q = { ...STAND }, mode = heroMode(o);
@@ -165,6 +166,13 @@ function heroTarget(o, tm, t) {
   } else if (mode === 'startle') startlePose(q, tm);
   if ((mode === 'walk' || mode === 'stand') && o.arm === 'hold') Object.assign(q, HOLD);
   if ((mode === 'walk' || mode === 'stand') && o.arm === 'mouth') Object.assign(q, MOUTH);
+  if (mode === 'walk' || mode === 'stand') {
+    if (o.laugh) { // chechtá se: zakloní se, trup a klobouk poskakují, druhou rukou se drží za břicho
+      const b = Math.abs(Math.sin(t * 13));
+      Object.assign(q, { lean: -0.1 + 0.05 * b, neck: -0.15 + 0.07 * b, hatY: -4 * b, hat: -0.06, sB: -0.25, eB: -1.7, wB: 0.3 });
+    }
+    if (o.arm === 'point') Object.assign(q, POINT);
+  }
   return q;
 }
 
@@ -308,7 +316,7 @@ K.heroMouth = (x, y, s, o = {}) => heroPoint(x, y, s, o, 'mouth');
 // posune zobrazenou pózu bez kreslení (ladicí scéna v testech, kde se kreslí jen poslední snímek)
 K.heroTick = (o = {}) => { if (heroParts()) heroDisplay(o); };
 // o.face: 'wet' (schoulí se a drží si klobouk; po skončení se otřepe) | 'startle' (lek: vyskočí, klobouk vyletí);
-// o.arm: 'hold' | 'mouth'; o.reach (+ o.reachA), o.wave; o.halo (výchozí ano): světlý obrys, ať je malý
+// o.arm: 'hold' | 'mouth' | 'point' (ukazuje před sebe); o.laugh (směje se); o.reach (+ o.reachA), o.wave; o.halo (výchozí ano): světlý obrys, ať je malý
 // panáček vidět na fotce louky
 function drawHeroPuppet(ctxIn, x, y, s, o) {
   const P = heroParts();
@@ -357,6 +365,8 @@ function heroHaloCanvas(size) {
   if (heroHalo.width < size || heroHalo.height < size) heroHalo.width = heroHalo.height = Math.max(size, heroHalo.width);
   return heroHalo;
 }
+// společné pro další loutky (děda v js/deda.js): kroky, chvění, přechody, nýtky
+K.LOUTKA_UTIL = { FPS: LOUTKA_FPS, JITTER, PIN_R, pinImg, ramp, smooth, env, mix };
 return drawHeroPuppet;
 })();
 

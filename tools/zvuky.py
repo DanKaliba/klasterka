@@ -13,9 +13,12 @@ variantách. Hra varianty losuje (K.sound(['kasel-1', 'kasel-2', 'kasel-3'])).
 Daniel 2026-11-20: vrznutí větve, šplouchnutí, Kyrie u božích muk (zkrácené, doznívá), chrápání berana;
 otřepání a trknutí berana, ťuknutí a dýmka ve dvou variantách (K.TUK, K.DYMKA v js/jadro.js), předení kocoura;
 lámání větviček (šustot), potok (voda a bublání), žába (tři nálady), růst květiny, vítr, poklice (tři cvaknutí, K.POKLICE);
-Daniel 2026-11-22: zurčení vody na cvrknutí žáby, mňouknutí kocoura.
-Podkresová hudba (Daniel 2026-11-22, „2. scena final (s klavesama)“) → assets/zvuky/hudba.mp3: smyčka jako
-stádo (prolnutí HUDBA_XF s), ticho na začátku pryč; hraje ve všech scénách (K.MUSIC_VOLUME v js/jadro.js).
+Daniel 2026-11-22: zurčení vody na cvrknutí žáby, mňouknutí kocoura; hlas hrdiny (VOICE) a vlek hlasem.
+Daniel 2026-11-23: beran, slunce (zvoneček), šustot (suchý keř místo větviček), karta (lusknutí), okno (vrznutí); strom: nebudme, coje, řeč (hlas-strom-rec); odměna = hlas-vitezstvi; buch (pád hrnku), vrzani (skřípání dřeva), nalévání do hrnku (NALEVANI), tetřívek (mávnutí křídel).
+Hudba (Jan Odvárka, Daniel 2026-11-22; sounds/hudba/, seznam HUDBA): hlavní (louka, les, finále) a dvě ke
+scéně Kantorská, muka a vrchol podle toho, co se ve scéně stalo (scene.music() v js/*.js). Každá je smyčka
+s prolnutím HUDBA_XF s, ticho na začátku pryč, hlasitost srovnaná na HUDBA_RMS. Hra je pouští přes <audio>
+(dlouhé skladby se nedekódují celé do paměti), proto bez přesahu PAD.
 
 Stádo i hudba jsou smyčka bez švu: posledních XF sekund se prolne do začátku. Na oba kraje se navíc přidá
 PAD sekund přesahu (konec smyčky před začátek, začátek za konec), protože mp3 kodér přidává na kraje
@@ -31,7 +34,18 @@ import numpy as np
 
 SR = 44100
 XF = 3.0   # prolnutí konce smyčky do začátku (s)
-HUDBA_XF = 2.0  # prolnutí konce hudby do začátku (s); hudba končí naplno, ne doznělá
+HUDBA_XF = 2.0  # prolnutí konce hudby do začátku (s)
+HUDBA_RMS = 0.075  # všechny skladby stejně hlasité (jako hlavní), špička nejvýš HUDBA_PEAK
+HUDBA_PEAK = 0.97
+HUDBA = {
+    'hudba': 'hlavni.mp3',  # „2. scena final (s klavesama)“
+    'hudba-kantorska-kour': 'kantorska-kour.mp3',  # „chalupa zakouřená“, než se rozhoří oheň
+    'hudba-kantorska-ohen': 'kantorska-ohen.mp3',  # „veselá s ohněm“
+    'hudba-muka-zaba': 'muka-zaba.mp3',  # „žába ještě neutekla“
+    'hudba-muka-utekla': 'muka-utekla.mp3',  # „žába už utekla“
+    'hudba-vrchol': 'vrchol.mp3',  # „tetřívek ještě před odletem“
+    'hudba-vrchol-kytka': 'vrchol-kytka.mp3',  # „tetřívek je pryč, kytka je tu“
+}
 PAD = 0.2  # přesah na krajích (s), musí sedět s LOOP_PAD v js/jadro.js
 # padající strom: úsek nahrávky (s); rána je pak 4,15 s od začátku (STROM_RANA v js/les.js)
 STROM = (0.6, 6.4)
@@ -73,6 +87,18 @@ def flock(ff, src, dst, xf=XF, bitrate='96k'):
     loop[:m] = x[:m] * np.sin(t) + x[n - m:] * np.cos(t)
     p = int(PAD * SR)
     save(ff, np.concatenate([loop[-p:], loop, loop[:p]]), dst, bitrate)
+
+
+def music(ff, src, dst):
+    x = load(ff, src, 2)
+    loud = np.flatnonzero(np.abs(x).max(axis=1) > 0.01)
+    x = x[max(0, loud[0] - int(0.01 * SR)):]
+    n, m = len(x), int(HUDBA_XF * SR)
+    t = np.linspace(0, np.pi / 2, m)[:, None]
+    loop = x[:n - m].copy()
+    loop[:m] = x[:m] * np.sin(t) + x[n - m:] * np.cos(t)
+    loop *= min(HUDBA_RMS / np.sqrt(np.mean(loop ** 2)), HUDBA_PEAK / np.abs(loop).max())
+    save(ff, loop, dst, '128k')
 
 
 def triangle(ff, src, dst):
@@ -120,7 +146,8 @@ CLIPS = [
      0.4, 0.8, 'highpass=f=150'),
     # čtyři vrny, nahrané potichu
     ('575933__razzledizzle__cat-purr.mp3', 'predeni', (0.2, 5.5), 0.1, 0.6, 0.8, None),
-    ('765470__jjsounddesigner__breaking-twigs-variation-1.wav', 'sustot', (0.05, 1.6), 0.01, 0.4, 0.8, None),
+    # šustění suchého keře (Daniel 2026-11-23; dřív lámání větviček 765470)
+    ('825425__sinny__dry-bush-04.mp3', 'sustot', (0.03, 0.75), 0.005, 0.2, 0.8, None),
     # potok: nejklidnější úsek na tekoucí vodu, nejvíc čeřený (kolísá hlasitost) na probublání pramene
     ('635442__onetwo_ber__stream_finland1.wav', 'voda', (52.5, 56.5), 0.4, 1.5, 0.6, None),
     ('635442__onetwo_ber__stream_finland1.wav', 'bublani', (29.0, 30.6), 0.15, 0.5, 0.75, None),
@@ -142,7 +169,99 @@ CLIPS = [
     ('105314__benboncan__gurgling-3.wav', 'cvrk', (41.92, 42.55), 0.003, 0.2, 0.85, None),
     # jedno mňouknutí; hra mu mění výšku (horká římsa, shozený hrnek, leknutí na dědově hlavě)
     ('61259__timtube__cat-meowing.wav', 'mnau', (0.58, 1.6), 0.005, 0.15, 0.85, None),
+    # Daniel 2026-11-23: poslední, nejhlubší bečení z nahrávky = beran v lese se probouzí
+    ('471162__sheyvan__sheep-bleating.wav', 'beran', (18.95, 20.3), 0.01, 0.35, 0.9, None),
+    # skleněný zvoneček: slunce prosvitne v lese, květina na vrcholu rozkvete
+    ('152757__l15452__small_glass_bell_2.wav', 'slunce', (0.68, 4.2), 0.005, 1.2, 0.8, None),
+    # strom v lese (Daniel 2026-11-23, nahrané hlasem): „nebuďte mě“ a „co je?“
+    ('hlas/nebudme.m4a', 'nebudme', (2.3, 7.6), 0.02, 0.5, 0.9, 'highpass=f=60'),
+    ('hlas/coje.mp4', 'coje', (2.0, 4.85), 0.02, 0.3, 0.9, 'highpass=f=60'),
+    # skřípání dřeva (Daniel 2026-11-23): strom v lese se protahuje, čtyři varianty (K.VRZANI)
+    ('618085__sit_walk__2022-02-06-wood-creak-1.wav', 'vrzani-1', (0.03, 1.85), 0.01, 0.3, 0.85, None),
+    ('618084__sit_walk__2022-02-06-wood-creak-2.wav', 'vrzani-2', (0.12, 2.1), 0.01, 0.4, 0.85, None),
+    ('618083__sit_walk__2022-02-06-wood-creak-3.wav', 'vrzani-3', (0.0, 0.59), 0.005, 0.12, 0.85, None),
+    ('618082__sit_walk__2022-02-06-wood-creak-4.wav', 'vrzani-4', (0.03, 1.4), 0.01, 0.25, 0.85, None),
+    # tetřívek mávne křídly: odlétá poražený z vrcholu, vzlétne ve finále, poskočí leknutím z Krakonoše
+    ('676456__neartheatmoshphere__flapping-4.wav', 'tetrivek', (0.02, 0.8), 0.005, 0.25, 0.85, None),
+    # pád hrnku: dopad do košíku (i vedlejší scény), Daniel 2026-11-23
+    ('836521__valerie-vivegnis__book-dropped-on-table.mp3', 'buch', (1.22, 1.9), 0.003, 0.25, 0.85, None),
+    # vrznutí okna v kuchyni (strom v lese má dál vlastní „vrzani“)
+    ('323565__jameswrowles__creak-5-ps4.wav', 'okno', (0.45, 2.75), 0.01, 0.5, 0.8, None),
+    # lusknutí prsty = karta (čtyři pokusy, hra losuje K.KARTA)
+    ('508738__mariab_dasilva__snap-the-fingers.m4a', 'karta-1', (0.08, 0.32), 0.002, 0.1, 0.85, None),
+    ('508738__mariab_dasilva__snap-the-fingers.m4a', 'karta-2', (0.98, 1.22), 0.002, 0.1, 0.85, None),
+    ('508738__mariab_dasilva__snap-the-fingers.m4a', 'karta-3', (1.93, 2.17), 0.002, 0.1, 0.85, None),
+    ('508738__mariab_dasilva__snap-the-fingers.m4a', 'karta-4', (2.82, 3.2), 0.002, 0.1, 0.85, None),
 ]
+
+# Hlas hrdiny (Andrea Kubisová, Daniel 2026-11-22; sounds/hlas/*.m4a): v každé nahrávce je slovo namluvené
+# několikrát, každý pokus je zvlášť (hlas-<jméno>-1…N.mp3) a hra je losuje (K.HLAS v js/jadro.js).
+# Pokusy (od, do v s) našlo dělení podle ticha; špatný pokus stačí smazat ze seznamu a z K.HLAS.
+VOICE = {
+    'hop': ('hop.m4a', [(3.59, 3.72), (4.77, 4.88), (5.76, 5.89), (7.74, 7.85), (8.68, 8.8), (9.51, 9.59),
+                        (10.33, 10.45), (11.11, 11.22), (11.83, 11.96)]),
+    'jeste': ('jeste-jednu.m4a', [(1.06, 1.9), (3.03, 3.37), (4.2, 4.67), (5.65, 5.94), (6.8, 7.07), (7.96, 8.54)]),
+    'staci': ('staci.m4a', [(0.89, 1.16), (2.65, 2.88), (3.84, 4.07), (4.99, 5.29), (6.17, 6.41), (7.27, 7.54),
+                            (8.3, 8.56)]),
+    'vitezstvi': ('vitezstvi.m4a', [(0.92, 1.44), (2.23, 2.6), (3.31, 3.9), (5.0, 5.96), (6.92, 7.72), (8.91, 9.73)]),
+    'snih': ('snih.m4a', [(2.0, 3.1), (4.58, 5.55), (6.07, 6.72)]),
+    # strom mluví, když ukazuje herbář (Daniel 2026-11-23, „Strom řeč“): sedm kousků, hra je losuje
+    'strom-rec': ('strom-rec.m4a', [(1.67, 5.46), (6.39, 11.27), (13.58, 15.49), (17.32, 19.47), (21.19, 23.86),
+                                    (25.55, 27.27), (28.59, 31.53)]),
+    # radost, když zažene žábu dýmem (studánka); dvě nahrávky, pokus může mít vlastní soubor (soubor, od, do)
+    # „brr“: nahrávka je řada pokusů za sebou, použijí se první tři (Daniel 2026-11-22)
+    'brr': ('zima.m4a', [(1.45, 1.95), (2.6, 2.95), (3.1, 3.58)]),
+    'smich': ('smich-1.m4a', [(1.36, 2.03), (3.18, 3.55), (4.23, 4.61), ('smich-2.m4a', 1.2, 1.6)]),
+}
+# vlek hlasem: všechny tři pokusy spojené za sebou s prolnutím (Daniel 2026-11-22). Je to smyčka (konec se
+# prolne do začátku, kraje mají PAD jako stádo), hraje celou dobu, co vlek jede (Daniel 2026-11-23).
+VLEK = ('vlek.m4a', [(1.48, 6.34), (7.44, 11.13), (13.12, 13.8)])
+VLEK_XF = 0.35  # prolnutí mezi pokusy (s)
+
+
+def joined(ff, src, dst, spans, xf, peak, af, loop=False):
+    """Pokusy z jedné nahrávky za sebou: každý zvlášť srovnaný na stejnou hlasitost, švy prolnuté.
+    loop: i konec se prolne do začátku a kraje dostanou přesah PAD (pro K.loop)."""
+    x = load(ff, src, 1, af)
+    parts = []
+    for a, b in spans:
+        p = x[int(max(0, a - 0.05) * SR):int((b + 0.15) * SR)].copy()
+        parts.append(p / max(1e-6, np.sqrt(np.mean(p ** 2))))  # stejná hlasitost (RMS)
+    m = int(xf * SR)
+    t = np.linspace(0, np.pi / 2, m)[:, None]
+    out = parts[0]
+    for p in parts[1:]:
+        out = np.concatenate([out[:-m], out[-m:] * np.cos(t) + p[:m] * np.sin(t), p[m:]])
+    if loop:
+        out = np.concatenate([out[-m:] * np.cos(t) + out[:m] * np.sin(t), out[m:-m]])
+        p = int(PAD * SR)
+        out = np.concatenate([out[-p:], out, out[:p]])
+    else:
+        a = int(0.05 * SR)
+        out[:a] *= np.linspace(0, 1, a)[:, None]
+        b = int(0.6 * SR)
+        out[-b:] *= np.linspace(1, 0, b)[:, None] ** 2
+    out *= peak / np.abs(out).max()
+    save(ff, out, dst, '96k')
+
+# nalévání do hrnku (Daniel 2026-11-23, voda z kohoutku): hrnek se plní, tón stoupá (zrychlení 1 → NALEVANI_UP)
+NALEVANI = ('854133__alexzavesa__water-flows-from-the-tap.wav', (0.25, 2.45))
+NALEVANI_UP = 1.3
+
+
+def pour(ff, src, dst, span, up):
+    """Výřez přehraný s plynule rostoucí rychlostí: výška stoupá jako u plnící se nádoby."""
+    x = load(ff, src, 1)[:, 0]
+    x = x[int(span[0] * SR):int(span[1] * SR)]
+    rate = np.linspace(1, up, len(x))
+    pos = np.cumsum(rate)
+    pos = pos[pos < len(x) - 1]
+    y = np.interp(pos, np.arange(len(x)), x)[:, None]
+    a, b = int(0.05 * SR), int(0.35 * SR)
+    y[:a] *= np.linspace(0, 1, a)[:, None]
+    y[-b:] *= np.linspace(1, 0, b)[:, None] ** 2
+    y *= 0.8 / np.abs(y).max()
+    save(ff, y, dst, '96k')
 
 
 def clip(ff, src, dst, span, fin, fout, peak, af):
@@ -164,12 +283,22 @@ def main():
     bleat(ff, 'sounds/sheep_2.wav', 'assets/zvuky/ovce-2.mp3')
     bleat(ff, 'sounds/sheep_lamb.mp3', 'assets/zvuky/jehne.mp3')
     flock(ff, 'sounds/sheep_flock.aiff', 'assets/zvuky/stado.mp3')
-    flock(ff, 'sounds/Klasterka__2. scena final (s klavesama).mp3', 'assets/zvuky/hudba.mp3', HUDBA_XF, '128k')
+    for name, src in HUDBA.items():
+        music(ff, 'sounds/hudba/' + src, f'assets/zvuky/{name}.mp3')
     timber(ff, 'sounds/timber.wav', 'assets/zvuky/strom-pada.mp3')
     triangle(ff, 'sounds/349504__cabled_mess__triangle_open_04.wav', 'assets/zvuky/triangl-1.mp3')
     triangle(ff, 'sounds/465637__zabuhailo__triangle_0831s12.flac', 'assets/zvuky/triangl-2.mp3')
     for src, name, span, fin, fout, peak, af in CLIPS:
         clip(ff, 'sounds/' + src, f'assets/zvuky/{name}.mp3', span, fin, fout, peak, af)
+    pour(ff, 'sounds/' + NALEVANI[0], 'assets/zvuky/nalevani.mp3', NALEVANI[1], NALEVANI_UP)
+    for name, (src, takes) in VOICE.items():
+        for i, take in enumerate(takes):
+            f, a, b = take if len(take) == 3 else (src, *take)
+            # kousek ticha před a doznění za slovem, horní propust proti hučení mikrofonu
+            clip(ff, 'sounds/hlas/' + f, f'assets/zvuky/hlas-{name}-{i + 1}.mp3', (max(0, a - 0.05), b + 0.12),
+                 0.02, 0.1, 0.9, 'highpass=f=90')
+    src, spans = VLEK
+    joined(ff, 'sounds/hlas/' + src, 'assets/zvuky/vlek.mp3', spans, VLEK_XF, 0.9, 'highpass=f=90', loop=True)
 
 
 if __name__ == '__main__':

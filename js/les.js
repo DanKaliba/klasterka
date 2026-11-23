@@ -136,6 +136,7 @@ async function heroGo(pts, speed = 330, wood = false) {
 
 async function hop(x1, y1, dur, height) {
   const h = st.hero, x0 = h.x, y0 = h.y;
+  if (height >= 40) K.sound(K.HLAS.hop, { volume: 0.8 }); // výskok přes kořeny, ne dupnutí na lávku
   if (Math.abs(x1 - x0) > 2) h.facing = Math.sign(x1 - x0);
   await K.tween(dur, (t) => {
     h.x = K.lerp(x0, x1, t);
@@ -164,15 +165,27 @@ const onDeck = (x) => heroGo([[x, deckY(x)]], 330, true);
 async function intro() {
   K.busy++;
   await heroGo([[300, LG]], 280);
-  st.phase = 'free';
+  st.phase = st.snag.state === 'down' ? 'cross' : 'free';
   K.busy--;
+}
+
+// návrat do lesa pro zapomenutý rampouch (bílý kruh na louce, louka.js): les je ve stavu po probuzení
+// berana — větev odplavala, svítí slunce, beran odešel, souška leží přes mezeru, strom už mluvil
+function afterRam() {
+  Object.assign(st, { moss: 0, stand: 1, turn: 0, eyes: 1, sun: 1, crack: 1, treeStage: 3, tree: 1, bagHang: false });
+  Object.assign(st.ram, { x: 1150, dy: -150, s: 0.42, alpha: 0 });
+  st.branch.state = 'gone';
+  Object.assign(st.snag, { state: 'down', a: SNAG_B, py: SNAG_END.y, len: SNAG_END.len, wid: SNAG_END.wid, after: 1 });
 }
 
 const mouth = (sec) => { st.mouthUntil = K.time + sec; };
 const PLAN_SHOW = 11; // jak dlouho je vidět herbář (jedna celá smyčka kroků, PLAN_LOOP)
 function showPlan(sec) {
   st.bubble = { kind: 'herbar', t0: K.time, until: K.time + sec };
-  mouth(Math.min(sec, 2.2));
+  // strom mluví (Daniel 2026-11-23): náhodný kousek řeči, pusa se hýbe, dokud zní
+  const talk = K.pick(K.HLAS.strom);
+  K.sound(talk);
+  mouth(Math.min(sec, K.soundLength(talk) ?? 2.5));
 }
 
 async function treeClick() {
@@ -182,20 +195,20 @@ async function treeClick() {
     st.treeStage = 1;
     await K.tween(0.35, (t) => { st.tree = t * 0.5; });
     K.sound('nebudme');
-    mouth(1.2);
-    await K.after(1.4);
+    mouth(K.soundLength('nebudme') ?? 1.2); // nahrávka má asi 5 s, oči zavře, až domluví
+    await K.after((K.soundLength('nebudme') ?? 1.2) + 0.2);
     await K.tween(0.7, (t) => { st.tree = 0.5 * (1 - t); });
   } else if (st.treeStage === 1) {
     // 2. probudí se a protáhne (zavrzá)
     st.treeStage = 2;
     st.stretchT = K.time;
-    K.sound('vrzani');
+    K.sound(K.VRZANI);
     await K.tween(0.8, (t) => { st.tree = t; });
   } else if (st.treeStage === 2) {
     await treeTalk();
   } else {
     // později jen připomene klíče
-    K.sound('vrzani');
+    K.sound(K.VRZANI);
     showPlan(PLAN_SHOW);
   }
   K.busy--;
@@ -207,10 +220,12 @@ async function treeTalk() {
   const face = st.hero.facing;
   st.hero.facing = -1;
   K.sound('coje');
-  mouth(0.9);
-  st.bubble = { kind: 'coje', t0: K.time, until: K.time + 1.9 };
-  await K.after(2.0);
+  const ask = K.soundLength('coje') ?? 0.9; // nahrávka asi 2,8 s
+  mouth(ask);
+  st.bubble = { kind: 'coje', t0: K.time, until: K.time + Math.max(1.9, ask + 0.2) };
+  await K.after(Math.max(2.0, ask + 0.3));
   st.heroIcon = { icon: 'snih', until: K.time + 1.9 };
+  K.sound(K.HLAS.snih); // „sníh“
   await K.after(2.1);
   showPlan(PLAN_SHOW);
   await K.after(PLAN_SHOW);
@@ -222,7 +237,7 @@ async function treeTalk() {
 async function treeCrash() {
   st.stretchT = K.time;
   if (st.treeStage >= 3) return;
-  K.sound('vrzani');
+  K.sound(K.VRZANI);
   const from = st.tree;
   await K.tween(0.6, (t) => { st.tree = K.lerp(from, 1, t); });
   st.treeStage = 2;
@@ -245,7 +260,7 @@ async function giveBag() {
   K.state.bag = true;
   K.bagT = K.time;
   K.bagBump = K.time;
-  K.sound('odmena');
+  K.sound(K.HLAS.vitezstvi); // odměna (batoh od stromu)
   await K.after(1.2);
 }
 
@@ -255,7 +270,7 @@ async function toWater() {
   await toGround();
   await heroGo([[EDGE.x, EDGE.y]], 300);
   st.hero.shivT = K.time;
-  K.sound('brr');
+  K.sound(K.HLAS.brr);
   await K.after(0.9);
   await heroGo([[EDGE.x - 70, LG]], 220);
   K.busy--;
@@ -511,6 +526,21 @@ async function crossOver() {
   await K.fadeTo(1, 0.9, K.FOREST_FADE);
   K.busy--;
   K.go('louka', { from: 'les' });
+}
+
+// zpátky na louku levým krajem (Daniel 2026-11-23: z lesa se jinak nedalo vrátit); rozdělaný les si
+// pamatuje (kept) a příště pokračuje, kde skončil
+const BACK_X = 110;
+const inBack = (p) => p.x < BACK_X;
+let kept = null;
+async function goBack() {
+  K.busy++;
+  await toGround();
+  await heroGo([[-90, LG]], 330);
+  kept = st;
+  await K.fadeTo(1, 0.8, K.FOREST_FADE);
+  K.busy--;
+  K.go('louka', { from: 'les', back: true });
 }
 
 // ---------- vstup z louky a pomocníci pro start/testy ----------
@@ -1275,9 +1305,18 @@ const inGround = (p) => p.x < 760 && p.y > 680;
 K.scenes.les = {
   get st() { return st; }, // pro testy
   enter() {
-    st = init();
+    if (kept && !K.state.solved.les) {
+      // odešel levým krajem a vrací se: les jak ho nechal, panáček znovu přichází zleva
+      st = kept;
+      Object.assign(st.hero, { x: -90, y: LG, facing: 1, walking: false });
+      Object.assign(st, { onBridge: false, phase: 'intro', bubble: null, heroIcon: null });
+    } else {
+      st = init();
+      if (K.state.solved.les && !hasIcicle()) afterRam(); // vrátil se pro rampouch
+    }
+    kept = null;
     flow = null;
-    K.preloadSounds([K.TRIANGL, 'strom-pada']);
+    K.preloadSounds([K.TRIANGL, 'strom-pada', K.HLAS.snih, K.HLAS.hop, K.HLAS.strom, K.HLAS.vitezstvi, 'nebudme', 'coje', K.VRZANI]);
     K.hero.visible = true;
     K.fade.a = 1;
     K.fadeTo(0, 0.9, K.FOREST_FADE);
@@ -1368,10 +1407,11 @@ K.scenes.les = {
   },
   hot(p) {
     if (st.phase !== 'free' && st.phase !== 'cross') return false;
-    return inTree(p) || inBranch(p) || icicleAt(p) >= 0 || inRam(p) || inFar(p) || (!st.onBridge && inDeck(p));
+    return inBack(p) || inTree(p) || inBranch(p) || icicleAt(p) >= 0 || inRam(p) || inFar(p) || (!st.onBridge && inDeck(p));
   },
   click(p) {
     if (st.phase !== 'free' && st.phase !== 'cross') return;
+    if (inBack(p)) return goBack();
     if (inTree(p)) return treeClick();
     if (inBranch(p)) return pullBranch();
     const i = icicleAt(p);

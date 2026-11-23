@@ -189,7 +189,7 @@ async function squirt() {
   }
   await K.after(0.4);
   h.wetT = K.time;
-  K.sound('brr', { volume: 0.6, rate: 1.3 });
+  K.sound(K.HLAS.brr, { volume: 0.6 }); // hlas hrdiny, bez zrychlení (zněl by jako veverka)
   await Promise.all([lean(-0.15, 0.2), backOff(60, 0.35)]);
   await K.after(0.6);
   await lean(0, 0.2);
@@ -202,7 +202,8 @@ async function squirt() {
 function heroOpts() {
   const h = st.hero;
   return { facing: h.facing, walking: h.walking, phase: h.phase, halo: false, reach: h.reach,
-    face: K.time - h.wetT < 1.3 ? 'wet' : null, arm: st.jug.held ? 'hold' : h.pipe ? 'mouth' : null };
+    face: K.time - h.wetT < 1.3 ? 'wet' : null, laugh: K.time < h.laughUntil,
+    arm: st.jug.held ? 'hold' : h.point ? 'point' : h.pipe ? 'mouth' : null }; // ukazuje: fajfka zůstane v zubech
 }
 // panáček se kreslí natočený kolem chodidel (náklon, otřepání po cvrknutí); body na něm se natočí stejně
 function heroTilt() {
@@ -246,7 +247,13 @@ async function pipeSmoke() {
   f.stinkT = K.time;
   K.sound('kvak-strach', { volume: 0.7 });
   await K.after(1.1);
+  K.sound(K.HLAS.smich); // zahnal ji, má radost (Daniel 2026-11-22)
+  // směje se a ukazuje na ni, jak odskáče (Daniel 2026-11-22)
+  h.point = true;
+  h.laughUntil = K.time + 2.4;
   await frogEscape();
+  await K.after(0.5);
+  h.point = false;
   h.pipe = false;
 }
 
@@ -619,6 +626,8 @@ const jugHit = (p) => K.dist(p, SPOUT_HIT) < SPOUT_HIT.r; // konec žlábku
 
 const scene = {
   get st() { return st; }, // pro testy
+  // hudba: než žába uteče a po jejím útěku (Daniel 2026-11-22)
+  music: () => (st && st.frog.state === 'gone' ? 'hudba-muka-utekla' : 'hudba-muka-zaba'),
   enter() {
     // rozdělaná studánka zůstane, jak byla (pro hrnek se dá dojít do kuchyně a vrátit se)
     if (!st || st.phase === 'done') st = init();
@@ -627,7 +636,7 @@ const scene = {
       Object.assign(st.hero, { x: START_X, facing: -1, walking: false, hopY: 0, lean: 0, reach: false });
       st.jug.held = false;
     }
-    K.preloadSounds(['kvak', 'kvak-zly', 'kvak-strach', 'plesk', 'cvrk', K.DYMKA, 'foukani', 'bublani', 'nalevani', 'sustot', 'splouchnuti', 'voda', 'brr']);
+    K.preloadSounds(['kvak', 'kvak-zly', 'kvak-strach', 'plesk', 'cvrk', K.DYMKA, 'foukani', 'bublani', 'nalevani', 'sustot', 'splouchnuti', 'voda', K.HLAS.brr, K.HLAS.smich]);
     K.hero.visible = true;
     K.fade.a = 1;
     K.fadeTo(0, 0.6, FADE);

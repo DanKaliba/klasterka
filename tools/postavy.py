@@ -2,12 +2,10 @@
 # pics/podklady-kuchyne/PROMPT-postavy-lisejnik.md (B2, C2).
 #   pics/podklady-kuchyne/babka-B2.png  5 póz babky na modrém pozadí (všechny hledí doprava)
 #   pics/podklady-kuchyne/fajfka-F2.jpg dědova fajfka (prompt F2) → assets/predmety/fajfka.png
-#   pics/podklady-kuchyne/deda-C2.png   4 pózy dědy na modrém pozadí (3. hledí doprava → zrcadlí se;
-#                                       4. se nezrcadlí, aby stolička zůstala vpravo jako u ostatních)
-# Pózy vyřízne podle modré barvy, zmenší na velikost do hry a uloží jako
-#   assets/sceny/kuchyne-babka-1..5.png a kuchyne-deda-1..4.png.
+#   (děda z C2 nahrazen 2026-11-22 papírovou loutkou z D2/D3: tools/sprity.py a js/deda.js)
+# Pózy vyřízne podle modré barvy, zmenší na velikost do hry a uloží jako assets/sceny/kuchyne-babka-1..5.png.
 # Na konci vypíše pro každou pózu „kotvu“ (bod ve výřezu, který leží na podlaze), stejná čísla
-# jsou v js/kuchyne.js (POSE_ANCHOR). Babka: paty (dole vlevo). Děda: pravá noha stoličky (dole vpravo).
+# jsou v js/kuchyne.js (POSE_ANCHOR). Babka: paty (dole vlevo).
 # Spustit: python tools/postavy.py [--nahled cesta.png]
 import json
 import sys
@@ -22,8 +20,8 @@ OUT = ROOT / 'assets/sceny'
 
 SHEETS = {
     # jméno: (soubor, výška 1. pózy ve hře v px, které pózy zrcadlit)
-    'babka': ('babka-B2.png', 500, []),
-    'deda': ('deda-C2.png', 590, [3]),
+    # (babka z B2 nahrazena 2026-11-23 papírovou loutkou z E2/E3: tools/sprity.py a js/babka.js;
+    #  skript teď řeže jen fajfku)
 }
 
 
@@ -103,13 +101,13 @@ def main():
     save(ROOT / 'assets/predmety/fajfka.png', pipe)
     print('fajfka', pipe.shape[1], 'x', pipe.shape[0])
     print('POSE_ANCHOR =', json.dumps(result))
-    if '--nahled' in sys.argv:
+    if '--nahled' in sys.argv and previews:
         # všechny pózy vedle sebe na šedé, s křížkem v kotvě
         hh = max(p.shape[0] for p in previews) + 20
         ww = sum(p.shape[1] + 20 for p in previews)
         sheet = np.full((hh, ww, 3), 150, np.uint8)
         x = 10
-        anchors = result['babka'] + result['deda']
+        anchors = [a for v in result.values() for a in v]
         for p, (ax, ay) in zip(previews, anchors):
             a = p[..., 3:] / 255.0
             roi = sheet[10:10 + p.shape[0], x:x + p.shape[1]]
