@@ -32,6 +32,8 @@
   const scena = ALIAS[p] || p;
   // les se přeskočí i při skoku rovnou do chalupy, na vrchol nebo do finále (batoh je potřeba pro HUD)
   if (K.params.has('vse') || K.params.has('les') || !['louka', 'les'].includes(scena)) K.forestDone();
+  // skok rovnou do jiné scény než louka = jako by se už ovcí zeptal (jinak by ho louka nepustila do lesa)
+  if (scena !== 'louka') K.state.asked = true;
   if (K.params.has('vse')) {
     K.state.asked = true;
     for (const [id, item] of Object.entries(K.CHALETS)) { K.state.solved[id] = true; K.state.items.push(item); }

@@ -23,6 +23,12 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
 - Les mezi dolní a horní loukou (2026-11-05, Daniel vybral variantu „zatoulaný beran“), `js/les.js`:
   otevře se sám, když panáček poprvé dojde na kraj lesa (skrytý úsek cesty, `K.forestSpan`); rozběhnutá
   chůze do chalupy po návratu pokračuje z druhého kraje. Cestou zpět je vyřešený a jen se projde.
+  Bez zeptání ovcí (`K.state.asked`) do lesa nevejde (Daniel 2026-11-24): na kraji se zastaví na
+  posledním viditelném bodu, otočí se a celé stádo se k němu otočí a zabečí, každá ovce po svém
+  (náhodné pořadí, rozestupy 0,1–0,3 s; `K.forestRefused`, louka.js). Znovu zavolá nejdřív po 2,5 s.
+  Testy: `lesNevi`, `lesNeviStado` (screenshot otočeného stáda), `lesNeviPakVi` (opakovaně ke kraji,
+  pak zeptat a projít), `lesVi`. Všechna místa
+  s úkolem jsou za lesem, takže les je vždy první. Start přes `?scena=` (mimo louku) nastaví `asked`.
   Starý strom s obličejem v kůře spí (Daniel 2026-11-06): 1. klik pootevře oči („nebuď mě“), 2. klik se
   probudí, 3. klik „co je?“ (fraktura) → panáček ukáže sníh → herbář se sněžnou květinou (viz níže) →
   strom shodí z větve batoh. Dokud batoh nemá, HUD je jen tmavý pruh přes razítko

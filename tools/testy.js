@@ -167,6 +167,13 @@ window.SCENARE = {
 window.SCENARE.lesBezRampouchu = [['ceka', 300], ['cekaVolno'], ...VETEV, KRK, ['cekaVolno'], ['klik', 1500, 600], ['ceka', 6000]];
 // z lesa levým krajem zpátky k ovcím (větev už stažená); pak znovu do lesa: větev pořád pryč
 window.SCENARE.lesZpatky = [['ceka', 300], ['cekaVolno'], ...VETEV, ['cekaVolno'], ['klik', 50, 700], ['cekaScena', 'louka'], ['ceka', 2500]];
+// bez zeptání ovcí se na kraji lesa otočí (scéna zůstane louka); po zeptání projde do lesa
+window.SCENARE.lesNevi = [['ceka', 2500], ['jdiPresLes'], ['ceka', 9000]];
+window.SCENARE.lesNeviStado = [['ceka', 2500], ['jdiPresLes'], ['cekaVolani'], ['ceka', 1000]];
+// opakovaně ke kraji lesa (stádo znovu zavolá až po 2,5 s), pak se zeptá ovcí a do lesa projde
+window.SCENARE.lesNeviPakVi = [['ceka', 2500], ['jdiPresLes'], ['cekaVolani'], ['ceka', 800], ['jdiPresLes'], ['ceka', 3000],
+  ['jdiPresLes'], ['ceka', 1500], ['klikOvce', 0], ['ceka', 300], ['jdiPresLes'], ['cekaScena', 'les'], ['ceka', 1500]];
+window.SCENARE.lesVi = [['ceka', 2500], ['klikOvce', 0], ['ceka', 300], ['jdiPresLes'], ['cekaScena', 'les'], ['ceka', 1500]];
 window.SCENARE.lesZpatky2 = [...window.SCENARE.lesZpatky, ['jdiPresLes'], ['cekaScena', 'les'], ['ceka', 2500]];
 // na louce bez rampouchu: bílý kruh u lesa; klik → zpátky do lesa (souška leží), rampouch, přejít → louka
 window.SCENARE.lesZpet = [['bezRampouchu'], ['ceka', 2500]];
@@ -261,6 +268,7 @@ window.SCENARE.cela = [
       V.dropPebble('hero');
       V.dropPebble('grouse');
     }
+    else if (s[0] === 'cekaVolani') await waitFor(() => K.sheep.some((sh) => sh.callUntil > K.time), 'volani'); // stado vola od lesa
     else if (s[0] === 'cekaVlek') await waitFor(() => K.finale.waiting, 'vlek');
     else if (s[0] === 'cekaKonec') await waitFor(() => K.finale.ended, 'konec');
     else {

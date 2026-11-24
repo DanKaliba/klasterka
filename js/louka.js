@@ -124,6 +124,15 @@ K.hero = {
     if (!K.state.solved.les && K.scene === K.scenes.louka) {
       const [fa, fb] = K.forestSpan(), edge = dir > 0 ? fa : fb;
       if (fa >= 0 && (before - edge) * dir < 0 && (this.p - edge) * dir >= 0) {
+        // dokud se nezeptal ovcí, neví, proč by do lesa chodil: na kraji se zastaví a otočí (Daniel 2026-11-24)
+        if (!K.state.asked) {
+          this.p = edge - dir; // poslední viditelný bod před lesem
+          this.facing = -dir * Math.sign(b.x - a.x || 1);
+          this.stop();
+          this.arrive();
+          K.forestRefused();
+          return;
+        }
         this.p = edge;
         this.frozen = true;
         K.enterForest(dir);
@@ -367,7 +376,15 @@ K.scenes.louka = {
     K.hero.update(dt);
     fhint = forestAgain() ? forestHint() : null;
     const talking = bubble && bubble.until > K.time;
+    const hx = K.hero.pos.x;
     for (const sh of K.sheep) {
+      // volá panáčka od lesa: stojí, kouká na něj a má zvednutou hlavu
+      if (sh.callUntil > K.time) {
+        sh.walking = false;
+        if (K.time >= sh.turnAt) sh.facing = Math.sign(hx - sh.x) || sh.facing;
+        sh.headUp = K.time >= sh.turnAt;
+        continue;
+      }
       // ovce, která právě mluví, stojí (neotočí se zády ke své bublině)
       if (talking && bubble.sheep === sh) sh.walking = false;
       else K.updateGrazing(sh, dt);
@@ -454,6 +471,22 @@ function sheepTalk(sh) {
   for (const o of K.sheep) o.headUp = true;
   K.state.asked = true;
 }
+
+// panáček se otočil na kraji lesa, protože ještě neví, co ovce chtějí: celé stádo se na něj otočí a zabečí
+// (Daniel 2026-11-24). Každá ovce po svém: náhodné pořadí, rozestupy 0,1–0,3 s, jako živé stádo.
+let refusedT = -9;
+K.forestRefused = () => {
+  if (K.time - refusedT < 2.5) return;
+  refusedT = K.time;
+  const order = K.sheep.slice().sort(() => Math.random() - 0.5);
+  let t = K.rand(0.05, 0.2);
+  for (const sh of order) {
+    sh.turnAt = K.time + t * 0.6; // otočí se o kousek dřív, než zabečí
+    sh.callUntil = K.time + t + 1.6;
+    K.after(t).then(() => { if (K.scene === K.scenes.louka) K.bleat(sh); });
+    t += K.rand(0.1, 0.3);
+  }
+};
 
 // tetřívek sedí na vršku sloupu vleku od začátku hry (ve finále při rozjezdu vleku uletí);
 // klik na něj = zatoká. Sloup je v zimních souřadnicích, louka je podzimní snímek.
