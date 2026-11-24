@@ -122,9 +122,17 @@ function runTimers(dt) {
 
 // ---------- obrázky ----------
 const images = {};
+// obrázek, který se nenačte (výpadek sítě, souběh se stahováním snímků finále), se zkusí znovu po 1, 3 a 7 s;
+// jinak by třeba jediný chybějící díl loutky nechal hrdinu celou hru kreslit čarou (Daniel 2026-11-24)
+const IMG_RETRY = [1, 3, 7];
 K.img = (src) => {
   if (!images[src]) {
     const im = new Image();
+    let tries = 0;
+    im.addEventListener('error', () => {
+      if (tries >= IMG_RETRY.length) return console.warn('obrázek se nenačetl:', src);
+      setTimeout(() => { im.src = `${src}${src.includes('?') ? '&' : '?'}znovu=${++tries}`; }, IMG_RETRY[tries] * 1000);
+    });
     im.src = src;
     images[src] = im;
   }

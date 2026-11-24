@@ -290,6 +290,10 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
   jako celek (jinak prosvítají překrývající se chomáče/ovály). Používá drawHero, drawSheep (`o.alpha`) a beran.
 
 ## Nápady / poznámky pro dalšího
+- Hrdina čarou na živém webu (Daniel 2026-11-24, vrchol): kreslí se tak, dokud nejsou načtené všechny díly
+  loutky; nenačtený obrázek se dřív nezkoušel znovu. Teď K.img zkusí chybu znovu po 1, 3 a 7 s (pak
+  console.warn) a start.js čeká na díly hrdiny spolu se snímky louky. S čistým profilem se to nepodařilo
+  zopakovat.
 - Zvuk `foukani` u studánky (kluk fouká kouř na žábu, muka.js) nemá soubor, je ticho. Daniel 2026-11-23:
   kluk musí dýchat jinak než děda (vydech-* z kuchyně nepoužívat), nižší priorita.
 - Zimní snímky jsou proti podzimním posunuté o ~(4, 16) px → `rozlozeni.snih`; v editoru S + šipky.

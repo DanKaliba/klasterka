@@ -22,7 +22,10 @@
   };
   K.start();
 
-  await K.load([K.frameSrc('2025-12-28_1300'), K.frameSrc('2026-01-05_0900')]);
+  // díly papírového hrdiny počkají se snímky louky: dokud nejsou všechny, kreslí se hrdina čarou
+  const heroSrcs = Object.entries(K.SPRITY || {}).filter(([set]) => set.startsWith('hrdina'))
+    .flatMap(([, parts]) => Object.values(parts).map((sp) => sp.src));
+  await K.load([K.frameSrc('2025-12-28_1300'), K.frameSrc('2026-01-05_0900'), ...heroSrcs]);
   // zbytek snímků pro finále se načítá na pozadí během hraní
   K.load(window.SNIMKY.map(K.frameSrc));
 
