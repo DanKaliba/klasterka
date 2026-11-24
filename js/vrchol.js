@@ -15,7 +15,9 @@
 // - Pak na hrudku semínka, voda, rampouch → květina vyroste, rozkvete, práší → finále.
 // Obrázky: tetřívek (prompt T), karty (KA, KK), rub (KR), rabuše (KR2), pozadí (V) v pics/podklady-vrchol/.
 const VRCHOL = (() => {
-const FLOWER = 'assets/sceny/kvetina.webp';
+// sněžná květina: pět fází růstu vedle sebe (python tools/kvetina.py, Daniel 2026-11-24); čísla vypíše skript
+const FLOWER = 'assets/sceny/kvetina-faze.webp';
+const FAZE_N = 5, FAZE_KRCEK = 455, FAZE_VYSKA = 407; // řádek kořenového krčku, výška rozkvetlé nad krčkem (px listu)
 // pozadí: Danielův obrázek (2026-11-18, prompt V, python tools/vrchol.py). Mužík, plochý kámen i hrudka
 // jsou v něm; hra na ně kreslí karty, rabuše a mokrou hrudku (vrstva z pozadí).
 const BG = 'assets/sceny/vrchol.jpg';
@@ -869,14 +871,30 @@ function drawFalling(ctx) {
   }
 }
 
+// jedna fáze z listu kvetina-faze.webp (krček na MOUND, k = viditelnost)
+function drawPhase(ctx, img, i, k) {
+  if (k <= 0) return;
+  const w = img.width / FAZE_N, s = PLANT_H / FAZE_VYSKA;
+  ctx.save();
+  ctx.globalAlpha *= k;
+  ctx.translate(MOUND.x, MOUND.y + 14);
+  ctx.scale(s, s);
+  ctx.drawImage(img, i * w, 0, w, img.height, -w / 2, -FAZE_KRCEK, w, img.height);
+  ctx.restore();
+}
+
 function drawFlower(ctx) {
   const img = K.img(FLOWER);
   if (st.grow > 0 && K.ready(img)) {
-    const s = (PLANT_H / img.height) * K.lerp(0.12, 1, K.ease(st.grow));
+    // růst prolíná fáze klíček → růžice → poupě → rozkvetlá; rozzáření pak přejde do fáze s pylem
+    const pos = K.ease(st.grow) * 3, i = Math.min(2, Math.floor(pos)), f = K.ease(K.clamp(pos - i));
     ctx.save();
-    ctx.translate(MOUND.x, MOUND.y + 14);
-    ctx.scale(s, s);
-    ctx.drawImage(img, -img.width / 2, -img.height);
+    if (st.grow < 0.08) ctx.globalAlpha = st.grow / 0.08; // klíček vyraší z hrudky
+    // stará fáze drží do půlky prolnutí, pak mizí (jinak by prosvítala pozadím, nebo zdvojila zvonky)
+    const fade = (u) => 1 - K.clamp((u - 0.5) * 2);
+    const from = st.bloom > 0 ? 3 : i, to = from + 1, u = st.bloom > 0 ? K.ease(st.bloom) : f;
+    drawPhase(ctx, img, from, fade(u));
+    drawPhase(ctx, img, to, u);
     ctx.restore();
     if (st.bloom > 0) {
       const g = ctx.createRadialGradient(MOUND.x, MOUND.y - PLANT_H * 0.7, 10, MOUND.x, MOUND.y - PLANT_H * 0.7, 220);

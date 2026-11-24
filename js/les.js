@@ -187,10 +187,15 @@ function afterRam() {
 }
 
 const mouth = (sec) => { st.mouthUntil = K.time + sec; };
-const PLAN_SHOW = 11; // jak dlouho je vidět herbář (jedna celá smyčka kroků, PLAN_LOOP)
-function showPlan(sec) {
-  const b = st.bubble = { kind: 'herbar', t0: K.time, until: K.time + sec };
+const PLAN_SHOW = 11; // jak dlouho strom vypráví nad herbářem (jedna celá smyčka kroků, PLAN_LOOP)
+// po vyprávění bubliny chvíli počkají (hold) a odletí do HUD: hlavní do batohu, detaily ke svým místům
+const PLAN_OUT = 1.2, PLAN_FLY = 0.9;
+function showPlan(sec, hold = 0.3) {
+  const t0 = K.time, outT = t0 + sec + hold;
+  const b = st.bubble = { kind: 'herbar', t0, talkEnd: t0 + sec, outT, until: outT + PLAN_OUT };
   treeSpeech(b);
+  // hlavní bublina dopadne do batohu: batoh poskočí
+  K.after(sec + hold + PLAN_FLY).then(() => { if (st.bubble === b && K.scene === K.scenes.les) K.bagBump = K.time; });
 }
 
 // strom mluví, dokud ukazuje herbář (Daniel 2026-11-23: „zvuk skončí dříve než animace“). Řeč je jedna
@@ -207,10 +212,10 @@ async function treeSpeech(b) {
     const len = K.soundLength(talk);
     // kousek se ještě stahuje (pomalý mobil): přeskočit, za chvíli zkusit další, ať pusa nejede naprázdno
     if (len === null) { await K.after(0.2); continue; }
-    if (spoke && K.time + len > b.until - 0.2) return;
+    if (spoke && K.time + len > b.talkEnd - 0.2) return;
     spoke = true;
     K.sound(talk);
-    mouth(Math.min(len, b.until - K.time));
+    mouth(Math.min(len, b.talkEnd - K.time));
     await K.after(len + SPEECH_GAP);
   }
 }
@@ -254,7 +259,8 @@ async function treeTalk() {
   st.heroIcon = { icon: 'snih', until: K.time + 1.9 };
   K.sound(K.HLAS.snih); // „sníh“
   await K.after(2.1);
-  showPlan(PLAN_SHOW);
+  // poprvé bubliny počkají, až strom shodí batoh a v HUD vyskočí místa na věci (giveBag)
+  showPlan(PLAN_SHOW, K.state.bag ? 0.3 : 0.9);
   await K.after(PLAN_SHOW);
   if (!K.state.bag) await giveBag();
   st.hero.facing = face;
@@ -905,24 +911,38 @@ function drawTree(ctx) {
   ctx.restore();
 }
 
-// Herbář sněžné květiny (python tools/herbar.py) v kulaté bublině jako ostatní bubliny stromu. Kroky se
-// střídají jeden po druhém přes celou bublinu (Daniel 2026-11-09): semínka, voda ze džbánku, rampouch,
-// zasazení s klíčkem, květina roste odspodu, ze zvonku se snáší pyl jako sníh na hory.
-// r = oblast kroku v px obrázku 640×640, d = jak dlouho je vidět (s).
+// Herbář sněžné květiny v kulaté bublině jako ostatní bubliny stromu. Kroky se střídají jeden po druhém
+// přes celou bublinu: semínka, voda ze džbánku, rampouch (Danielova studie, python tools/detaily.py), pak
+// z herbáře (Danielův list 2×2 z 2026-11-24, python tools/herbar.py): zasazení s klíčkem, mladá růžice,
+// květina roste odspodu, ze zvonku se snáší pyl jako sníh na hory.
+// src = obrázek, r = oblast kroku v px obrázku, d = jak dlouho je vidět (s), snow = zvonek a hory (px obrázku)
 const HERBAR = 'assets/sceny/herbar.jpg', HERBAR_FADED = 'assets/sceny/herbar-vybledly.jpg';
+const DETAIL_ART = 'assets/sceny/detaily.jpg', DETAIL_TILE = 320, DETAIL_PAPER = 'rgb(249, 225, 189)';
 K.img(HERBAR);
 K.img(HERBAR_FADED);
+K.img(DETAIL_ART);
+const HERBAR_K = 900 / 1254; // herbar.jpg je zmenšený list 1254 px (STRANA v tools/herbar.py)
+const herbarPx = (...v) => v.map((n) => Math.round(n * HERBAR_K));
+const detailTile = (i) => [i * DETAIL_TILE, 0, (i + 1) * DETAIL_TILE, DETAIL_TILE];
 const PLAN_STEPS = [
-  { d: 1.4, r: [60, 50, 160, 136] }, // semínka
-  { d: 1.5, r: [88, 166, 212, 384] }, // džbánek s vodou
-  { d: 1.4, r: [504, 43, 574, 245] }, // rampouch
-  { d: 1.6, r: [22, 376, 212, 604] }, // zasazení, klíček
-  { d: 2.6, r: [204, 33, 445, 632], grow: 1.6 }, // květina roste odspodu
-  { d: 2.6, r: [452, 350, 638, 604], snow: true }, // zralý zvonek, pyl, hory
+  { d: 1.3, src: DETAIL_ART, r: detailTile(0) }, // semínka
+  { d: 1.4, src: DETAIL_ART, r: detailTile(1) }, // džbán s vodou
+  { d: 1.3, src: DETAIL_ART, r: detailTile(2) }, // rampouch
+  { d: 1.5, src: HERBAR, r: herbarPx(20, 0, 620, 510) }, // zasazení, klíček
+  { d: 1.3, src: HERBAR, r: herbarPx(640, 50, 1240, 510) }, // mladá růžice s poupětem
+  { d: 2.2, src: HERBAR, r: herbarPx(70, 470, 600, 1240), grow: 1.4 }, // květina roste odspodu
+  { d: 2.2, src: HERBAR, r: herbarPx(640, 590, 1240, 1240), snow: { bell: herbarPx(975, 840), ground: herbarPx(0, 1030)[1] } }, // pyl, hory
 ];
 const PLAN_LOOP = PLAN_STEPS.reduce((sum, st0) => sum + st0.d, 0);
 const PLAN_FADE = 0.35; // prolnutí mezi kroky
-const PLAN_BUBBLE = { x: 800, y: 228, r: 214 };
+const PLAN_BUBBLE = { x: 820, y: 300, r: 184 };
+// Detaily (Daniel 2026-11-24, náčrt pics/strom navrh.jpg): jakmile strom v hlavní bublině ukáže semínka,
+// vodu a rampouch, vyletí každá věc ve vlastní malé bublině nad hlavní a zůstane tam, vyprávění jede dál.
+// Ikony jsou stejné jako v HUD, ať hráč pozná, že tyhle tři věci má sehnat.
+const DETAIL_R = 50, DETAIL_Y = 64, DETAIL_GAP = 134, DETAIL_POP = 0.55;
+const detailPos = (i) => ({ x: PLAN_BUBBLE.x + (i - 1) * DETAIL_GAP, y: DETAIL_Y });
+// vyletí na konci svého kroku (kroky 0–2 = K.ITEMS), když se hlavní bublina začne prolínat dál
+const DETAIL_AT = K.ITEMS.map((_, i) => PLAN_STEPS.slice(0, i + 1).reduce((sum, s0) => sum + s0.d, 0) - PLAN_FADE);
 
 // výřez herbáře s rozmazanými okraji (ať nejsou vidět obdélníky); sdílí ho i vrchol (bublina s květinou)
 K.herbarCut = (img, [x0, y0, x1, y1], F = 44) => {
@@ -940,20 +960,24 @@ K.herbarCut = (img, [x0, y0, x1, y1], F = 44) => {
   }
   return c;
 };
-// průměrná barva vybledlého listu herbáře = pergamen bubliny
-K.herbarPaper = (faded) => {
-  const probe = canvasOf(16, 16), pg = probe.getContext('2d');
-  pg.drawImage(faded, 0, 0, 16, 16);
-  const d = pg.getImageData(0, 0, 16, 16).data, sum = [0, 0, 0];
-  for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) sum[k] += d[i + k];
-  return `rgb(${sum.map((v) => Math.round(v / 256)).join(', ')})`;
+// barva pergamenu bubliny = medián listu herbáře (papír převažuje; průměr by ztmavila kresba)
+K.herbarPaper = (img) => {
+  const n = 32, probe = canvasOf(n, n), pg = probe.getContext('2d');
+  pg.drawImage(img, 0, 0, n, n);
+  const d = pg.getImageData(0, 0, n, n).data;
+  const med = [0, 1, 2].map((k) => {
+    const v = [];
+    for (let i = k; i < d.length; i += 4) v.push(d[i]);
+    return v.sort((p, q) => p - q)[v.length >> 1];
+  });
+  return `rgb(${med.join(', ')})`;
 };
-// herbář pro ostatní scény: obrázky a výřez rostoucí květiny (krok 5)
-K.HERBAR = { src: HERBAR, faded: HERBAR_FADED, flower: PLAN_STEPS[4].r };
+// herbář pro ostatní scény (bublina kluka na vrcholu, obláček dědy): obrázky a výřez rozkvetlé květiny
+K.HERBAR = { src: HERBAR, faded: HERBAR_FADED, flower: PLAN_STEPS[5].r };
 
 let planArt = null;
-function buildPlanArt(full, faded) {
-  planArt = { paper: K.herbarPaper(faded), steps: PLAN_STEPS.map((st0) => K.herbarCut(full, st0.r)) };
+function buildPlanArt(faded) {
+  planArt = { paper: K.herbarPaper(faded), steps: PLAN_STEPS.map((st0) => K.herbarCut(K.img(st0.src), st0.r, st0.src === HERBAR ? 70 : 44)) };
 }
 
 // jeden krok vycentrovaný v kruhu o poloměru 320 (k = viditelnost, u = 0–1 čas v kroku)
@@ -972,7 +996,7 @@ function drawPlanStep(ctx, i, k, u, t) {
   ctx.restore();
   if (step.snow) {
     // pyl ze zvonku se snáší jako sníh k horám
-    const bx = dx + (528 - x0) * sc, by = dy + (445 - y0) * sc, my = dy + (560 - y0) * sc;
+    const S = step.snow, bx = dx + (S.bell[0] - x0) * sc, by = dy + (S.bell[1] - y0) * sc, my = dy + (S.ground - y0) * sc;
     for (let j = 0; j < 16; j++) {
       const f = (t * 0.35 + j / 16) % 1;
       const fx = bx + Math.sin(j * 2.3 + t * 1.5) * (10 + f * 60), fy = by + f * (my - by);
@@ -982,10 +1006,10 @@ function drawPlanStep(ctx, i, k, u, t) {
   }
 }
 
-function drawPlan(ctx, t, a) {
-  const full = K.img(HERBAR), faded = K.img(HERBAR_FADED);
-  const B = PLAN_BUBBLE, ready = K.ready(full) && K.ready(faded);
-  if (ready && !planArt) buildPlanArt(full, faded);
+function drawPlan(ctx, t, a, B = PLAN_BUBBLE) {
+  const faded = K.img(HERBAR_FADED);
+  const ready = K.ready(K.img(HERBAR)) && K.ready(faded) && K.ready(K.img(DETAIL_ART));
+  if (ready && !planArt) buildPlanArt(faded);
   // bublina: pergamenová výplň, obrys stejně jako ostatní bubliny
   ctx.save();
   ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
@@ -1103,9 +1127,78 @@ function drawTreeBubble(ctx) {
     ctx.restore();
     return;
   }
-  // od pusy k listu herbáře
-  circle(372, 305, 8); circle(430, 284, 12); circle(505, 262, 17);
-  drawPlan(ctx, age % PLAN_LOOP, a);
+  // herbář: po odletu (outT) ho kreslí drawPlanFlight nad HUD
+  if (K.time >= b.outT) { ctx.restore(); return; }
+  const ah = K.clamp(age / 0.25);
+  // od pusy k listu herbáře; kolečka zmizí těsně před odletem
+  ctx.globalAlpha = ah * K.clamp((b.outT - K.time) / 0.25);
+  circle(380, 306, 8); circle(442, 300, 12); circle(524, 296, 17);
+  ctx.globalAlpha = ah;
+  drawPlan(ctx, age % PLAN_LOOP, ah);
+  K.ITEMS.forEach((_, i) => {
+    const q = K.clamp((age - DETAIL_AT[i]) / DETAIL_POP);
+    if (q <= 0) return;
+    // vyletí z hlavní bubliny obloukem nahoru a trochu přeroste, než se usadí
+    const B = PLAN_BUBBLE, to = detailPos(i), e = K.ease(q);
+    const x = K.lerp(B.x + (i - 1) * 50, to.x, e), y = K.lerp(B.y - B.r * 0.3, to.y, e) - Math.sin(q * Math.PI) * 30;
+    const r = DETAIL_R * (q < 0.7 ? K.lerp(0.3, 1.15, K.ease(q / 0.7)) : K.lerp(1.15, 1, K.ease((q - 0.7) / 0.3)));
+    drawDetail(ctx, i, x, y, r, ah * K.clamp(q * 4));
+  });
+  ctx.restore();
+}
+
+// malá bublina s jednou věcí: detailní studie (python tools/detaily.py → tři čtvercové dlaždice v pořadí
+// K.ITEMS, pergamen DETAIL_PAPER), při letu do HUD se prolne do ikony z HUD (icon 0–1)
+function drawDetail(ctx, i, x, y, r, a, icon = 0) {
+  ctx.save();
+  ctx.globalAlpha *= a;
+  const base = ctx.globalAlpha, art = K.img(DETAIL_ART), ready = K.ready(art);
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetY = 3;
+  ctx.fillStyle = DETAIL_PAPER;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  if (ready && icon < 1) {
+    ctx.save();
+    ctx.clip();
+    // dlaždice má okraje prolnuté do pergamenu, kruh ořízne rohy
+    const d = r * 2.1;
+    ctx.globalAlpha = base * (1 - icon);
+    ctx.drawImage(art, i * DETAIL_TILE, 0, DETAIL_TILE, DETAIL_TILE, x - d / 2, y - d / 2, d, d);
+    ctx.restore();
+  }
+  if (!ready || icon > 0) {
+    ctx.globalAlpha = base * (ready ? icon : 1);
+    K.drawIcon(ctx, K.ITEMS[i], x, y, r * 1.35);
+  }
+  ctx.globalAlpha = base;
+  ctx.strokeStyle = K.INK;
+  ctx.lineWidth = Math.max(2, 3 * Math.min(1, r / DETAIL_R));
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
+
+// konec vyprávění: hlavní bublina se zmenší a odletí do batohu, detaily každý ke svému místu v HUD.
+// Kreslí se až nad HUD (scene.drawOverHud), jinak by bubliny zajely pod tmavou lištu.
+function drawPlanFlight(ctx) {
+  const b = st.bubble;
+  if (!b || b.kind !== 'herbar' || K.time < b.outT || K.time > b.until) return;
+  const age = K.time - b.t0, tOut = K.time - b.outT;
+  const fly = (delay) => K.clamp((tOut - delay) / PLAN_FLY);
+  const arc = (u) => Math.sin(u * Math.PI) * 50;
+  const fadeEnd = (u) => 1 - K.clamp((u - 0.75) / 0.25);
+  // detaily (startují postupně po hlavní bublině), pak hlavní bublina nahoře
+  K.ITEMS.forEach((_, i) => {
+    const u = fly(0.08 * (i + 1)), e = K.ease(u), from = detailPos(i), to = K.slotPos(i);
+    // detaily letí těsně pod horním okrajem: oblouk dolů, ať nevyletí z obrazu
+    drawDetail(ctx, i, K.lerp(from.x, to.x, e), K.lerp(from.y, to.y, e) + arc(u) * 0.6, K.lerp(DETAIL_R, 18, e), fadeEnd(u), K.clamp(u * 2));
+  });
+  const u = fly(0), e = K.ease(u), B = PLAN_BUBBLE;
+  const M = { x: K.lerp(B.x, K.BAG.x, e), y: K.lerp(B.y, K.BAG.y, e) - arc(u), r: K.lerp(B.r, 16, e) };
+  ctx.save();
+  ctx.globalAlpha = fadeEnd(u);
+  drawPlan(ctx, age % PLAN_LOOP, fadeEnd(u), M);
   ctx.restore();
 }
 
@@ -1423,6 +1516,9 @@ K.scenes.les = {
       ctx.strokeRect(430, 520, TIP_X + 40 - 430, 140);
     }
     ctx.restore();
+  },
+  drawOverHud(ctx) {
+    drawPlanFlight(ctx);
   },
   hot(p) {
     if (st.phase !== 'free' && st.phase !== 'cross') return false;

@@ -31,7 +31,13 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   s úkolem jsou za lesem, takže les je vždy první. Start přes `?scena=` (mimo louku) nastaví `asked`.
   Starý strom s obličejem v kůře spí (Daniel 2026-11-06): 1. klik pootevře oči („nebuď mě“), 2. klik se
   probudí, 3. klik „co je?“ (fraktura) → panáček ukáže sníh → herbář se sněžnou květinou (viz níže) →
-  strom shodí z větve batoh. Dokud batoh nemá, HUD je jen tmavý pruh přes razítko
+  strom shodí z větve batoh. Herbář podle Danielova náčrtu (2026-11-24, `pics/strom navrh.jpg`): hlavní
+  bublina střídá kroky, po semínkách, vodě a rampouchu vyletí každá věc do malé bubliny nad hlavní
+  (Danielova studie `pics/podklady-kvetina/detaily.png` → `python tools/detaily.py` → `assets/sceny/detaily.jpg`)
+  a zůstane tam. Nová série herbáře a květiny: prompty v `pics/podklady-kvetina/PROMPT-kvetina-2.md`. Po vyprávění (poprvé až po shození batohu) hlavní bublina odletí do batohu
+  a malé ke svým místům v HUD, cestou se prolnou do ikon z HUD; kreslí se nad HUD (`scene.drawOverHud`).
+  Testy `lesHerbarT2/T5/T75`, `lesHerbarLet/Let2/Let3`, `lesHerbarZnovu` (čekají na stav bubliny).
+  Dokud batoh nemá, HUD je jen tmavý pruh přes razítko
   kamery (`K.state.bag`). Batoh: ilustrace od Daniela (Gemini, 2026-11-10) → `assets/predmety/batoh.png` (`python tools/batoh.py` z
   `pics/batoh/batoh.jpg`), kreslí ho `K.drawIcon('batoh')`, na větvi visí za poutko. iStock fotka se nepublikuje.
   Les s rozbitou dřevěnou lávkou (Daniel 2026-11-08; převis ze zídky vypadal „rádoby počítačově“ a jako by
@@ -157,7 +163,7 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   se, uletí mu pírka). Balíček 18 karet (černá zvířata, červené rostliny,
   bílá povolání; král 2, eso 11) + Krakonoš jako žolík (1 nebo 11). V testu (?test) se míchá se semínkem;
   krok testu `['vrcholHraj']` odehraje hru za kluka. Pak jako dřív: na hrudku semínka, voda, rampouch
-  (věci přiletí z batohu) → květina (`kvetina.webp`) vyroste, rozzáří se, práší pyl, sněží → finále.
+  (věci přiletí z batohu) → květina (fáze z `kvetina-faze.webp`) vyroste, rozzáří se, práší pyl, sněží → finále.
   Tetřívek je Danielův obrázek (2026-11-13, prompt T, pics/podklady-vrchol/tetrivek-T.png, python tools/sprity.py:
   pózy sit / display / pluck / sulk / fly). Karty jsou Danielovy obrázky (prompt KA, karty-zvirata.png a
   karty-rostliny-povolani.png): fix_karty v tools/sprity.py z rohů vygumuje puntíky (Gemini je kreslí špatnou
@@ -234,9 +240,13 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
       v kulaté bublině (jako ostatní bubliny stromu) se střídají kroky jeden po druhém přes celou bublinu:
       semínka, džbánek s vodou, rampouch, zasazení s klíčkem, květina roste odspodu, ze zvonku se snáší
       pyl jako sníh na hory (smyčka 11 s, `PLAN_STEPS` v les.js; výřezy z listu s rozmazanými okraji).
-      Realistická květina na planinu (bílý náprstník se zvonky jako sněženka): `python tools/kvetina.py`
-      → assets/sceny/kvetina.webp (celá rostlina), vyříznutá z šedého pozadí, roste na vrcholu. Detail klasu
-      na přiblížení se dá vyříznout znovu (návod v tools/kvetina.py).
+      Květina 2 (Daniel 2026-11-24, prompty pics/podklady-kvetina/PROMPT-kvetina-2.md): herbář je list 2×2
+      (`herbar2.png` → `python tools/herbar.py`: zasazení, růžice, rozkvetlá, pyl nad horami), semínka, džbán
+      a rampouch z `detaily.png` (`python tools/detaily.py`); bublina má 7 kroků (11,2 s). Na vrcholu roste
+      po fázích z `kvetina-faze.png` (`python tools/kvetina.py` → kvetina-faze.webp, kořeny a hlína pryč
+      podle barvy): klíček → růžice → poupě → rozkvetlá se prolínají během růstu, rozzáření přejde do fáze
+      s pylem. `kvetina2.png` (jedna rostlina s kořeny, vyšší rozlišení) zatím nepoužitá, hodí se na detail.
+      Testy `vrcholRust1–6` (čekají na st.grow/bloom/snow), `lesHerbarT45/T55/T7/T95`.
       Hra už běží podle nového příběhu (3 věci v HUD, zasazení na vrcholu); scénář `cela` prochází.
       Otázka stromu „?“ je kreslená tahem (drawAsk v les.js, tvar podle Danielovy předlohy): od kulatého
       konce dolů, pak hranatá tečka jednou zapulsuje; bublina trvá 1,9 s. Kroky po lávce a kmeni = kroky po trávě hlouběji a tišeji.

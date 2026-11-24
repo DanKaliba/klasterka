@@ -712,6 +712,12 @@ function render() {
     ctx.globalAlpha = 1;
   }
   drawHud(ctx);
+  // co má letět do HUD a nesmí zajet pod lištu (bubliny stromu v lese)
+  if (K.scene && K.scene.drawOverHud) {
+    ctx.save();
+    try { K.scene.drawOverHud(ctx); } catch (err) { if (!K.drawError) console.error('chyba při kreslení nad HUD:', err); K.drawError = err; }
+    ctx.restore();
+  }
   if (K.editor && K.editor.active) K.editor.draw(ctx);
   ctx.restore();
 }

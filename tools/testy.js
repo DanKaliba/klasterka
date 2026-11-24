@@ -49,6 +49,19 @@ window.SCENARE = {
   lesHerbar1: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', TREE_TALK + 2000]],
   lesHerbar2: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', TREE_TALK + 7200]],
   lesHerbar3: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', TREE_TALK + 9800]],
+  // odlet bublin do HUD (hold 0,9 s po 11 s vyprávění, let 0,9 s), Daniel 2026-11-24
+  lesHerbarT2: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['cekaBublina', 2.2]],
+  lesHerbarT5: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['cekaBublina', 5]],
+  lesHerbarT75: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['cekaBublina', 7.5]],
+  lesHerbarT45: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['cekaBublina', 4.6]],
+  lesHerbarT55: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['cekaBublina', 5.6]],
+  lesHerbarT7: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['cekaBublina', 6.9]],
+  lesHerbarT95: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['cekaBublina', 9.8]],
+  lesHerbarLet: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['cekaLet', 0.4]],
+  lesHerbarLet2: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['cekaLet', 0.75]],
+  lesHerbarLet3: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['cekaLet', 1.5]],
+  // připomínka (4. klik na strom, batoh už má): bubliny po vyprávění odletí do HUD
+  lesHerbarZnovu: [['cekaScena', 'les'], ['cekaVolno'], ...STROM, ['klik', 312, 280], ['ceka', 500], ['cekaLet', 0.5]],
   lesKlice: [['cekaScena', 'les'], ['cekaVolno'], ...STROM.slice(0, 5), ['ceka', TREE_TALK + 3300]],
   lesVoda: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 900, 950], ['ceka', 1500]],
   lesKonecLavky: [['cekaScena', 'les'], ['cekaVolno'], ['klik', 700, 590], ['cekaVolno'], ['klik', 1500, 600], ['ceka', 1300]],
@@ -143,6 +156,12 @@ window.SCENARE = {
   vrcholLek: [['cekaVolno'], ['vrcholZolik'], ['klik', 1460, 480], ['cekaLek'], ['ceka', 250]], // tetřívek se lekne Krakonoše
   vrcholPrask: [['cekaVolno'], ['vrcholPraskni'], ['ceka', 900]], // zlomená rabuše s třískami
   vrcholOdlet: [['cekaVolno'], ['vrcholHraj'], ['ceka', 300]], // tetřívek odletěl, kluk u hrudky
+  vrcholRust1: [...VRCHOL_HRA, ['cekaVrchol', 'grow', 0.15]],
+  vrcholRust2: [...VRCHOL_HRA, ['cekaVrchol', 'grow', 0.45]],
+  vrcholRust3: [...VRCHOL_HRA, ['cekaVrchol', 'grow', 0.7]],
+  vrcholRust4: [...VRCHOL_HRA, ['cekaVrchol', 'grow', 1]],
+  vrcholRust5: [...VRCHOL_HRA, ['cekaVrchol', 'bloom', 0.6]],
+  vrcholRust6: [...VRCHOL_HRA, ['cekaVrchol', 'snow', 0.5]],
   vrcholKvetina: [...VRCHOL_HRA, ['ceka', 6500]],
   // položky přetažené z batohu na hrudku: nejdřív voda (špatně → bublina se semínky), pak semínka, voda, rampouch
   vrcholSpatne: [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['klik', 178, 32], ['ceka', 400], ['klik', 1480, 600], ['ceka', 800]],
@@ -268,6 +287,11 @@ window.SCENARE.cela = [
       V.dropPebble('hero');
       V.dropPebble('grouse');
     }
+    else if (s[0] === 'cekaBublina' || s[0] === 'cekaLet') { // herbář stromu: s od začátku bubliny / od odletu do HUD
+      const key = s[0] === 'cekaLet' ? 'outT' : 't0';
+      await waitFor(() => { const b = K.scenes.les.st.bubble; return b && b.kind === 'herbar' && K.time - b[key] >= s[1]; }, s[0]);
+    }
+    else if (s[0] === 'cekaVrchol') await waitFor(() => K.scenes.vrchol.st[s[1]] >= s[2], s[1]); // ['cekaVrchol', 'grow' | 'bloom' | 'snow', 0–1]
     else if (s[0] === 'cekaVolani') await waitFor(() => K.sheep.some((sh) => sh.callUntil > K.time), 'volani'); // stado vola od lesa
     else if (s[0] === 'cekaVlek') await waitFor(() => K.finale.waiting, 'vlek');
     else if (s[0] === 'cekaKonec') await waitFor(() => K.finale.ended, 'konec');
