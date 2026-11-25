@@ -55,6 +55,10 @@ const ROCKS = [
     [1295, 875], [1315, 910], [1330, 1000]],
 ];
 // rampouchy pod předním kmenem lávky: iy = spodek kmene, kam kápnou (krk = probudí berana)
+// obrázek rampouchů (Danielova studie, python tools/rampouchy.py): pět výřezů vedle sebe, ve hře poloviční
+const ICICLE_IMG = 'assets/sceny/les-rampouchy.webp';
+const ICICLE_RECTS = [[0, 0, 43, 217], [45, 0, 54, 229], [101, 0, 57, 198], [160, 0, 44, 228], [206, 0, 48, 229]];
+K.img(ICICLE_IMG);
 const ICICLES = [
   { x: 760, iy: 646, len: 80, hit: 'kamen', hy: 735 },
   { x: 830, iy: 647, len: 105, hit: 'kamen', hy: 724 },
@@ -836,18 +840,20 @@ function drawIcicles(ctx) {
   ICICLES.forEach((ic, i) => {
     if (i === st.taken) return;
     const x = ic.x + shakeOf(st.iceT[i], 4);
-    const c = Math.round(K.lerp(196, 236, sun));
-    ctx.fillStyle = `rgba(${c - 10}, ${c + 4}, ${Math.min(255, c + 16)}, 0.92)`;
-    ctx.strokeStyle = '#6f8fa8';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(x - 11, ic.iy - 4); ctx.lineTo(x + 11, ic.iy - 4); ctx.lineTo(x + 1, ic.iy + ic.len); ctx.closePath();
-    ctx.fill(); ctx.stroke();
+    const img = K.img(ICICLE_IMG), [sx, sy, sw, sh] = ICICLE_RECTS[i];
+    const h = ic.len + 4, w = sw / sh * h; // špička zůstává na iy + len, nahoře kus zajíždí do kmene
+    if (img.complete && img.naturalWidth) {
+      ctx.drawImage(img, sx, sy, sw, sh, x - w / 2, ic.iy - 4, w, h);
+      if (sun > 0) { // na slunci led zesvětlá
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.4 * sun + 0.3 * flash;
+        ctx.drawImage(img, sx, sy, sw, sh, x - w / 2, ic.iy - 4, w, h);
+        ctx.restore();
+      }
+    }
     if (sun > 0) {
-      // odlesk po délce a kapka, která se tvoří na špičce
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 * sun})`;
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(x - 5, ic.iy + 2); ctx.lineTo(x - 1, ic.iy + ic.len * 0.75); ctx.stroke();
+      // kapka, která se tvoří na špičce, a zajiskření
       ctx.fillStyle = `rgba(200, 228, 245, ${K.clamp(sun * 2 - 1)})`;
       ctx.beginPath(); ctx.arc(x + 1, ic.iy + ic.len + 4, 4.5, 0, Math.PI * 2); ctx.fill();
       const tw = Math.max(0, Math.sin(K.time * 2.2 + i * 1.7)) ** 14;

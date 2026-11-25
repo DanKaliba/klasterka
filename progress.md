@@ -290,6 +290,7 @@ Playwright tu nejde (firemní politika blokuje remote debugging), Node není. M�
   jako celek (jinak prosvítají překrývající se chomáče/ovály). Používá drawHero, drawSheep (`o.alpha`) a beran.
 
 ## Nápady / poznámky pro dalšího
+- Rampouchy v lese (2026-11-25): místo modrých trojúhelníků výřezy z Danielovy studie (`pics/podklady-les/rampouchy.png`, prompt v PROMPT-rampouchy.md). `python tools/rampouchy.py` → `assets/sceny/les-rampouchy.webp` (pět výřezů, obdélníky ICICLE_RECTS v js/les.js). Kreslí je `drawIcicles`: špička zůstává na `iy + len`, na slunci led zesvětlá ('lighter') a má kapku a zajiskření.
 - Hrdina čarou na živém webu (Daniel 2026-11-24, vrchol): kreslí se tak, dokud nejsou načtené všechny díly
   loutky; nenačtený obrázek se dřív nezkoušel znovu. Teď K.img zkusí chybu znovu po 1, 3 a 7 s (pak
   console.warn) a start.js čeká na díly hrdiny spolu se snímky louky. S čistým profilem se to nepodařilo
