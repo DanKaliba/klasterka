@@ -52,7 +52,7 @@ def main():
     # pod krčkem zbudou drobky hlíny: pryč všechno, co nesouvisí s listy nad krčkem
     for (x0, x1), krcek in FAZE:
         sub = alpha[:, x0:x1] > 0.3
-        lab2, n2 = ndimage.label(sub)
+        lab2, _ = ndimage.label(sub)
         above = set(np.unique(lab2[:krcek - 6])) - {0}
         alpha[:, x0:x1] *= np.isin(lab2, list(above)) | (np.arange(alpha.shape[0])[:, None] < krcek - 6)
     m = Image.fromarray((alpha * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.7))
@@ -65,7 +65,6 @@ def main():
     A = np.asarray(m)
     parts = []
     for (x0, x1), krcek in FAZE:
-        ys = np.where(A[krcek - 40:krcek, x0:x1].sum(axis=0) > 0)[0]
         cx = x0 + int(np.average(np.arange(x1 - x0), weights=A[krcek - 40:krcek, x0:x1].sum(axis=0) + 1e-3))
         col_rows = np.where(A[:, x0:x1].max(axis=1) > 8)[0]
         parts.append((x0, x1, krcek, cx, col_rows.min(), col_rows.max()))

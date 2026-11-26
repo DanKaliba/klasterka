@@ -39,17 +39,16 @@ function buildTimeline() {
   return keys;
 }
 
-const F = {
+const freshF = () => ({
   keys: [], t: 0, i: 0, waiting: false, liftOn: false, liftSpeed: 0, liftPos: 0, ended: false,
   stars: [], flakes: [], v: null, shift: { x: 0, y: 0 }, riding: [], trails: [],
   bird: { on: false, flyAt: null },
-};
+});
+const F = freshF(); // K.finale ukazuje na tenhle objekt, enter() ho jen přepíše
 
 // ---------- pomocné výpočty ----------
 function snowMix(v) {
-  const a = K.frameInfo(v.frameA).snow ? 1 : 0;
-  const b = K.frameInfo(v.frameB).snow ? 1 : 0;
-  return K.lerp(a, b, v.u);
+  return K.lerp(+K.isWinter(v.frameA), +K.isWinter(v.frameB), v.u);
 }
 const off = (pt, m) => ({ x: pt.x + K.L.snih.x * m, y: pt.y + K.L.snih.y * m });
 
@@ -515,18 +514,7 @@ K.scenes.finale = {
   music: () => 'hudba', // hlavní skladba s klávesami jako v lese (Daniel 2026-11-23)
   enter() {
     K.preloadSounds(['vitr', 'vlek', 'vlek-stop', 'tetrivek']);
-    F.keys = buildTimeline();
-    F.t = 0;
-    F.i = 0;
-    F.waiting = false;
-    F.liftOn = false;
-    F.liftSpeed = 0;
-    F.ended = false;
-    F.shift = { x: 0, y: 0 };
-    F.liftPos = 0;
-    F.riding = [];
-    F.trails = [];
-    F.bird = { on: false, flyAt: null };
+    Object.assign(F, freshF(), { keys: buildTimeline() });
     if (!K.sheep.length) K.makeSheep();
     makeStars();
     EVENTS[F.keys[0].ev]();
@@ -545,6 +533,8 @@ K.scenes.finale = {
       if (!(F.waiting && !F.liftOn)) F.t += d;
       while (F.i < k.length - 1 && F.t >= k[F.i + 1].t) {
         F.i++;
+        // další snímky dekódovat dopředu, ať se časosběr při přechodu na nový snímek nezadrhne
+        for (const n of k.slice(F.i + 1, F.i + 3)) K.frame(n.frame).decode().catch(() => {});
         const ev = k[F.i].ev;
         if (ev && EVENTS[ev]) EVENTS[ev]();
         if (ev === 'waitLift' && !F.liftOn) { F.t = k[F.i].t; break; }

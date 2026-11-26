@@ -103,20 +103,7 @@ const init = () => ({
 });
 
 // ---------- pohyb ----------
-async function heroGo(x, speed = 320) {
-  const h = st.hero, x0 = h.x, d = Math.abs(x - x0);
-  if (d < 1) return;
-  h.facing = Math.sign(x - x0);
-  h.walking = true;
-  const ph0 = h.phase;
-  await K.tween(d / speed, (t) => {
-    const before = h.phase;
-    h.x = K.lerp(x0, x, t);
-    h.phase = ph0 + (d * t) / 20;
-    K.walkStep(before, h.phase);
-  });
-  h.walking = false;
-}
+const heroGo = (x, speed = 320) => K.walkSide(st.hero, x, speed);
 const face = (dir) => { st.hero.facing = dir; };
 const lean = (to, dur = 0.25) => { const a = st.hero.lean; return K.tween(dur, (t) => { st.hero.lean = K.lerp(a, to, K.ease(t)); }); };
 const hop = (height, dur = 0.3) => K.tween(dur, (t) => { st.hero.hopY = Math.sin(t * Math.PI) * height; });
@@ -736,7 +723,7 @@ const scene = {
   },
   hot(p) {
     if (K.dist(p, EXIT) < 45) return true;
-    if (st.phase !== 'free' || K.busy) return false;
+    if (st.phase !== 'free') return false;
     return inTwig(p) >= 0 || frogHit(p) || jugHit(p) || K.dist(p, CHRIST) < CHRIST.r;
   },
   click(p) {

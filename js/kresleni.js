@@ -645,27 +645,6 @@ K.drawSheep = (ctx, x, y, s, o = {}) => {
 };
 
 // ---------- zvířata do detailů ----------
-K.drawHorse = (ctx, x, y, s, o = {}) => {
-  const f = o.facing || 1;
-  const st = o.walking ? Math.sin(o.phase || 0) * 10 * s : 0;
-  twoPass(ctx, false, () => {
-    const lw = 5 * s;
-    ctx.fillStyle = '#8a5a3a';
-    ctx.lineWidth = lw;
-    ctx.beginPath();
-    ctx.ellipse(x, y - 70 * s, 55 * s, 24 * s, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    [[-40, st], [-28, -st], [30, st], [42, -st]].forEach(([lx, sx], i) => stroke(ctx, [[x + lx * s, y - 52 * s], [x + lx * s + sx, y]], lw, 70 + i));
-    stroke(ctx, [[x + f * 45 * s, y - 80 * s], [x + f * 70 * s, y - 130 * s]], 10 * s, 75);
-    ctx.beginPath();
-    ctx.ellipse(x + f * 82 * s, y - 128 * s, 22 * s, 11 * s, f * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    stroke(ctx, [[x - f * 55 * s, y - 75 * s], [x - f * 72 * s, y - 40 * s]], lw, 76);
-  });
-};
-
 K.drawDeer = (ctx, x, y, s, o = {}) => {
   const f = o.facing || 1;
   twoPass(ctx, false, () => {
@@ -912,8 +891,7 @@ K.drawSnowCloud = (ctx, x, y, s, facing, t, dur) => {
 };
 
 // ---------- ikony ----------
-// batoh je fotka (Daniel 2026-11-10, python tools/batoh.py); dokud se nenačte, kreslí se čárou
-// ikony z obrázků (batoh, nástroje); dokud se nenačtou, kreslí se čarou
+// ikony z obrázků (batoh je fotka z tools/batoh.py, nástroje); dokud se nenačtou, kreslí se čarou
 const ICON_IMG = {
   batoh: { src: 'assets/predmety/batoh.png', h: 0.9 },
   fajfka: { src: 'assets/predmety/fajfka.png', h: 1.5 },
@@ -946,18 +924,8 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
       ctx.strokeRect(-4.5 * u, 6 * u, 9 * u, 3 * u);
       ctx.beginPath(); ctx.arc(0, -6 * u, 3.5 * u, Math.PI, 0); ctx.stroke();
       break;
-    case 'plan':
-      ctx.strokeRect(-8 * u, -10 * u, 16 * u, 20 * u);
-      L([[-5, 6], [5, -6]]); L([[-5, 6], [-5, 2]]); L([[0, 0], [0, 4]]); L([[5, -6], [5, -2]]);
-      break;
     case 'lyze':
       L([[-9, 9], [8, -8], [10, -10]]); L([[9, 9], [-8, -8], [-10, -10]]);
-      break;
-    case 'kotva':
-      L([[0, -10], [0, 7]]); L([[-7, 7], [7, 7]]); C(0, -10, 2, true);
-      break;
-    case 'lano':
-      C(0, 0, 9); C(0, 0, 6); C(0, 0, 3);
       break;
     case 'kolo':
       C(0, 0, 9); C(0, 0, 2, true);
@@ -1005,16 +973,6 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
         L([[-c, -s], [c, s]]);
       }
       break;
-    case 'ovceLyze':
-      // přání ovcí: lyže a vločka
-      L([[-10, 8], [6, -9], [8, -11]]); L([[-4, 10], [10, -5], [11, -8]]);
-      ctx.save(); ctx.translate(-6 * u, -6 * u); ctx.scale(0.45, 0.45);
-      for (let a = 0; a < 3; a++) {
-        const c = Math.cos(a * Math.PI / 3) * 10, s = Math.sin(a * Math.PI / 3) * 10;
-        L([[-c, -s], [c, s]]);
-      }
-      ctx.restore();
-      break;
     case 'beran': {
       // hlava berana z profilu (čumák vlevo dole) s velkým stočeným rohem a otazníkem: „kde je beran?“
       ctx.beginPath(); ctx.ellipse(-3 * u, 3 * u, 5.5 * u, 8 * u, 0.55, 0, Math.PI * 2); ctx.fill();
@@ -1037,19 +995,8 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
       ctx.fillText('?', 10 * u, -6 * u);
       break;
     }
-    case 'klic':
-      C(-5, 0, 4); L([[-1, 0], [10, 0]]); L([[6, 0], [6, 4]]); L([[9, 0], [9, 3]]);
-      break;
-    case 'zamek':
-      ctx.strokeRect(-7 * u, -1 * u, 14 * u, 11 * u);
-      ctx.beginPath(); ctx.arc(0, -1 * u, 5 * u, Math.PI, 0); ctx.stroke();
-      break;
     case 'zpet':
       L([[8, 0], [-8, 0]]); L([[-2, -6], [-8, 0], [-2, 6]]);
-      break;
-    case 'znovu':
-      ctx.beginPath(); ctx.arc(0, 0, 8 * u, -Math.PI * 0.3, Math.PI * 1.5); ctx.stroke();
-      L([[0, -12], [0, -8], [4, -6]]);
       break;
     case 'hrnek':
       // hrnek s jedním ouškem a nad ním semínka (kuchyně na Kantorské)
@@ -1071,23 +1018,10 @@ K.drawIcon = (ctx, name, x, y, size, color = INK) => {
       L([[1, 3], [4, 3]]);
       L([[-2, -9], [-4, -2]]); L([[-1, -9], [-2, -2]]);
       break;
-    case 'pohrabac':
-      // pohrabáč: očko nahoře, tyč a háček dole
-      C(-2, -9, 2.6);
-      L([[-1.6, -6.4], [1.4, 8]]);
-      L([[1.4, 8], [2.4, 11], [6, 10.4], [6.4, 7]]);
-      break;
     case 'rosti':
       // volná náruč roští (nesvázaná, Daniel 2026-11-09)
       L([[-11, 6], [10, -3]]); L([[-10, -2], [11, 5]]); L([[-8, 9], [9, 0]]);
       L([[-6, -6], [8, 8]]); L([[-2, 10], [4, -9]]); L([[5, -7], [7, -10]]); L([[-9, 2], [-11, -1]]);
-      break;
-    case 'ohen':
-      ctx.beginPath();
-      ctx.moveTo(0, -10 * u);
-      ctx.quadraticCurveTo(8 * u, 0, 0, 9 * u);
-      ctx.quadraticCurveTo(-8 * u, 0, 0, -10 * u);
-      ctx.fill();
       break;
     case 'karty':
       // vějíř tří karet: „zahraj si“

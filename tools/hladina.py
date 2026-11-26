@@ -13,11 +13,10 @@ Spuštění z kořene projektu:  python tools/hladina.py
 import os
 import sys
 
-import numpy as np
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from vetev import cutout  # noqa: E402
+from vetev import cutout, strip  # noqa: E402
 
 SRC = 'pics/podklady-muka/'
 LOUKA = (110, 100, 78)  # okolí studánky (rezavá tráva, šedé kameny, voda), assets/sceny/muka.jpg
@@ -43,20 +42,6 @@ def groups(alpha, axis_len, gap):
     if start is not None:
         out.append((start, axis_len))
     return out
-
-
-def strip(parts, path):
-    W = sum(p.width for p in parts) + 2 * len(parts)
-    H = max(p.height for p in parts)
-    im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    rects, x = [], 0
-    for p in parts:
-        im.paste(p, (x, 0))
-        rects.append([x, 0, p.width, p.height])
-        x += p.width + 2
-    im.save(path, quality=88, method=6)
-    print(os.path.basename(path), im.size, os.path.getsize(path) // 1024, 'kB')
-    return rects
 
 
 def split(path, gap, min_size):

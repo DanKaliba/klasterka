@@ -101,19 +101,13 @@ K.randomInPolygon = (poly) => {
 const timers = [];
 K.after = (sec) => new Promise((r) => timers.push({ t: sec, r }));
 K.tween = (dur, fn) => new Promise((r) => timers.push({ t: dur, d: dur, fn, r }));
-K.until = (cond) => new Promise((r) => timers.push({ cond, r }));
 
 function runTimers(dt) {
   for (let i = timers.length - 1; i >= 0; i--) {
     const tm = timers[i];
-    let done;
-    if (tm.cond) done = tm.cond();
-    else {
-      tm.t -= dt;
-      if (tm.fn) tm.fn(K.clamp(1 - tm.t / tm.d));
-      done = tm.t <= 0;
-    }
-    if (done) {
+    tm.t -= dt;
+    if (tm.fn) tm.fn(K.clamp(1 - tm.t / tm.d));
+    if (tm.t <= 0) {
       timers.splice(i, 1);
       tm.r();
     }
@@ -150,14 +144,10 @@ K.load = (srcs) => Promise.all(srcs.map((s) => {
   });
 }));
 
-// "2025-12-28_1300" → { date: "28. 12.", time: "13:00", snow: false }
-K.frameInfo = (name) => {
-  const [d, t] = name.split('_');
-  const [, m, day] = d.split('-');
-  return { date: `${+day}. ${+m}.`, time: `${t.slice(0, 2)}:${t.slice(2)}`, snow: d >= '2026-01-04' };
-};
+// "2026-01-04_1300" → true: od 4. 1. 2026 leží na snímcích sníh
+K.isWinter = (name) => name >= '2026-01-04';
 
-// Fotka zabírá celé plátno; zimní snímky jsou o kousek posunuté, proto K.L.snih.
+// Fotka zabírá celé plátno.
 K.drawFrame = (ctx, name, alpha = 1) => {
   const im = K.frame(name);
   if (!K.ready(im) || alpha <= 0) return;
@@ -198,7 +188,7 @@ const getSound = (name) => {
 // volume 0–1, rate = rychlost přehrávání (mění i výšku, pro obměnu opakovaných zvuků).
 // name může být pole variant (K.KASEL, K.OHEN): zahraje se náhodně jedna z nich.
 K.sound = (name, o = {}) => {
-  if (Array.isArray(name)) name = name[Math.floor(Math.random() * name.length)];
+  if (Array.isArray(name)) name = K.pick(name);
   if (K.muted) return;
   const s = getSound(name);
   if (s === undefined) {
@@ -401,7 +391,7 @@ for (const n of [...BLEATS, 'jehne']) getSound(n);
 // bečení: zvuk a ovce na chvíli otevře pusu (sh.bleatT čte K.drawSheepFlock)
 K.bleat = (sh) => {
   if (sh) sh.bleatT = K.time;
-  K.sound(sh && sh.lamb ? 'jehne' : BLEATS[Math.floor(Math.random() * BLEATS.length)],
+  K.sound(sh && sh.lamb ? 'jehne' : BLEATS,
     { volume: K.BLEAT_VOLUME * K.rand(0.85, 1), rate: K.rand(0.94, 1.06) });
 };
 // kroky po zmrzlé trávě jsou jen v pozadí pod hudbou; ladí se ?kroky=0.4
@@ -444,6 +434,26 @@ K.walkStep = (before, after, wood = false) => {
   K.sound(K.stepSound(), wood
     ? { volume: K.STEP_VOLUME * 0.7 * K.rand(0.75, 1), rate: K.rand(0.72, 0.84) }
     : { volume: K.STEP_VOLUME * 0.8 * K.rand(0.75, 1), rate: K.rand(0.9, 1.12) });
+};
+// chůze bokem po vodorovné podlaze (kuchyně, studánka, vrchol): h = { x, facing, walking, phase }
+K.walkSide = async (h, x, speed = 320, wood = false) => {
+  const x0 = h.x, d = Math.abs(x - x0);
+  if (d < 1) return;
+  h.facing = Math.sign(x - x0);
+  h.walking = true;
+  const ph0 = h.phase;
+  await K.tween(d / speed, (t) => {
+    const before = h.phase;
+    h.x = K.lerp(x0, x, t);
+    h.phase = ph0 + (d * t) / 20;
+    K.walkStep(before, h.phase, wood);
+  });
+  h.walking = false;
+};
+// zachvění po ťuknutí (t0 = kdy): rychle odeznívající kmit o amplitudě amt
+K.shake = (t0, amt = 8) => {
+  const d = K.time - (t0 ?? -9);
+  return d < 0.45 ? Math.sin(d * 60) * amt * (1 - d / 0.45) : 0;
 };
 
 // ---------- průhlednost postavy jako celku ----------
@@ -488,21 +498,25 @@ K.bagBump = -9;
 K.bagT = -9; // kdy strom dal batoh (místa na klíče pak vyskočí)
 K.slotPos = (i) => ({ x: 128 + i * 50, y: 32 });
 
+// ikona přeletí obloukem (výška arc) z from do to a zmenší se z s0 na s1; kreslí ji drawHud
+K.flyIcon = async (item, from, to, { dur, arc, s0 = 70, s1 }) => {
+  const fly = { item, x: from.x, y: from.y, s: s0 };
+  K.flyingItems.push(fly);
+  await K.tween(dur, (t) => {
+    const e = K.ease(t);
+    fly.x = K.lerp(from.x, to.x, e);
+    fly.y = K.lerp(from.y, to.y, e) - Math.sin(t * Math.PI) * arc;
+    fly.s = K.lerp(s0, s1, e);
+  });
+  K.flyingItems.splice(K.flyingItems.indexOf(fly), 1);
+};
+
 K.solve = async (id, item, from) => {
   if (K.state.solved[id]) return;
   K.state.solved[id] = true;
   K.sound(K.HLAS.vitezstvi); // odměna: kluk má radost (Daniel 2026-11-23, stejná nahrávka jako vítězství)
   // předmět přeletí do batůžku, batůžek poskočí a předmět se objeví na svém místě
-  const bag = K.BAG;
-  const fly = { item, x: from.x, y: from.y, s: 70 };
-  K.flyingItems.push(fly);
-  await K.tween(1.1, (t) => {
-    const e = K.ease(t);
-    fly.x = K.lerp(from.x, bag.x, e);
-    fly.y = K.lerp(from.y, bag.y, e) - Math.sin(t * Math.PI) * 160;
-    fly.s = K.lerp(70, 14, e);
-  });
-  K.flyingItems.splice(K.flyingItems.indexOf(fly), 1);
+  await K.flyIcon(item, from, K.BAG, { dur: 1.1, arc: 160, s1: 14 });
   K.bagBump = K.time;
   K.state.items.push(item);
 };
@@ -513,16 +527,7 @@ K.toolPos = (i) => K.slotPos(K.ITEMS.length + 0.5 + i);
 K.hasTool = (t) => K.state.tools.includes(t);
 K.giveTool = async (tool, from) => {
   if (K.hasTool(tool)) return;
-  const to = K.toolPos(K.TOOLS.indexOf(tool));
-  const fly = { item: tool, x: from.x, y: from.y, s: 70 };
-  K.flyingItems.push(fly);
-  await K.tween(0.9, (t) => {
-    const e = K.ease(t);
-    fly.x = K.lerp(from.x, to.x, e);
-    fly.y = K.lerp(from.y, to.y, e) - Math.sin(t * Math.PI) * 140;
-    fly.s = K.lerp(70, 30, e);
-  });
-  K.flyingItems.splice(K.flyingItems.indexOf(fly), 1);
+  await K.flyIcon(tool, from, K.toolPos(K.TOOLS.indexOf(tool)), { dur: 0.9, arc: 140, s1: 30 });
   K.bagBump = K.time;
   K.state.tools.push(tool);
 };
@@ -582,42 +587,34 @@ function drawHud(ctx) {
   ctx.beginPath();
   ctx.roundRect(-20, -20, 510, 84, 18);
   ctx.fill();
-  if (!K.state.bag) {
+  if (K.state.bag) {
+    // po převzetí batohu od stromu místa na klíče postupně vyskočí
+    const pop = (i) => K.ease(K.clamp((K.time - K.bagT - 0.25 - i * 0.14) / 0.3));
+    const bt = K.time - K.bagBump;
+    const bump = bt < 0.6 ? Math.sin(bt / 0.6 * Math.PI * 3) * (1 - bt / 0.6) : 0;
+    ctx.save();
+    ctx.translate(K.BAG.x, K.BAG.y + 18);
+    ctx.scale(1 + bump * 0.12, 1 - bump * 0.12);
+    K.drawIcon(ctx, 'batoh', 0, -18, 46, '#f3e6c8');
     ctx.restore();
-    for (const f of K.flyingItems) K.drawIcon(ctx, f.item, f.x, f.y, f.s, '#2b2118');
-    return;
-  }
-  // po převzetí batohu od stromu místa na klíče postupně vyskočí
-  const pop = (i) => K.ease(K.clamp((K.time - K.bagT - 0.25 - i * 0.14) / 0.3));
-  const bt = K.time - K.bagBump;
-  const bump = bt < 0.6 ? Math.sin(bt / 0.6 * Math.PI * 3) * (1 - bt / 0.6) : 0;
-  ctx.save();
-  ctx.translate(K.BAG.x, K.BAG.y + 18);
-  ctx.scale(1 + bump * 0.12, 1 - bump * 0.12);
-  K.drawIcon(ctx, 'batoh', 0, -18, 46, '#f3e6c8');
-  ctx.restore();
-  K.ITEMS.forEach((it, i) => {
-    const p = K.slotPos(i), k = pop(i);
-    if (k <= 0) return;
-    ctx.strokeStyle = 'rgba(243, 230, 200, 0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 19 * k, 0, Math.PI * 2);
-    ctx.stroke();
-    if (K.state.items.includes(it)) {
+    // vytažená věc nechá v HUD jen bledý obrys
+    const slotIcon = (it, p) => {
       ctx.globalAlpha = K.held === it ? 0.25 : 1;
       K.drawIcon(ctx, it, p.x, p.y, 32, '#f3e6c8');
       ctx.globalAlpha = 1;
-    }
-  });
-  K.TOOLS.forEach((t, i) => {
-    if (!K.hasTool(t)) return;
-    const p = K.toolPos(i);
-    // vytažený nástroj nechá v HUD jen bledý obrys
-    ctx.globalAlpha = K.held === t ? 0.25 : 1;
-    K.drawIcon(ctx, t, p.x, p.y, 32, '#f3e6c8');
-    ctx.globalAlpha = 1;
-  });
+    };
+    K.ITEMS.forEach((it, i) => {
+      const p = K.slotPos(i), k = pop(i);
+      if (k <= 0) return;
+      ctx.strokeStyle = 'rgba(243, 230, 200, 0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 19 * k, 0, Math.PI * 2);
+      ctx.stroke();
+      if (K.state.items.includes(it)) slotIcon(it, p);
+    });
+    K.TOOLS.forEach((t, i) => { if (K.hasTool(t)) slotIcon(t, K.toolPos(i)); });
+  }
   ctx.restore();
   for (const f of K.flyingItems) K.drawIcon(ctx, f.item, f.x, f.y, f.s, '#2b2118');
   // nástroj v ruce jede s kurzorem (po vytažení krátce povyroste)
@@ -629,7 +626,6 @@ function drawHud(ctx) {
 }
 
 // ---------- vstup ----------
-K.hover = null;
 K.canvas.addEventListener('pointerdown', (e) => {
   const p = K.toWorld(e);
   if (K.editor && K.editor.active) return K.editor.down(p, e);

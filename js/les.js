@@ -54,11 +54,11 @@ const ROCKS = [
   [[1005, 1000], [1010, 970], [1030, 930], [1065, 895], [1100, 872], [1150, 850], [1210, 842], [1250, 847],
     [1295, 875], [1315, 910], [1330, 1000]],
 ];
-// rampouchy pod předním kmenem lávky: iy = spodek kmene, kam kápnou (krk = probudí berana)
 // obrázek rampouchů (Danielova studie, python tools/rampouchy.py): pět výřezů vedle sebe, ve hře poloviční
 const ICICLE_IMG = 'assets/sceny/les-rampouchy.webp';
 const ICICLE_RECTS = [[0, 0, 43, 217], [45, 0, 54, 229], [101, 0, 57, 198], [160, 0, 44, 228], [206, 0, 48, 229]];
 K.img(ICICLE_IMG);
+// rampouchy pod předním kmenem lávky: iy = spodek kmene, kam kápnou (krk = probudí berana)
 const ICICLES = [
   { x: 760, iy: 646, len: 80, hit: 'kamen', hy: 735 },
   { x: 830, iy: 647, len: 105, hit: 'kamen', hy: 724 },
@@ -101,11 +101,6 @@ K.img(LISTY_IMG);
 const onBranch = ([px, py]) => {
   const dx = px - BRANCH_AT.ax, dy = py - BRANCH_AT.ay, c = Math.cos(BRANCH_AT.rot), s = Math.sin(BRANCH_AT.rot);
   return { x: BRANCH_AT.x + dx * c - dy * s, y: BRANCH_AT.y + dx * s + dy * c };
-};
-
-const shakeOf = (t0, amt) => {
-  const d = K.time - (t0 ?? -9);
-  return d < 0.45 ? Math.sin(d * 60) * amt * (1 - d / 0.45) : 0;
 };
 
 let st = null;
@@ -284,16 +279,7 @@ async function treeCrash() {
 // batoh visí na větvi, strom ho shodí a přeletí do HUD
 async function giveBag() {
   st.bagHang = false;
-  const from = { x: BAG.x, y: BAG.y }, bag = K.BAG;
-  const fly = { item: 'batoh', x: from.x, y: from.y, s: 90 };
-  K.flyingItems.push(fly);
-  await K.tween(1.2, (t) => {
-    const e = K.ease(t);
-    fly.x = K.lerp(from.x, bag.x, e);
-    fly.y = K.lerp(from.y, bag.y, e) - Math.sin(t * Math.PI) * 140;
-    fly.s = K.lerp(90, 46, e);
-  });
-  K.flyingItems.splice(K.flyingItems.indexOf(fly), 1);
+  await K.flyIcon('batoh', BAG, K.BAG, { dur: 1.2, arc: 140, s0: 90, s1: 46 });
   K.state.bag = true;
   K.bagT = K.time;
   K.bagBump = K.time;
@@ -564,7 +550,6 @@ async function crossOver() {
   await heroGo(EXIT_PATH, 300);
   K.state.solved.les = true;
   K.addRam(true);
-  st.phase = 'done';
   await K.fadeTo(1, 0.9, K.FOREST_FADE);
   K.busy--;
   K.go('louka', { from: 'les' });
@@ -837,22 +822,22 @@ function sparkle(ctx, x, y, r) {
 function drawIcicles(ctx) {
   const sun = st.sun;
   const flash = st.glintT !== null ? K.clamp(1 - (K.time - st.glintT) / 1.2) : 0;
+  const img = K.img(ICICLE_IMG), ready = K.ready(img);
   ICICLES.forEach((ic, i) => {
     if (i === st.taken) return;
-    const x = ic.x + shakeOf(st.iceT[i], 4);
-    const img = K.img(ICICLE_IMG), [sx, sy, sw, sh] = ICICLE_RECTS[i];
+    const x = ic.x + K.shake(st.iceT[i], 4);
+    const [sx, sy, sw, sh] = ICICLE_RECTS[i];
     const h = ic.len + 4, w = sw / sh * h; // špička zůstává na iy + len, nahoře kus zajíždí do kmene
-    if (img.complete && img.naturalWidth) {
-      ctx.drawImage(img, sx, sy, sw, sh, x - w / 2, ic.iy - 4, w, h);
-      if (sun > 0) { // na slunci led zesvětlá
+    const draw = () => ctx.drawImage(img, sx, sy, sw, sh, x - w / 2, ic.iy - 4, w, h);
+    if (ready) draw();
+    if (sun > 0) {
+      if (ready) { // na slunci led zesvětlá
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 0.4 * sun + 0.3 * flash;
-        ctx.drawImage(img, sx, sy, sw, sh, x - w / 2, ic.iy - 4, w, h);
+        draw();
         ctx.restore();
       }
-    }
-    if (sun > 0) {
       // kapka, která se tvoří na špičce, a zajiskření
       ctx.fillStyle = `rgba(200, 228, 245, ${K.clamp(sun * 2 - 1)})`;
       ctx.beginPath(); ctx.arc(x + 1, ic.iy + ic.len + 4, 4.5, 0, Math.PI * 2); ctx.fill();
@@ -873,7 +858,7 @@ function drawTree(ctx) {
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   // při probuzení se protáhne (zachvěje)
-  ctx.translate(shakeOf(st.stretchT, 5), 0);
+  ctx.translate(K.shake(st.stretchT, 5), 0);
   const open = st.tree, blink = st.treeStage >= 2 && (K.time % 4.3) < 0.13;
   const talking = K.time < st.mouthUntil;
   const [lx, ly] = FACE.l, [rx, ry] = FACE.r;
@@ -1253,7 +1238,7 @@ function drawRamBack(ctx, jig) {
     });
   }
   // hlava za hřbetem a rohy: vleže vykukují jen vršky, šedé jako dva oblé kamínky
-  const hj = shakeOf(st.headT, 5);
+  const hj = K.shake(st.headT, 5);
   const ink = `rgba(29, 23, 18, ${K.lerp(1, 0.4, m)})`;
   const hx = cx + hj, hy = K.lerp(cy - ry * 0.72, cy - ry - 26, sd);
   ctx.fillStyle = m > 0.5 ? '#6a645a' : '#5c534a';
@@ -1352,7 +1337,7 @@ function drawRamSide(ctx, jig) {
   ctx.fill();
   ctx.beginPath(); ctx.ellipse(cx, cy, rx * 0.86, ry * 0.8, 0, 0, Math.PI * 2); ctx.fill();
   // hlava
-  const hj = shakeOf(st.headT, 5);
+  const hj = K.shake(st.headT, 5);
   const hx = cx - rx - 20 + hj, hy = cy - 45;
   ctx.fillStyle = '#5c534a';
   ctx.strokeStyle = K.INK;
@@ -1370,7 +1355,7 @@ function drawRamSide(ctx, jig) {
 
 function drawRam(ctx) {
   const r = st.ram;
-  const jig = st.shiver ? Math.sin(K.time * 50) * 5 : shakeOf(st.ramT, 6);
+  const jig = st.shiver ? Math.sin(K.time * 50) * 5 : K.shake(st.ramT, 6);
   ctx.save();
   ctx.translate(r.x, RAM_BASE + r.dy);
   // otočení bokem = „zúžení“ na hranu a zpět; bokem hlavou doprava = zrcadlově
@@ -1469,7 +1454,7 @@ K.scenes.les = {
     ctx.save();
     if (st.quakeT !== null) {
       // otřes: obraz se trochu zvětší, ať se při posunu neukáže okraj
-      ctx.translate(K.W / 2 + shakeOf(st.quakeT, 12), K.H / 2 + shakeOf(st.quakeT, 5));
+      ctx.translate(K.W / 2 + K.shake(st.quakeT, 12), K.H / 2 + K.shake(st.quakeT, 5));
       ctx.scale(1.02, 1.02);
       ctx.translate(-K.W / 2, -K.H / 2);
     }
@@ -1518,7 +1503,7 @@ K.scenes.les = {
     if (K.debug) {
       ctx.strokeStyle = 'rgba(200, 0, 0, 0.7)';
       ICICLES.forEach((ic) => ctx.strokeRect(ic.x - 30, ic.iy - 30, 60, ic.len + 55));
-      ctx.strokeRect(760, 540, 260, 85);
+      ctx.strokeRect(755, 540, 1060 - 755, 615 - 540); // inBranch
       ctx.strokeRect(430, 520, TIP_X + 40 - 430, 140);
     }
     ctx.restore();

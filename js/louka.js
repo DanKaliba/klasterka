@@ -292,7 +292,6 @@ async function zoom(target, inward) {
 // ---------- scéna ----------
 let bubble = null; // { sheep, icon, until }
 let lockBubble = 0;
-const allSolved = () => K.hasAllItems();
 const house = (id) => K.L.chalupy.find((c) => c.id === id);
 
 // Zapomenutý rampouch (Daniel 2026-11-22): les je prošlý, ale rampouch chybí → na kraji lesa bílý kruh,
@@ -409,7 +408,7 @@ K.scenes.louka = {
     }
     const v = K.L.vrchol;
     if (K.state.asked) {
-      if (allSolved()) K.drawHint(ctx, v.x, v.y, 40);
+      if (K.hasAllItems()) K.drawHint(ctx, v.x, v.y, 40);
       // bez všech tří věcí: bublina s tou, která ještě chybí
       const missing = K.ITEMS.find((it) => !K.state.items.includes(it));
       if (lockBubble > K.time && missing) K.drawBubble(ctx, v.x, v.y - 6, 0.45, missing);
@@ -447,7 +446,7 @@ K.scenes.louka = {
     }
     if (fhint && K.dist(p, fhint) < FOREST_HINT_R) return backToForest();
     if (K.state.asked) {
-      if (K.dist(p, K.L.vrchol) < 50) return allSolved() ? enterPlace('vrchol', K.L.vrchol) : (lockBubble = K.time + 2);
+      if (K.dist(p, K.L.vrchol) < 50) return K.hasAllItems() ? enterPlace('vrchol', K.L.vrchol) : (lockBubble = K.time + 2);
       const c = K.L.chalupy.find((h) => K.CHALETS[h.id] && !K.state.solved[h.id] && K.dist(p, h) < h.w);
       if (c) return enterPlace(c.id, c);
     }

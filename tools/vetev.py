@@ -22,12 +22,27 @@ MLHA_K = 0.12  # kolik mlhy přimíchat
 DESAT = 0.15  # o kolik ubrat sytost
 
 
+def strip(parts, path, quality=88):
+    """Výřezy vedle sebe (2 px mezery) do jednoho WebP; vrátí obdélníky [x, y, w, h] pro hru.
+    Používají i tools/hladina.py a tools/rampouchy.py."""
+    W = sum(p.width for p in parts) + 2 * len(parts)
+    H = max(p.height for p in parts)
+    im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    rects, x = [], 0
+    for p in parts:
+        im.paste(p, (x, 0))
+        rects.append([x, 0, p.width, p.height])
+        x += p.width + 2
+    im.save(path, quality=quality, method=6)
+    print(os.path.basename(path), im.size, os.path.getsize(path) // 1024, 'kB')
+    return rects
+
+
 def cutout(path, min_size, mlha=MLHA, mlha_k=MLHA_K, holes=600):
     """RGBA bez šedého pozadí: maska podle vzdálenosti od šedé a sytosti, malé díry v kůře zaplněné.
     Barvy se o mlha_k přiblíží barvě mlha (okolí ve scéně). Díry menší než holes px se zaplní (kůra);
     u chomáčů stébel holes=0, mezery mezi nimi jsou skutečné pozadí. Používá i tools/hladina.py."""
     a = np.asarray(Image.open(path).convert('RGB'), dtype=np.float32)
-    h, w, _ = a.shape
     edge = np.concatenate([a[:15].reshape(-1, 3), a[-15:].reshape(-1, 3), a[:, :15].reshape(-1, 3), a[:, -15:].reshape(-1, 3)])
     bg = np.median(edge, axis=0)
     dist = np.sqrt(((a - bg) ** 2).sum(axis=2))
@@ -89,17 +104,7 @@ def main():
     # list ležící na šířku má délku = šířka, list nastojato (z boku) = výška
     k = LIST_W / max(max(p.size) for p in parts)
     parts = [p.resize((max(1, round(p.width * k)), max(1, round(p.height * k))), Image.LANCZOS) for p in parts]
-    W = sum(p.width for p in parts) + 2 * len(parts)
-    H = max(p.height for p in parts)
-    strip = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    rects, x = [], 0
-    for p in parts:
-        strip.paste(p, (x, 0))
-        rects.append([x, 0, p.width, p.height])
-        x += p.width + 2
-    strip.save('assets/sceny/les-listy.webp', quality=90, method=6, lossless=False)
-    print('les-listy.webp', strip.size, len(parts), 'listů')
-    print('LISTY =', rects)
+    print('LISTY =', strip(parts, 'assets/sceny/les-listy.webp', quality=90))
 
 
 if __name__ == '__main__':

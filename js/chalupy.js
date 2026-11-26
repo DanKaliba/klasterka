@@ -5,11 +5,6 @@ const GROUND = 860;
 const HERO_X = 230;
 const EXIT = { x: 90, y: 990 };
 
-const shake = (t0, amt = 8) => {
-  const d = K.time - (t0 || -9);
-  return d < 0.45 ? Math.sin(d * 60) * amt * (1 - d / 0.45) : 0;
-};
-
 function closeup(id, spec) {
   let st = null;
   const scene = {
@@ -76,7 +71,7 @@ closeup('skocka', {
     [[520, 520], [640, 640], [760, 760]].forEach(([x, y], i) => K.stroke(ctx, [[x, y], [x, GROUND + 10]], 4, 310 + i));
     K.drawPerson(ctx, 1020, GROUND + 10, 1.7, { hat: 'cepice', facing: 1, arm: st.done ? 'up' : null });
     // strom
-    const tx = 1450 + shake(st.shakeT, 14);
+    const tx = 1450 + K.shake(st.shakeT, 14);
     ctx.fillStyle = '#6b4a30';
     ctx.fillRect(tx - 30, 560, 60, GROUND - 550);
     ctx.strokeRect(tx - 30, 560, 60, GROUND - 550);
@@ -132,7 +127,7 @@ closeup('jelinek', {
   init: () => ({ deerAt: Math.floor(Math.random() * 3), shakeT: [], deer: null, bird: null, wheel: null }),
   draw(ctx, st) {
     BUSH_X.forEach((x, i) => {
-      const dx = shake(st.shakeT[i], 12);
+      const dx = K.shake(st.shakeT[i], 12);
       ctx.fillStyle = '#4f6b3c';
       ctx.strokeStyle = K.INK;
       ctx.lineWidth = 4;
@@ -196,7 +191,7 @@ closeup('klinovka', {
       }
     }
     // kamna
-    const kx = 1000 + shake(st.shakeT);
+    const kx = 1000 + K.shake(st.shakeT);
     ctx.fillStyle = '#3b3b3b';
     ctx.lineWidth = 5;
     ctx.fillRect(kx - 85, GROUND - 130, 170, 140);

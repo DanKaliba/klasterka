@@ -38,7 +38,6 @@ def save(path, img):
 
 def cut_sheet(img):
     """Modré pozadí pryč; vrátí seznam (rgba, x0) póz zleva doprava."""
-    h, w = img.shape[:2]
     corners = np.concatenate([img[:20, :20], img[:20, -20:], img[-20:, :20], img[-20:, -20:]]).reshape(-1, 3)
     bgc = np.median(corners, axis=0)
     dist = np.linalg.norm(img.astype(np.float32) - bgc, axis=2)
@@ -69,7 +68,7 @@ def cut_sheet(img):
 
 def anchor(rgba, kind):
     a = rgba[..., 3] > 128
-    ys, xs = np.nonzero(a)
+    ys, _ = np.nonzero(a)
     bottom = ys.max()
     band = a[int(bottom - (bottom - ys.min()) * 0.12):bottom + 1]
     bx = np.nonzero(band.any(axis=0))[0]

@@ -30,16 +30,12 @@ const IMG = {
   krizaly: [1, 2, 3].map((i) => S + `kuchyne-krizaly-${i}.png`),
 };
 for (const f of [BG, ...Object.values(IMG).flat()]) K.img(f);
-const FADE = '#2a2118';
 
 // souřadnice v pozadí 1920×1080; levé horní rohy výřezů vypisuje tools/kuchyne.py
 const BOX = { kos: { x: 352, y: 841 }, pohrabac: { x: 755, y: 663 } };
 // babka je papírová loutka (js/babka.js), BABKA_AT = podlaha pod středem sukně v kleku; pózy:
 // 1 smutně kouká do ohně, 2 kašle, 3 prosí, 4 přikládá (ruce k dvířkům), 5 spokojená. Pusu a dlaně
 // (kam přiletí roští) vrací kreslení do st.babka; GRANNY_MOUTH a GRANNY_HANDS níž jsou jen záloha.
-// děda je loutka (grandpaMode); číslo jeho stavu pro testy: 1 sedí (s fajfkou kouří), 2 kašle,
-// 3 vyfukuje kouř a kouká nahoru, 5 leknutí (kocour na hlavě), 6 zlost
-const DEDA_STARTLE = 5, DEDA_ANGRY = 6;
 const BABKA_AT = { x: 215, y: 975 };
 // děda je papírová loutka (js/deda.js): DEDA_AT = podlaha pod středem stoličky. Body na loutce (pusa,
 // temeno pro kocoura, fajfka a její víčko) vrací kreslení do st.deda; konstanty níž jsou jen záloha.
@@ -147,20 +143,7 @@ const init = () => ({
 });
 
 // ---------- pohyb ----------
-async function heroGo(x, speed = 320) {
-  const h = st.hero, x0 = h.x, d = Math.abs(x - x0);
-  if (d < 1) return;
-  h.facing = Math.sign(x - x0);
-  h.walking = true;
-  const ph0 = h.phase;
-  await K.tween(d / speed, (t) => {
-    const before = h.phase;
-    h.x = K.lerp(x0, x, t);
-    h.phase = ph0 + (d * t) / 20;
-    K.walkStep(before, h.phase, true); // dřevěná podlaha
-  });
-  h.walking = false;
-}
+const heroGo = (x, speed = 320) => K.walkSide(st.hero, x, speed, true); // dřevěná podlaha
 
 // voice: výskok (k oknu, k polici) řekne „hop“, malé poskočení ne; dva skoky po sobě jen jednou
 const hop = (height, dur = 0.3, voice = height >= 30) => {
@@ -686,7 +669,7 @@ function grannyPose() {
   return st.fire > 0 ? 5 : 1;
 }
 // číslo dědova stavu pro testy (render_game_to_text)
-const DEDA_NUM = { kouri: 1, bez: 1, kasel: 2, fouka: 3, tah: 4, lek: DEDA_STARTLE, zlost: DEDA_ANGRY, mavne: 7 };
+const DEDA_NUM = { kouri: 1, bez: 1, kasel: 2, fouka: 3, tah: 4, lek: 5, zlost: 6, mavne: 7 };
 // babka jako loutka (js/babka.js): póza podle grannyPose, předklon ke dvířkům st.lean
 const grannyOpts = () => ({ pose: grannyPose(), lean: st.lean, facing: 1 });
 function drawGranny(ctx) {

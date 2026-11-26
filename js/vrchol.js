@@ -88,20 +88,7 @@ const init = () => ({
 });
 
 // ---------- kluk ----------
-async function heroGo(x, speed = 320) {
-  const h = st.hero, x0 = h.x, d = Math.abs(x - x0);
-  if (d < 1) return;
-  h.facing = Math.sign(x - x0);
-  h.walking = true;
-  const ph0 = h.phase;
-  await K.tween(d / speed, (t) => {
-    const before = h.phase;
-    h.x = K.lerp(x0, x, t);
-    h.phase = ph0 + (d * t) / 20;
-    K.walkStep(before, h.phase);
-  });
-  h.walking = false;
-}
+const heroGo = (x, speed = 320) => K.walkSide(st.hero, x, speed);
 
 // volná chůze po planině (Daniel 2026-11-18: jako jinde, klik na zem). Dokud tetřívek sedí na hrudce,
 // pustí kluka jen ke GUARD_X; když chce dál, tetřívek ho zastraší a kluk couvne.
@@ -171,13 +158,13 @@ async function deal(who) {
   st.flying = null;
   hand.push(card);
   // tetřívek hodí zobákem kamínek na zub rabuše podle nového součtu (Daniel 2026-11-18)
-  const key = who === 'hero' ? 'hero' : 'grouse', to0 = Math.min(25, total(hand)), at = knobAt(key, to0);
+  const to0 = Math.min(25, total(hand)), at = knobAt(who, to0);
   if (at) {
     g.state = 'pluck';
     g.pluckT = K.time;
     await K.after(0.2);
     const from = { x: g.x + BEAK.x, y: g.y + BEAK.y };
-    st.tallyFly = { who: key, x: from.x, y: from.y, rot: 0 };
+    st.tallyFly = { who, x: from.x, y: from.y, rot: 0 };
     g.state = 'display';
     await K.tween(0.5, (t) => {
       const e = K.ease(t);
@@ -186,11 +173,11 @@ async function deal(who) {
       st.tallyFly.rot = t * 5;
     });
     st.tallyFly = null;
-    st.stick[key] = to0;
+    st.stick[who] = to0;
     K.sound('kaminek', { volume: 0.5, rate: K.rand(1.1, 1.3) });
   } else {
-    const from0 = st.stick[key];
-    await K.tween(0.35, (t) => { st.stick[key] = K.lerp(from0, to0, t); });
+    const from0 = st.stick[who];
+    await K.tween(0.35, (t) => { st.stick[who] = K.lerp(from0, to0, t); });
   }
   if (card.joker && who === 'hero') await grouseScare();
 }
@@ -990,10 +977,10 @@ const scene = {
     if (st.fly) K.drawIcon(ctx, st.fly.item, st.fly.x, st.fly.y, 46);
     if (st.snow > 0) {
       ctx.fillStyle = '#fff';
-      for (const f of flakes) {
-        ctx.globalAlpha = st.snow * 0.9;
-        ctx.beginPath(); ctx.arc(f.x, f.y, 2 + f.z * 5, 0, Math.PI * 2); ctx.fill();
-      }
+      ctx.globalAlpha = st.snow * 0.9;
+      ctx.beginPath(); // všechny vločky jednou cestou, jedno vyplnění místo 160
+      for (const f of flakes) { const r = 2 + f.z * 5; ctx.moveTo(f.x + r, f.y); ctx.arc(f.x, f.y, r, 0, Math.PI * 2); }
+      ctx.fill();
       ctx.globalAlpha = 1;
     }
     if (canExit()) K.drawRoundButton(ctx, EXIT.x, EXIT.y, 'zpet');

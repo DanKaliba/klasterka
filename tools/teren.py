@@ -9,7 +9,6 @@ Kamera (Daniel 2026-11-02): 50.7052917N, 15.6433725E, dívá se na SV na Klínov
 Natočení, sklon, náklon, ohnisko a soudkovité zkreslení se dopočítají z chalup, jejichž poloha
 na snímku i v mapě je známá (CTRL). Výška kamery nad zemí se z nich určit nedá, je odhadnutá.
 """
-import io
 import json
 import math
 import os
