@@ -165,6 +165,11 @@ window.SCENARE = {
   vrcholKvetina: [...VRCHOL_HRA, ['ceka', 6500]],
   // položky přetažené z batohu na hrudku: nejdřív voda (špatně → bublina se semínky), pak semínka, voda, rampouch
   vrcholSpatne: [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['klik', 178, 32], ['ceka', 400], ['klik', 1480, 600], ['ceka', 800]],
+  // fajfka z batůžku na hrudku se nezasadí (Daniel 2026-11-26): kluk si potáhne a vyfoukne dým (screenshot při fouknutí)
+  vrcholFajfka: [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['dejNastroj', 'fajfka'], ['klikNastroj', 'fajfka'],
+    ['klik', 1480, 600], ['ceka', 2900]],
+  vrcholFajfkaPak: [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['dejNastroj', 'fajfka'], ['klikNastroj', 'fajfka'],
+    ['klik', 600, 900], ['cekaVolno'], ['klik', 1480, 600], ['cekaVolno']], // dokouří, fajfka zpět; pak klik na hrudku zasadí semínka
   vrcholDrzi: [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['klik', 128, 32], ['ceka', 400]],
   vrcholPretah: [['cekaVolno'], ['vrcholHraj'], ['cekaVolno'], ['klik', 178, 32], ['klik', 1480, 600], ['cekaVolno'],
     ['klik', 128, 32], ['klik', 1480, 600], ['cekaVolno'], ['klik', 178, 32], ['klik', 1480, 600], ['cekaVolno'],
@@ -291,6 +296,7 @@ window.SCENARE.cela = [
       const key = s[0] === 'cekaLet' ? 'outT' : 't0';
       await waitFor(() => { const b = K.scenes.les.st.bubble; return b && b.kind === 'herbar' && K.time - b[key] >= s[1]; }, s[0]);
     }
+    else if (s[0] === 'dejNastroj') K.state.tools.push(s[1]); // nástroj do batůžku bez scény, kde se získá
     else if (s[0] === 'cekaVrchol') await waitFor(() => K.scenes.vrchol.st[s[1]] >= s[2], s[1]); // ['cekaVrchol', 'grow' | 'bloom' | 'snow', 0–1]
     else if (s[0] === 'cekaVolani') await waitFor(() => K.sheep.some((sh) => sh.callUntil > K.time), 'volani'); // stado vola od lesa
     else if (s[0] === 'cekaVlek') await waitFor(() => K.finale.waiting, 'vlek');

@@ -174,6 +174,9 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
   do své rabuše a zlomí ji (ukážou se zlomené kusy). Test `vrcholPrask` ukáže spadlý kamínek a zlomenou rabuši.
   Krakonoš (žolík) je Danielův obrázek (2026-11-18, prompt KK, karta-krakonos-KK.png): Rübezahl podle
   Helwigovy mapy (1561), paroží z větviček kleče; v rozích hra kreslí hnědý puntík v kroužku (1 nebo 11).
+  Fajfka (Daniel 2026-11-26): vytažená z batůžku a použitá kamkoli do scény (i na hrudku) = kluk si třikrát
+  potáhne a vyfoukne dým, pak je zpátky v batůžku (`smokePipe`, testy `vrcholFajfka`, `vrcholFajfkaPak`).
+  Hrnek ani špatná položka se na hrudku nezasadí, kluk ukáže, co je na řadě.
   Pozadí je Danielův obrázek (2026-11-18, prompt V, pics/podklady-vrchol/vrchol-V.png): `python tools/vrchol.py`
   → assets/sceny/vrchol.jpg a vrstva vrchol-hrudka.png (ztmavená hrudka, prolne se po zalití). Mužík, plochý
   kámen a hrudka jsou v pozadí; hra na ně kreslí jen kamínky, karty, rabuše a květinu.
@@ -185,7 +188,9 @@ vyroste, rozkvete a pyl z ní zasype Krkonoše jako sníh → finále.
 - Push odsud: remote musí mít uživatele v URL (`https://DanKaliba@github.com/...`) a `GIT_TERMINAL_PROMPT=0`.
 
 ## Struktura
-- `js/jadro.js` plátno, smyčka, časovače (`K.after/K.tween/K.until`), HUD, přechody, `advanceTime`
+- `js/jadro.js` plátno, smyčka, časovače (`K.after/K.tween`), HUD, přechody, `advanceTime`;
+  společné pohyby `K.walkSide`, `K.shake`, `K.flyIcon` (scény je mají používat, ne kopírovat).
+  Lekce z úklidu kódu a seznam velkých úprav, které nejsou hotové: `~/.claude/HRA-POINT-AND-CLICK.md`
 - `js/kresleni.js` zástupné kresby (panáček, ovce, chalupníci, zvířata, ikony, papír); ovce z obrázku (`K.sprite`)
 - `js/sprity.js` pózy postav z obrázků (kocour, ovce: zdroj, kotva, směr) generuje `python tools/sprity.py`
   z pics/podklady-postavy/ (Daniel 2026-11-13: kocour KC; ovce jako loutka z dílů OV2b)

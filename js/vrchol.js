@@ -30,6 +30,10 @@ const EXIT = { x: 90, y: 990 };
 const FADE = '#efe6d2';
 
 const HERO_Y = 1040, HERO_S = 2.4, HERO_X = 300;
+// dědova fajfka z kuchyně (Daniel 2026-11-26): vytažená z batůžku a použitá ve scéně = kluk si párkrát potáhne
+// a vyfoukne dým; stejný obrázek a natočení jako u studánky (muka.js), měřítko podle HERO_S
+const PIPE_IMG = 'assets/predmety/fajfka.png', PIPE_S = 0.34 * HERO_S / 1.4, PIPE_ROT = 0.45;
+K.img(PIPE_IMG);
 const CAIRN = { x: 451, y: 590 }; // mužík (pata); jeho funkci Daniel ještě vymyslí
 const MOUND = { x: 1480, y: 585 }; // hrudka rašeliny (vršek 567, pata 630), na ní sedí tetřívek
 const GROUSE = { x: 1478, y: 578 }; // tetřívek (chodidla), kouká doleva
@@ -79,7 +83,8 @@ const isOko = (cards) => cards.length === 2 && cards.every((c) => c.value === 11
 let st = null;
 const init = () => ({
   phase: 'intro', // intro → idle → hero → grouse → (idle | plant) → bloom → done
-  hero: { x: -80, facing: 1, walking: false, phase: 0, waveT: -9, arm: null, face: null },
+  hero: { x: -80, facing: 1, walking: false, phase: 0, waveT: -9, arm: null, face: null, pipe: false },
+  smoke: [],
   grouse: { state: 'display', x: GROUSE.x, y: GROUSE.y, rot: 0, pluckT: -9, tokT: -9, scareT: -9, refuseT: -9, threatT: -9, hopY: 0, flap: 0 },
   deck: shuffle(fullDeck()), heroCards: [], grouseCards: [], flying: null,
   stick: { hero: 0, grouse: 0, heroBreakT: -9, grouseBreakT: -9, heroFall: null, grouseFall: null }, tallyFly: null,
@@ -449,6 +454,67 @@ async function plantWrong() {
   await say('hero', K.ITEMS[st.step], 1.4);
   K.busy--;
 }
+// ---------- fajfka ----------
+function heroOpts() {
+  const h = st.hero;
+  return { facing: h.facing, walking: h.walking, phase: h.phase, halo: false,
+    wave: K.time - h.waveT < 0.9 || h.waveT > K.time, arm: h.pipe ? 'mouth' : h.arm, face: h.face };
+}
+const mouth = () => K.heroMouth(st.hero.x, HERO_Y, HERO_S, heroOpts())
+  || { x: st.hero.x + st.hero.facing * 24, y: HERO_Y - 245 };
+function pipeBowl() {
+  const m = mouth(), L = 240 * PIPE_S * 0.92, rot = -st.hero.facing * PIPE_ROT;
+  return { x: m.x - Math.sin(rot) * L, y: m.y + Math.cos(rot) * L };
+}
+const canSmoke = () => K.held === 'fajfka' && ['idle', 'hero', 'plant'].includes(st.phase);
+// párkrát potáhne (z hlavičky se kouří), vyfoukne dým šikmo nahoru a fajfku schová (vrátí se do batůžku sama)
+async function smokePipe() {
+  const h = st.hero;
+  K.busy++;
+  h.pipe = true;
+  for (let i = 0; i < 3; i++) {
+    await K.after(0.35);
+    K.sound(K.DYMKA, { volume: 0.6, rate: K.rand(0.9, 1.05) });
+    const b = pipeBowl();
+    for (let k = 0; k < 3; k++) {
+      st.smoke.push({ x0: b.x, y0: b.y - 8, x1: b.x + K.rand(-20, 20), y1: b.y - 140, t0: K.time + k * 0.12, dur: 1.4, r0: 6, r1: 24 });
+    }
+    await K.after(0.55);
+  }
+  K.sound('foukani');
+  const m = mouth();
+  for (let k = 0; k < 8; k++) {
+    st.smoke.push({ x0: m.x + h.facing * 10, y0: m.y, x1: m.x + h.facing * K.rand(120, 260), y1: m.y - K.rand(90, 200),
+      t0: K.time + k * 0.07, dur: 1.8, r0: 8, r1: 40 + K.rand(0, 20) });
+  }
+  await K.after(1.2);
+  h.pipe = false;
+  K.busy--;
+}
+function drawPipe(ctx) {
+  const img = K.img(PIPE_IMG);
+  if (!K.ready(img)) return;
+  const m = mouth();
+  ctx.save();
+  ctx.translate(m.x, m.y);
+  ctx.rotate(-st.hero.facing * PIPE_ROT);
+  ctx.scale(PIPE_S, PIPE_S);
+  ctx.drawImage(img, -img.width / 2, 0);
+  ctx.restore();
+}
+// obláčky dýmu: rostou, zpomalují a mizí (jako u studánky)
+function drawSmoke(ctx) {
+  for (const p of st.smoke) {
+    const u = (K.time - p.t0) / p.dur;
+    if (u < 0 || u > 1) continue;
+    const e = 1 - (1 - u) * (1 - u);
+    ctx.fillStyle = `rgba(232, 230, 222, ${0.75 * (1 - u)})`;
+    ctx.beginPath();
+    ctx.arc(K.lerp(p.x0, p.x1, e) + Math.sin(K.time * 2 + p.r1) * 6 * u, K.lerp(p.y0, p.y1, e), K.lerp(p.r0, p.r1, e), 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 // vyroste, rozkvete, práší jako sníh → finále
 async function bloom() {
   st.phase = 'bloom';
@@ -914,7 +980,7 @@ const scene = {
   enter() {
     // rozehraná hra zůstane (kluk si může dojít na louku a vrátit se), po finále začne znovu
     if (!st || st.phase === 'done') st = init();
-    K.preloadSounds([K.KARTA, 'prasknuti', 'kaminek', 'tetrivek-tokani', 'frkani', 'tetrivek', 'sustot', K.TRIANGL, K.HLAS.jeste, K.HLAS.staci, K.HLAS.vitezstvi, K.HLAS.snih,
+    K.preloadSounds([...K.DYMKA, 'foukani', K.KARTA, 'prasknuti', 'kaminek', 'tetrivek-tokani', 'frkani', 'tetrivek', 'sustot', K.TRIANGL, K.HLAS.jeste, K.HLAS.staci, K.HLAS.vitezstvi, K.HLAS.snih,
       'chorose', 'slunce', 'vitr', 'voda']);
     K.fade.a = 1;
     K.fadeTo(0, 0.6, FADE);
@@ -925,6 +991,7 @@ const scene = {
     }
   },
   update(dt) {
+    st.smoke = st.smoke.filter((p) => K.time - p.t0 < p.dur);
     for (const p of st.pollen) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx += 6 * dt; p.vy -= 4 * dt; }
     st.pollen = st.pollen.filter((p) => K.time - p.t0 < p.life);
     if (st.bloom >= 1 && st.phase !== 'done') {
@@ -971,9 +1038,9 @@ const scene = {
       if (t.icon === 'kvetina' || t.icon === 'kvetinaNe') drawFlowerBubble(ctx, x, y, t.icon === 'kvetinaNe');
       else K.drawBubble(ctx, x, y, 1.3, t.icon);
     }
-    const h = st.hero;
-    K.drawHero(ctx, h.x, HERO_Y, HERO_S, { facing: h.facing, walking: h.walking, phase: h.phase, halo: false,
-      wave: K.time - h.waveT < 0.9 || h.waveT > K.time, arm: h.arm, face: h.face });
+    K.drawHero(ctx, st.hero.x, HERO_Y, HERO_S, heroOpts());
+    if (st.hero.pipe) drawPipe(ctx);
+    drawSmoke(ctx);
     if (st.fly) K.drawIcon(ctx, st.fly.item, st.fly.x, st.fly.y, 46);
     if (st.snow > 0) {
       ctx.fillStyle = '#fff';
@@ -994,6 +1061,7 @@ const scene = {
   pickItems: () => !!st && st.phase === 'plant' && st.step < 3, // položky z batohu jdou vzít a pustit na hrudku
   hot(p) {
     if (canExit() && K.dist(p, EXIT) < 45) return true;
+    if (canSmoke()) return true;
     if (st.phase === 'idle') return inGrouse(p);
     if (st.phase === 'hero') return inTail(p) || onBtn(p, BTN.draw) || onBtn(p, BTN.stand);
     if (st.phase === 'plant') return st.step < 3 && K.dist(p, MOUND) < 120;
@@ -1006,15 +1074,16 @@ const scene = {
       K.busy--;
       return K.go('louka', { from: 'vrchol' });
     }
+    if (canSmoke()) return smokePipe(); // fajfka v ruce: kamkoli do scény = potáhne si
     if (st.phase === 'idle' && inGrouse(p)) return challenge();
     if (st.phase === 'hero') {
       if (inTail(p) || onBtn(p, BTN.draw)) return heroDraw();
       if (onBtn(p, BTN.stand)) return heroStand();
     }
     if (st.phase === 'plant' && st.step < 3 && K.dist(p, MOUND) < 120) {
-      // stačí klik na hrudku (položky jdou po řadě), nebo položku z batohu přetáhnout jako fajfku na žábu
-      // nástroj v ruce (hrnek, fajfka) nevadí: zasadí se další položka z batohu jako dřív
-      const held = K.ITEMS.includes(K.held) ? K.held : null;
+      // stačí klik na hrudku (položky jdou po řadě), nebo položku z batohu přetáhnout jako fajfku na žábu.
+      // Špatná položka ani hrnek se nezasadí: kluk ukáže, co patří na řadu (Daniel 2026-11-26; fajfka = kouří)
+      const held = K.held;
       if (!held || held === K.ITEMS[st.step]) return plantStep(held ? { x: p.x + 18, y: p.y + 22 } : null);
       return plantWrong();
     }
